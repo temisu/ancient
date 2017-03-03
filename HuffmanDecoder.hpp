@@ -12,10 +12,10 @@
 template<typename T>
 struct HuffmanCode
 {
-	size_t	length;
-	size_t	code;
+	uint32_t	length;
+	size_t		code;
 
-	T	value;
+	T		value;
 };
 
 template<typename T,T emptyValue,size_t depth>
@@ -134,11 +134,11 @@ public:
 
 	void insert(const HuffmanCode<T> &code)
 	{
-		size_t length=_table.size();
-		for (ssize_t i=0,currentBit=code.length;currentBit>=0;currentBit--)
+		size_t i=0,length=_table.size();
+		for (int32_t currentBit=code.length;currentBit>=0;currentBit--)
 		{
 			size_t codeBit=(currentBit)?(code.code&(1<<(currentBit-1)))?1:0:0;
-			if (i==ssize_t(length))
+			if (i==length)
 			{
 				_table.push_back(Node{{(currentBit&&!codeBit)?length+1:0,(currentBit&&codeBit)?length+1:0},currentBit?emptyValue:code.value});
 				length++;

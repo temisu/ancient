@@ -74,7 +74,7 @@ Buffer *readFile(const std::string &fileName)
 	if (file.is_open())
 	{
 		file.seekg(0,std::ios::end);
-		size_t length=file.tellg();
+		size_t length=size_t(file.tellg());
 		file.seekg(0,std::ios::beg);
 		ret->resize(length);
 		file.read(reinterpret_cast<char*>(ret->data()),length);

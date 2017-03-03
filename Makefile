@@ -2,7 +2,7 @@
 
 CC	= clang
 CXX	= clang++
-COMMONFLAGS = -Os -Wall -Werror -Wsign-compare -Wshorten-64-to-32
+COMMONFLAGS = -Os -Wall -Wsign-compare -Wshorten-64-to-32
 CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++14
 

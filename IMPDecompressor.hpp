@@ -21,11 +21,11 @@ public:
 	static bool detectHeader(uint32_t hdr);
 
 private:
-	bool		_isValid;
-	uint32_t	_rawSize;
-	uint32_t	_endOffset;
-	uint32_t	_checksumAddition;
-	uint32_t	_checksum;
+	bool		_isValid=false;
+	uint32_t	_rawSize=0;
+	uint32_t	_endOffset=0;
+	uint32_t	_checksumAddition=0;
+	uint32_t	_checksum=0;
 };
 
 #endif

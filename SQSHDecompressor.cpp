@@ -12,8 +12,7 @@ bool SQSHDecompressor::detectHeader(uint32_t hdr)
 }
 
 SQSHDecompressor::SQSHDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData),
-	_isValid(false)
+	Decompressor(packedData)
 {
 	if (!detectHeader(hdr)) return;
 	uint16_t tmp;

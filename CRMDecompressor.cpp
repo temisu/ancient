@@ -19,10 +19,7 @@ bool CRMDecompressor::detectHeader(uint32_t hdr)
 }
 
 CRMDecompressor::CRMDecompressor(const Buffer &packedData) :
-	Decompressor(packedData),
-	_isValid(false),
-	_isLZH(false),
-	_isSampled(false)
+	Decompressor(packedData)
 {
 	if (packedData.size()<20) return;
 	uint32_t hdr;

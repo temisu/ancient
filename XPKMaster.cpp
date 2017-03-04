@@ -17,8 +17,7 @@ bool XPKMaster::detectHeader(uint32_t hdr)
 }
 
 XPKMaster::XPKMaster(const Buffer &packedData) :
-	Decompressor(packedData),
-	_isValid(false)
+	Decompressor(packedData)
 {
 	if (packedData.size()<44) return;
 	uint32_t hdr;

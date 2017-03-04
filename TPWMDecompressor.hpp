@@ -22,8 +22,8 @@ public:
 	static bool detectHeader(uint32_t hdr);
 
 private:
-	bool		_isValid;
-	uint32_t	_rawSize;
+	bool		_isValid=false;
+	uint32_t	_rawSize=0;
 };
 
 #endif

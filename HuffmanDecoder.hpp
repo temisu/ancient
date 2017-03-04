@@ -6,7 +6,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <initializer_list>
 #include <vector>
 
 template<typename T>
@@ -31,18 +30,18 @@ public:
 		for (size_t i=0;i<_length;i++) _table[i]=emptyValue;
 	}
 
-	HuffmanDecoder(std::initializer_list<HuffmanCode<T>> list) :
+	template<typename ...Args>
+	HuffmanDecoder(const Args&& ...args) :
 		HuffmanDecoder()
 	{
+		const HuffmanCode<T> list[sizeof...(args)]={args...};
 		for (auto &item : list)
 			insert(item);
 	}
 
-
 	~HuffmanDecoder()
 	{
 	}
-
 
 	bool isValid() { return _isValid; }
 	
@@ -103,13 +102,14 @@ public:
 		_table.push_back(Node{{0,0},emptyValue});
 	}
 
-	HuffmanDecoder(std::initializer_list<HuffmanCode<T>> list) :
+	template<typename ...Args>
+	HuffmanDecoder(const Args&& ...args) :
 		HuffmanDecoder()
 	{
+		const HuffmanCode<T> list[sizeof...(args)]={args...};
 		for (auto &item : list)
 			insert(item);
 	}
-
 
 	~HuffmanDecoder()
 	{

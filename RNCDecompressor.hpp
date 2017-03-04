@@ -34,13 +34,13 @@ private:
 	bool RNC1DecompressNew(Buffer &rawData);
 	bool RNC2Decompress(Buffer &rawData);
 
-	bool		_isValid;
-	uint32_t	_rawSize;
-	uint32_t	_packedSize;
-	uint16_t	_rawCRC;
-	uint16_t	_packedCRC;
-	uint8_t		_chunks;
-	RNCVersion	_ver;
+	bool		_isValid=false;
+	uint32_t	_rawSize=0;
+	uint32_t	_packedSize=0;
+	uint16_t	_rawCRC=0;
+	uint16_t	_packedCRC=0;
+	uint8_t		_chunks=0;
+	RNCVersion	_ver=RNCVersion::Invalid;
 };
 
 #endif

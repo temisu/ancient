@@ -42,8 +42,7 @@ bool IMPDecompressor::detectHeader(uint32_t hdr)
 }
 
 IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
-	Decompressor(packedData),
-	_isValid(false)
+	Decompressor(packedData)
 {
 	if (packedData.size()<0x32) return;
 	uint32_t hdr;

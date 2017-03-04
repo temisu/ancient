@@ -23,7 +23,7 @@ public:
 	static bool detectHeader(uint32_t hdr);
 
 private:
-	bool		_isValid;
+	bool		_isValid=false;
 };
 
 #endif

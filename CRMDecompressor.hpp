@@ -21,11 +21,11 @@ public:
 	static bool detectHeader(uint32_t hdr);
 
 private:
-	bool		_isValid;
-	uint32_t	_packedSize;
-	uint32_t	_rawSize;
-	bool		_isLZH;			// "normal" compression or LZH compression
-	bool		_isSampled;		// normal or "sampled" i.e. obsfuscated
+	bool		_isValid=false;
+	uint32_t	_packedSize=0;
+	uint32_t	_rawSize=0;
+	bool		_isLZH=false;		// "normal" compression or LZH compression
+	bool		_isSampled=false;	// normal or "sampled" i.e. obsfuscated
 };
 
 #endif

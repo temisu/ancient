@@ -12,8 +12,7 @@ bool MASHDecompressor::detectHeader(uint32_t hdr)
 }
 
 MASHDecompressor::MASHDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData),
-	_isValid(false)
+	Decompressor(packedData)
 {
 	if (!detectHeader(hdr)) return;
 	_isValid=true;

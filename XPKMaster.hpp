@@ -27,12 +27,12 @@ private:
 	template <typename F>
 	bool forEachChunk(F func) const;
 
-	bool		_isValid;
-	uint32_t	_packedSize;
-	uint32_t	_rawSize;
-	uint32_t	_headerSize;
-	uint32_t	_type;
-	bool		_longHeaders;
+	bool		_isValid=false;
+	uint32_t	_packedSize=0;
+	uint32_t	_rawSize=0;
+	uint32_t	_headerSize=0;
+	uint32_t	_type=0;
+	bool		_longHeaders=false;
 };
 
 #endif

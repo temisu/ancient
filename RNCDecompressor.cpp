@@ -41,8 +41,7 @@ bool RNCDecompressor::detectHeader(uint32_t hdr)
 }
 
 RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
-	Decompressor(packedData),
-	_isValid(false)
+	Decompressor(packedData)
 {
 	uint32_t hdr;
 	if (!packedData.read(0,hdr)) return;
@@ -269,7 +268,7 @@ bool RNCDecompressor::RNC1DecompressOld(Buffer &rawData)
 			for (uint32_t i=0;i<4;i++)
 			{
 				litLength=readBits(litBitLengths[i]);
-				if (litLength!=(1<<litBitLengths[i])-1 || i==3)
+				if (litLength!=(1U<<litBitLengths[i])-1U || i==3)
 				{
 					litLength+=litAdditions[i];
 					break;

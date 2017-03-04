@@ -11,8 +11,7 @@ bool NONEDecompressor::detectHeader(uint32_t hdr)
 }
 
 NONEDecompressor::NONEDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData),
-	_isValid(false)
+	Decompressor(packedData)
 {
 	if (!detectHeader(hdr)) return;
 	_isValid=true;

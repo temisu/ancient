@@ -5,16 +5,15 @@
 #include "MASHDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-bool MASHDecompressor::detectHeader(uint32_t hdr)
+bool MASHDecompressor::detectHeaderXPK(uint32_t hdr)
 {
-	if (hdr==FourCC('MASH')) return true;
-		else return false;
+	return (hdr==FourCC('MASH'));
 }
 
 MASHDecompressor::MASHDecompressor(uint32_t hdr,const Buffer &packedData) :
 	Decompressor(packedData)
 {
-	if (!detectHeader(hdr)) return;
+	if (!detectHeaderXPK(hdr)) return;
 	_isValid=true;
 }
 

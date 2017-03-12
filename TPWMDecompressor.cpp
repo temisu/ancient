@@ -4,8 +4,7 @@
 
 bool TPWMDecompressor::detectHeader(uint32_t hdr)
 {
-	if (hdr==FourCC('TPWM')) return true;
-		else return false;
+	return (hdr==FourCC('TPWM'));
 }
 
 TPWMDecompressor::TPWMDecompressor(const Buffer &packedData) :
@@ -13,10 +12,10 @@ TPWMDecompressor::TPWMDecompressor(const Buffer &packedData) :
 {
 	if (packedData.size()<12) return;
 	uint32_t hdr;
-	if (!packedData.read(0,hdr)) return;
+	if (!packedData.readBE(0,hdr)) return;
 	if (!detectHeader(hdr)) return;
 
-	if (!packedData.read(4,_rawSize)) return;
+	if (!packedData.readBE(4,_rawSize)) return;
 	if (!_rawSize) return;
 	_isValid=true;
 }

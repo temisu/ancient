@@ -3,6 +3,7 @@
 #include "Decompressor.hpp"
 
 #include "CRMDecompressor.hpp"
+#include "DEFLATEDecompressor.hpp"
 #include "IMPDecompressor.hpp"
 #include "RNCDecompressor.hpp"
 #include "TPWMDecompressor.hpp"
@@ -22,10 +23,12 @@ Decompressor::~Decompressor()
 Decompressor *CreateDecompressor(const Buffer &packedData)
 {
 	uint32_t hdr;
-	if (!packedData.read(0,hdr)) return nullptr;
+	if (!packedData.readBE(0,hdr)) return nullptr;
 
 	if (CRMDecompressor::detectHeader(hdr))
 		return new CRMDecompressor(packedData);
+	if (DEFLATEDecompressor::detectHeader(hdr))
+		return new DEFLATEDecompressor(packedData);
 	if (IMPDecompressor::detectHeader(hdr))
 		return new IMPDecompressor(packedData);
 	if (RNCDecompressor::detectHeader(hdr))

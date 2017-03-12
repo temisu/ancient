@@ -5,18 +5,17 @@
 #include "SQSHDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-bool SQSHDecompressor::detectHeader(uint32_t hdr)
+bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr)
 {
-	if (hdr==FourCC('SQSH')) return true;
-		else return false;
+	return (hdr==FourCC('SQSH'));
 }
 
 SQSHDecompressor::SQSHDecompressor(uint32_t hdr,const Buffer &packedData) :
 	Decompressor(packedData)
 {
-	if (!detectHeader(hdr)) return;
+	if (!detectHeaderXPK(hdr)) return;
 	uint16_t tmp;
-	if (!packedData.read(0,tmp)) return;
+	if (!packedData.readBE(0,tmp)) return;
 	_rawSize=uint32_t(tmp);
 
 	_isValid=true;

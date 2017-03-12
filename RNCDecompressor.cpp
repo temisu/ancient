@@ -44,9 +44,9 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
 	Decompressor(packedData)
 {
 	uint32_t hdr;
-	if (!packedData.read(0,hdr)) return;
-	if (!packedData.read(4,_rawSize)) return;
-	if (!packedData.read(8,_packedSize)) return;
+	if (!packedData.readBE(0,hdr)) return;
+	if (!packedData.readBE(4,_rawSize)) return;
+	if (!packedData.readBE(8,_packedSize)) return;
 	if (!_rawSize || !_packedSize) return;
 
 	_ver=[&]()->RNCVersion
@@ -79,7 +79,7 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
 
 			// now the last resort: check CRC.
 			uint16_t hdrCrc,crc;
-			if (!packedData.read(14,hdrCrc)) return RNCVersion::Invalid;
+			if (!packedData.readBE(14,hdrCrc)) return RNCVersion::Invalid;
 			if (RNCCRC(_packedData,18,_packedSize,crc) && crc==hdrCrc)
 				return RNCVersion::RNC1New;
 			else
@@ -104,8 +104,8 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
 
 	if (_ver!=RNCVersion::RNC1Old)
 	{
-		if (!packedData.read(12,_rawCRC)) return;
-		if (!packedData.read(14,_packedCRC)) return;
+		if (!packedData.readBE(12,_rawCRC)) return;
+		if (!packedData.readBE(14,_packedCRC)) return;
 		if (!packedData.read(17,_chunks)) return;
 	}
 

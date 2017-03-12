@@ -4,16 +4,15 @@
 
 #include "NONEDecompressor.hpp"
 
-bool NONEDecompressor::detectHeader(uint32_t hdr)
+bool NONEDecompressor::detectHeaderXPK(uint32_t hdr)
 {
-	if (hdr==FourCC('NONE')) return true;
-		else return false;
+	return (hdr==FourCC('NONE'));
 }
 
 NONEDecompressor::NONEDecompressor(uint32_t hdr,const Buffer &packedData) :
 	Decompressor(packedData)
 {
-	if (!detectHeader(hdr)) return;
+	if (!detectHeaderXPK(hdr)) return;
 	_isValid=true;
 }
 

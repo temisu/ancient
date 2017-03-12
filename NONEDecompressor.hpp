@@ -20,7 +20,7 @@ public:
 	virtual size_t getRawSize() const override final;
 	virtual bool decompress(Buffer &rawData) override final;
 
-	static bool detectHeader(uint32_t hdr);
+	static bool detectHeaderXPK(uint32_t hdr);
 
 private:
 	bool		_isValid=false;

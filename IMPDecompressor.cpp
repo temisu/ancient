@@ -46,13 +46,13 @@ IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
 {
 	if (packedData.size()<0x32) return;
 	uint32_t hdr;
-	if (!packedData.read(0,hdr)) return;
+	if (!packedData.readBE(0,hdr)) return;
 	if (!readIMPHeader(hdr,_checksumAddition)) return;
 
-	if (!packedData.read(4,_rawSize)) return;
-	if (!packedData.read(8,_endOffset)) return;
+	if (!packedData.readBE(4,_rawSize)) return;
+	if (!packedData.readBE(8,_endOffset)) return;
 	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x32<packedData.size()) return;
-	if (!packedData.read(_endOffset+0x2e,_checksum)) return;
+	if (!packedData.readBE(_endOffset+0x2e,_checksum)) return;
 	_isValid=true;
 }
 
@@ -73,7 +73,7 @@ bool IMPDecompressor::verifyPacked() const
 	for (uint32_t i=0;i<_endOffset+0x2e;i+=2)
 	{
 		uint16_t tmp;
-		if (!_packedData.read(i,tmp)) return false;
+		if (!_packedData.readBE(i,tmp)) return false;
 		sum+=uint32_t(tmp);
 	}
 	return _checksum==sum;
@@ -169,7 +169,7 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 	// tables
 	uint16_t distanceValues[2][4];
 	for (uint32_t i=0;i<8;i++)
-		if (!_packedData.read(_endOffset+18+i*2,distanceValues[i>>2][i&3])) return false;
+		if (!_packedData.readBE(_endOffset+18+i*2,distanceValues[i>>2][i&3])) return false;
 	uint8_t distanceBits[3][4];
 	for (uint32_t i=0;i<12;i++)
 		if (!_packedData.read(_endOffset+34+i,distanceBits[i>>2][i&3])) return false;
@@ -198,7 +198,7 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 	size_t destOffset=_rawSize;
 
 	uint32_t litLength;
-	if (!_packedData.read(_endOffset+12,litLength)) return false;
+	if (!_packedData.readBE(_endOffset+12,litLength)) return false;
 
 	while (streamStatus)
 	{

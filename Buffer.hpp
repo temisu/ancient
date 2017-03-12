@@ -24,19 +24,59 @@ public:
 	virtual bool isResizable() const;
 	virtual void resize(size_t newSize);
 
-	inline bool read(size_t offset,uint32_t &retValue) const
+	inline bool readBE(size_t offset,uint32_t &retValue) const
 	{
 		if (offset+4>size()) return false;
 		const uint8_t *_ptr=reinterpret_cast<const uint8_t*>(data())+offset;
-		retValue=(uint32_t(_ptr[0])<<24)|(uint32_t(_ptr[1])<<16)|(uint32_t(_ptr[2])<<8)|uint32_t(_ptr[3]);
+#if __BYTE_ORDER__ == 4321
+		if (!(reinterpret_cast<size_t>(_ptr)&1))
+		{
+			retValue=*reinterpret_cast<const uint32_t*>(_ptr);
+		} else
+#elif __BYTE_ORDER__ == 1234
+		// will fall through the else path
+#else
+#error
+#endif
+		{
+			retValue=(uint32_t(_ptr[0])<<24)|(uint32_t(_ptr[1])<<16)|(uint32_t(_ptr[2])<<8)|uint32_t(_ptr[3]);
+		}
 		return true;
 	}
 
-	inline bool read(size_t offset,uint16_t &retValue) const
+	inline bool readBE(size_t offset,uint16_t &retValue) const
 	{
 		if (offset+2>size()) return false;
 		const uint8_t *_ptr=reinterpret_cast<const uint8_t*>(data())+offset;
-		retValue=(uint16_t(_ptr[0])<<8)|uint16_t(_ptr[1]);
+#if __BYTE_ORDER__ == 4321
+		if (!(reinterpret_cast<size_t>(_ptr)&1))
+		{
+			retValue=*reinterpret_cast<const uint16_t*>(_ptr);
+		} else
+#elif __BYTE_ORDER__ == 1234
+		// will fall through the else path
+#else
+#error
+#endif
+		{
+			retValue=(uint16_t(_ptr[0])<<8)|uint16_t(_ptr[1]);
+		}
+		return true;
+	}
+
+	inline bool readLE(size_t offset,uint32_t &retValue) const
+	{
+		if (offset+4>size()) return false;
+		const uint8_t *_ptr=reinterpret_cast<const uint8_t*>(data())+offset;
+		retValue=(uint32_t(_ptr[3])<<24)|(uint32_t(_ptr[2])<<16)|(uint32_t(_ptr[1])<<8)|uint32_t(_ptr[0]);
+		return true;
+	}
+
+	inline bool readLE(size_t offset,uint16_t &retValue) const
+	{
+		if (offset+2>size()) return false;
+		const uint8_t *_ptr=reinterpret_cast<const uint8_t*>(data())+offset;
+		retValue=(uint16_t(_ptr[1])<<8)|uint16_t(_ptr[0]);
 		return true;
 	}
 

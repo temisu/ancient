@@ -1,17 +1,16 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef SQSHDECOMPRESSOR_HPP
-#define SQSHDECOMPRESSOR_HPP
+#ifndef DEFLATEDECOMPRESSOR_HPP
+#define DEFLATEDECOMPRESSOR_HPP
 
 #include "Decompressor.hpp"
 
-// XPK sub-decompressor
-class SQSHDecompressor : public Decompressor
+class DEFLATEDecompressor : public Decompressor
 {
 public:
-	SQSHDecompressor(uint32_t hdr,const Buffer &packedData);
-
-	virtual ~SQSHDecompressor();
+	DEFLATEDecompressor(const Buffer &packedData);
+	DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData);	// XPK sub-decompressor
+	virtual ~DEFLATEDecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -20,11 +19,16 @@ public:
 	virtual size_t getRawSize() const override final;
 	virtual bool decompress(Buffer &rawData) override final;
 
+	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);
 
 private:
+	bool		_isZlibStream=false;
 	bool		_isValid=false;
+	uint32_t	_packedSize=0;
+	uint32_t	_packedOffset=0;
 	uint32_t	_rawSize=0;
+	uint32_t	_rawCRC;
 };
 
 #endif

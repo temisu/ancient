@@ -15,7 +15,8 @@ Decompression algorithms provided:
 - File Imploder (and most of its clones)
 - Rob Northen compressors. supports all 3 modes.
 - Turbo Packer by Wolfgang Mayerle.
-- Supports opening XPK-encapsulated files. XPK decompressors supported are MASH, NONE and SQSH
+- Standard gzip
+- Supports opening XPK-encapsulated files. XPK decompressors supported are CRM2, CRMS, GZIP, MASH, NONE and SQSH
 
 Some decompressors have tested better than others. Support for data verification is severely lacking in most formats.
 Also there is not support for password protected files.

@@ -18,21 +18,32 @@ bool CRMDecompressor::detectHeader(uint32_t hdr)
 	}
 }
 
+bool CRMDecompressor::detectHeaderXPK(uint32_t hdr)
+{
+	return (hdr==FourCC('CRMS') || hdr==FourCC('CRM2'));
+}
+
 CRMDecompressor::CRMDecompressor(const Buffer &packedData) :
 	Decompressor(packedData)
 {
 	if (packedData.size()<20) return;
 	uint32_t hdr;
-	if (!packedData.read(0,hdr)) return;
+	if (!packedData.readBE(0,hdr)) return;
 	if (!detectHeader(hdr)) return;
 
-	if (!packedData.read(6,_rawSize)) return;
+	if (!packedData.readBE(6,_rawSize)) return;
 	if (!_rawSize) return;
-	if (!packedData.read(10,_packedSize)) return;
+	if (!packedData.readBE(10,_packedSize)) return;
 	if (_packedSize>packedData.size()) return;
 	if (((hdr>>8)&0xff)=='m') _isSampled=true;
 	if ((hdr&0xff)=='2') _isLZH=true;
 	_isValid=true;
+}
+
+CRMDecompressor::CRMDecompressor(uint32_t hdr,const Buffer &packedData) :
+	CRMDecompressor(packedData)
+{
+	// nothing needed, XPK CRM integration includes the whole header
 }
 
 CRMDecompressor::~CRMDecompressor()
@@ -73,9 +84,9 @@ bool CRMDecompressor::decompress(Buffer &rawData)
 
 	// There are empty bits?!? at the start of the stream. take them out
 	uint32_t originalBitsContent;
-	if (!_packedData.read(bufOffset,originalBitsContent)) return false;
+	if (!_packedData.readBE(bufOffset,originalBitsContent)) return false;
 	uint16_t originalShift;
-	if (!_packedData.read(bufOffset+4,originalShift)) return false;
+	if (!_packedData.readBE(bufOffset+4,originalShift)) return false;
 	uint8_t bufBitsLength=originalShift+16;
 	uint32_t bufBitsContent=originalBitsContent>>(16-originalShift);
 

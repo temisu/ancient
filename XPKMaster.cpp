@@ -7,13 +7,15 @@
 #include "XPKMaster.hpp"
 
 // Sub-decompressors
+#include "CRMDecompressor.hpp"
+#include "DEFLATEDecompressor.hpp"
 #include "MASHDecompressor.hpp"
 #include "NONEDecompressor.hpp"
 #include "SQSHDecompressor.hpp"
 
 bool XPKMaster::detectHeader(uint32_t hdr)
 {
-	return hdr == FourCC('XPKF');
+	return (hdr==FourCC('XPKF'));
 }
 
 XPKMaster::XPKMaster(const Buffer &packedData) :
@@ -21,12 +23,12 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 {
 	if (packedData.size()<44) return;
 	uint32_t hdr;
-	if (!packedData.read(0,hdr)) return;
+	if (!packedData.readBE(0,hdr)) return;
 	if (!detectHeader(hdr)) return;
 
-	if (!packedData.read(4,_packedSize)) return;
-	if (!packedData.read(8,_type)) return;
-	if (!packedData.read(12,_rawSize)) return;
+	if (!packedData.readBE(4,_packedSize)) return;
+	if (!packedData.readBE(8,_type)) return;
+	if (!packedData.readBE(12,_rawSize)) return;
 	uint8_t flags;
 	if (!packedData.read(32,flags)) return;
 	_longHeaders=(flags&1)?true:false;
@@ -34,7 +36,7 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	if (flags&4)		// extra header
 	{
 		uint16_t extraLen;
-		if (!packedData.read(36,extraLen)) return;
+		if (!packedData.readBE(36,extraLen)) return;
 		_headerSize=38+extraLen;
 	} else {
 		_headerSize=36;
@@ -86,7 +88,7 @@ bool XPKMaster::verifyPacked() const
 		if (!headerChecksum(header,0,header.size())) return false;
 
 		uint16_t hdrCheck;
-		if (!header.read(2,hdrCheck)) return false;
+		if (!header.readBE(2,hdrCheck)) return false;
 		if (chunk.size() && !chunkChecksum(chunk,0,chunk.size(),hdrCheck)) return false;
 
 		if (chunkType==1)
@@ -175,11 +177,15 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 Decompressor *XPKMaster::createSubDecompressor(const Buffer &buffer) const
 {
-	if (MASHDecompressor::detectHeader(_type))
+	if (CRMDecompressor::detectHeaderXPK(_type))
+		return new CRMDecompressor(_type,buffer);
+	if (DEFLATEDecompressor::detectHeaderXPK(_type))
+		return new DEFLATEDecompressor(_type,buffer);
+	if (MASHDecompressor::detectHeaderXPK(_type))
 		return new MASHDecompressor(_type,buffer);
-	if (NONEDecompressor::detectHeader(_type))
+	if (NONEDecompressor::detectHeaderXPK(_type))
 		return new NONEDecompressor(_type,buffer);
-	if (SQSHDecompressor::detectHeader(_type))
+	if (SQSHDecompressor::detectHeaderXPK(_type))
 		return new SQSHDecompressor(_type,buffer);
 	return nullptr;
 }
@@ -196,10 +202,10 @@ bool XPKMaster::forEachChunk(F func) const
 		{
 			if (_longHeaders)
 			{
-				if (!_packedData.read(currentOffset+offsetLong,value)) return false;
+				if (!_packedData.readBE(currentOffset+offsetLong,value)) return false;
 			} else {
 				uint16_t tmp;
-				if (!_packedData.read(currentOffset+offsetShort,tmp)) return false;
+				if (!_packedData.readBE(currentOffset+offsetShort,tmp)) return false;
 				value=uint32_t(tmp);
 			}
 			return true;

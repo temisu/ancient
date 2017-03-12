@@ -9,6 +9,7 @@ class CRMDecompressor : public Decompressor
 {
 public:
 	CRMDecompressor(const Buffer &packedData);
+	CRMDecompressor(uint32_t hdr,const Buffer &packedData);		// XPK sub-decompressor
 	virtual ~CRMDecompressor();
 
 	virtual bool isValid() const override final;
@@ -19,6 +20,7 @@ public:
 	virtual bool decompress(Buffer &rawData) override final;
 
 	static bool detectHeader(uint32_t hdr);
+	static bool detectHeaderXPK(uint32_t hdr);
 
 private:
 	bool		_isValid=false;

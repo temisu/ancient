@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <dirent.h>
 
-#include "Buffer.hpp"
+#include <Buffer.hpp>
 #include "Decompressor.hpp"
 
 class VectorBuffer : public Buffer
@@ -98,40 +98,69 @@ bool writeFile(const std::string &fileName,const Buffer &content)
 
 int main(int argc,char **argv)
 {
-	if (argc!=3)
+	if (argc!=4)
 	{
-		printf("Usage: <prog> infile outfile\n");
+		fprintf(stderr,"Usage: <prog> cmd input output\n");
+		fprintf(stderr,"Usage: cmd=<decompress,verify>\n");
 		return -1;
 	}
-	std::unique_ptr<Buffer> packed{readFile(argv[1])};
-	std::unique_ptr<Decompressor> decompressor{CreateDecompressor(*packed)};
-	if (!decompressor)
+	std::string cmd=argv[1];
+
+	if (cmd=="decompress" || cmd=="verify")
 	{
-		printf("Unknown compression format in file %s\n",argv[1]);
+		std::unique_ptr<Buffer> packed{readFile(argv[2])};
+		std::unique_ptr<Decompressor> decompressor{CreateDecompressor(*packed)};
+		if (!decompressor)
+		{
+			printf("Unknown compression format in file %s\n",argv[2]);
+			return -1;
+		}
+		if (!decompressor->isValid())
+		{
+			fprintf(stderr,"File %s is not valid or is corrupted\n",argv[2]);
+			return -1;
+		}
+		//printf("Compression is '%s'\n",decompressor->getName().c_str());
+		if (!decompressor->verifyPacked())
+		{
+			fprintf(stderr,"File %s has errors in packed stream\n",argv[2]);
+			return -1;
+		}
+		std::unique_ptr<Buffer> raw{new VectorBuffer()};
+		raw->resize(decompressor->getRawSize());
+		if (!decompressor->decompress(*raw))
+		{
+			fprintf(stderr,"Decompression failed for %s\n",argv[2]);
+			return -1;
+		}
+		if (!decompressor->verifyRaw(*raw))
+		{
+			fprintf(stderr,"Verify failed for %s\n",argv[2]);
+			return -1;
+		}
+		if (cmd=="decompress")
+		{
+			writeFile(argv[3],*raw);
+			return 0;
+		} else {
+			std::unique_ptr<Buffer> verify{readFile(argv[3])};
+			if (raw->size()!=verify->size())
+			{
+				fprintf(stderr,"Verify failed for %s and %s - sizes differ\n",argv[2],argv[3]);
+				return -1;
+			}
+			for (size_t i=0;i<raw->size();i++)
+			{
+				if (raw->data()[i]!=verify->data()[i])
+				{
+					fprintf(stderr,"Verify failed for %s and %s - contents differ @%zu\n",argv[2],argv[3],i);
+					return -1;
+				}
+			}
+			return 0;
+		}
+	} else {
+		fprintf(stderr,"Unknown command\n");
 		return -1;
 	}
-	if (!decompressor->isValid())
-	{
-		printf("File %s is not valid or is corrupted\n",argv[1]);
-		return -1;
-	}
-	if (!decompressor->verifyPacked())
-	{
-		printf("File %s has errors in packed stream\n",argv[1]);
-		return -1;
-	}
-	std::unique_ptr<Buffer> raw{new VectorBuffer()};
-	raw->resize(decompressor->getRawSize());
-	if (!decompressor->decompress(*raw))
-	{
-		printf("Decompression failed for %s\n",argv[1]);
-		return -1;
-	}
-	if (!decompressor->verifyRaw(*raw))
-	{
-		printf("Verify failed for %s\n",argv[1]);
-		return -1;
-	}
-	writeFile(argv[2],*raw);
-	return 0;
 }

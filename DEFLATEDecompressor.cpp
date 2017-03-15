@@ -5,7 +5,7 @@
 
 #include "DEFLATEDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
-#include "CRC32.hpp"
+#include <CRC32.hpp>
 
 static bool Adler32(const Buffer &buffer,size_t offset,size_t len,uint32_t &retValue)
 {
@@ -34,84 +34,114 @@ bool DEFLATEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return (hdr==FourCC('GZIP'));
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData) :
-	Decompressor(packedData)
+bool DEFLATEDecompressor::detectGZIP()
 {
-	if (packedData.size()<18) return;
+	if (_packedData.size()<18) return false;
 	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return;
-	if (!detectHeader(hdr)) return;
+	if (!_packedData.readBE(0,hdr)) return false;
+	if (!detectHeader(hdr)) return false;
 
 	uint8_t cm;
-	if (!packedData.read(2,cm)) return;
-	if (cm!=8) return;
+	if (!_packedData.read(2,cm)) return false;
+	if (cm!=8) return false;
 
 	uint8_t flags;
-	if (!packedData.read(3,flags)) return;
+	if (!_packedData.read(3,flags)) return false;
 	
 	uint32_t currentOffset=10;
 
 	if (flags&4)
 	{
 		uint16_t xlen;
-		if (!packedData.readLE(currentOffset,xlen)) return;
+		if (!_packedData.readLE(currentOffset,xlen)) return false;
 		currentOffset+=uint32_t(xlen)+2;
 	}
 	
-	auto skipString=[&]()
+	auto skipString=[&]()->bool
 	{
 		uint8_t ch;
 		do {
-			if (!packedData.read(currentOffset,ch)) return;
+			if (!_packedData.read(currentOffset,ch)) return false;
 			currentOffset++;
 		} while (ch);
+		return true;
 	};
 	
-	if (flags&8) skipString(); // FNAME
-	if (flags&16) skipString(); // FCOMMENT
+	if (flags&8)
+		if (!skipString()) return false; // FNAME
+	if (flags&16)
+		if (!skipString()) return false; // FCOMMENT
 
 	if (flags&2) currentOffset+=2; // FHCRC
 	_packedOffset=currentOffset;
 
-	if (currentOffset+8>packedData.size()) return;
-	_packedSize=uint32_t(packedData.size())-8;
+	if (currentOffset+8>_packedData.size()) return false;
+	_packedSize=uint32_t(_packedData.size())-8;
 
-	if (!packedData.readLE(packedData.size()-8,_rawCRC)) return;
-	if (!packedData.readLE(packedData.size()-4,_rawSize)) return;
+	if (!_packedData.readLE(_packedData.size()-8,_rawCRC)) return false;
+	if (!_packedData.readLE(_packedData.size()-4,_rawSize)) return false;
 
-	_isValid=true;
+	_type=Type::GZIP;
+	return true;
+}
+
+bool DEFLATEDecompressor::detectZLib()
+{
+	if (_packedData.size()<6) return false;
+
+	// no knowledge about rawSize, before decompression
+	// packedSize told by decompressor
+	_packedSize=uint32_t(_packedData.size())-4;
+	_packedOffset=2;
+
+	// really it is adler32, but we can use the same name
+	if (!_packedData.readBE(_packedSize,_rawCRC)) return false;
+
+	uint8_t cm;
+	if (!_packedData.read(0,cm)) return false;
+	if ((cm&0xf)!=8) return false;
+	if ((cm&0xf0)>0x70) return false;
+
+	uint8_t flags;
+	if (!_packedData.read(1,flags)) return false;
+	if (flags&0x20)
+	{
+		if (_packedSize<4) return false;
+		_packedSize-=4;
+		_packedOffset+=4;
+	}
+
+	if (((uint16_t(cm)<<8)|uint16_t(flags))%31) return false;
+
+	_type=Type::ZLib;
+	return true;
+}
+
+DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData) :
+	Decompressor(packedData)
+{
+	_isValid=detectGZIP();
 }
 
 DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData) :
 	Decompressor(packedData)
 {
-	if (packedData.size()<6) return;
-	_isZlibStream=true;
-
-	// no knowledge about rawSize, before decompression
-	// packedSize told by decompressor
-	_packedSize=uint32_t(packedData.size())-4;
-	_packedOffset=2;
-
-	// really it is adler32, but we can use the same name
-	if (!packedData.readBE(_packedSize,_rawCRC)) return;
-
-	uint8_t cm;
-	if (!packedData.read(0,cm)) return;
-	if ((cm&0xf)!=8) return;
-	if ((cm&0xf0)>0x70) return;
-
-	uint8_t flags;
-	if (!packedData.read(1,flags)) return;
-	if (flags&0x20)
+	if (!detectZLib())
 	{
-		if (_packedSize<4) return;
-		_packedSize-=4;
-		_packedOffset+=4;
+		_packedSize=uint32_t(packedData.size());
+		_packedOffset=0;
+		_type=Type::Raw;
 	}
+	_isValid=true;
+}
 
-	if (((uint16_t(cm)<<8)|uint16_t(flags))%31) return;
-
+DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,uint32_t packedSize,uint32_t rawSize) :
+	Decompressor(packedData)
+{
+	_packedSize=uint32_t(packedData.size());
+	_packedOffset=0;
+	_rawSize=rawSize;
+	_type=Type::Raw;
 	_isValid=true;
 }
 
@@ -133,19 +163,40 @@ bool DEFLATEDecompressor::verifyPacked() const
 
 bool DEFLATEDecompressor::verifyRaw(const Buffer &rawData) const
 {
-	uint32_t rawSize;
-	if (_isZlibStream) rawSize=uint32_t(rawData.size());
-		else rawSize=_rawSize;
-	if (!_isValid || rawData.size()<rawSize) return false;
-	if (_isZlibStream)
+	if (_type==Type::GZIP)
 	{
-		uint32_t adler;
-		return Adler32(rawData,0,rawSize,adler) && adler==_rawCRC;
-	} else {
+		if (rawData.size()<_rawSize) return false;
 		uint32_t crc;
-		return CRC32(rawData,0,rawSize,crc) && crc==_rawCRC;
-	}
+		return CRC32(rawData,0,_rawSize,crc) && crc==_rawCRC;
+	} else if (_type==Type::ZLib) {
+		uint32_t adler;
+		return Adler32(rawData,0,rawData.size(),adler) && adler==_rawCRC;
+	} else return true;
 }
+
+const std::string &DEFLATEDecompressor::getName() const
+{
+	if (!_isValid) return Decompressor::getName();
+	static std::string names[3]={
+		"gzip: Deflate",
+		"zlib: Deflate",
+		"raw: Deflate"};
+	return names[static_cast<uint32_t>(_type)];
+}
+
+const std::string &DEFLATEDecompressor::getSubName() const
+{
+	if (!_isValid) return Decompressor::getSubName();
+	static std::string name="XPK-GZIP: Deflate";
+	return name;
+}
+
+size_t DEFLATEDecompressor::getPackedSize() const
+{
+	// no way to know :(
+	return 0;
+}
+
 
 size_t DEFLATEDecompressor::getRawSize() const
 {
@@ -155,7 +206,7 @@ size_t DEFLATEDecompressor::getRawSize() const
 
 bool DEFLATEDecompressor::decompress(Buffer &rawData)
 {
-	if (_isZlibStream)
+	if (_type==Type::ZLib)
 		_rawSize=uint32_t(rawData.size());
 
 	if (!_isValid || rawData.size()<_rawSize) return false;
@@ -387,9 +438,9 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 					}
 					static const uint32_t distanceAdditions[30]={
 						1,2,3,4,5,7,9,13,
-						17,25,33,49,65,97,129,193,
-						257,385,513,769,1025,1537,2049,3073,
-						4097,6145,8193,12289,16385,24577};
+						0x11,0x19,0x21,0x31,0x41,0x61,0x81,0xc1,
+						0x101,0x181,0x201,0x301,0x401,0x601,0x801,0xc01,
+						0x1001,0x1801,0x2001,0x3001,0x4001,0x6001};
 					static const uint32_t distanceBits[30]={
 						0,0,0,0,1,1,2,2,
 						3,3,4,4,5,5,6,6,

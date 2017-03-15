@@ -36,8 +36,7 @@ static bool RNCCRC(const Buffer &buffer,size_t offset,size_t len,uint16_t &retVa
 
 bool RNCDecompressor::detectHeader(uint32_t hdr)
 {
-	if (hdr==FourCC('RNC\001') || hdr==FourCC('RNC\002')) return true;
-		return false;
+	return hdr==FourCC('RNC\001') || hdr==FourCC('RNC\002');
 }
 
 RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
@@ -49,77 +48,52 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
 	if (!packedData.readBE(8,_packedSize)) return;
 	if (!_rawSize || !_packedSize) return;
 
-	_ver=[&]()->RNCVersion
+	if (hdr==FourCC('RNC\001'))
 	{
-		if (hdr==FourCC('RNC\001'))
-		{
-			// now detect between old and new version
-			// since the old and the new version share the same id, there is no foolproof way
-			// to tell them apart. It is easier to prove that it is not something by finding
-			// specific invalid bitstream content.
+		// now detect between old and new version
+		// since the old and the new version share the same id, there is no foolproof way
+		// to tell them apart. It is easier to prove that it is not something by finding
+		// specific invalid bitstream content.
 
-			// if we can't access the old-stream we are nothing (since old stream is smaller the new stream by header 12 vs. 18)
-			uint8_t oldStreamStart,newStreamStart;
-			if (!packedData.read(_packedSize+11,oldStreamStart)) return RNCVersion::Invalid;
+		// if we can't access the old-stream we are nothing (since old stream is smaller the new stream by header 12 vs. 18)
+		uint8_t oldStreamStart,newStreamStart;
+		uint16_t hdrCrc,crc;
+		if (!packedData.read(_packedSize+11,oldStreamStart)) return;
 
-			// well, this is silly though but lets assume someone has made old format RNC1 with total size less than 19
-			if (!packedData.read(18,newStreamStart)) return RNCVersion::RNC1Old;
+		// well, this is silly though but lets assume someone has made old format RNC1 with total size less than 19
+		if (!packedData.read(18,newStreamStart))
+			_ver=Version::RNC1Old;
 
-			// Check that stream starts with a literal(s)
-			if (!(oldStreamStart&0x80))
-				return RNCVersion::RNC1New;
+		// Check that stream starts with a literal(s)
+		else if (!(oldStreamStart&0x80))
+			_ver=Version::RNC1New;
 
-			// New stream have two bits in start as a filler on new stream. Those are always 0
-			// (although this is not strictly mandated)
-			// +
-			// Even though it is possible to make new RNC1 stream which starts with zero literal table size,
-			// it is extremely unlikely
-			if ((newStreamStart&3) || !(newStreamStart&0x7c))
-				return RNCVersion::RNC1Old;
+		// New stream have two bits in start as a filler on new stream. Those are always 0
+		// (although this is not strictly mandated)
+		// +
+		// Even though it is possible to make new RNC1 stream which starts with zero literal table size,
+		// it is extremely unlikely
+		else if ((newStreamStart&3) || !(newStreamStart&0x7c))
+			_ver=Version::RNC1Old;
 
-			// now the last resort: check CRC.
-			uint16_t hdrCrc,crc;
-			if (!packedData.readBE(14,hdrCrc)) return RNCVersion::Invalid;
-			if (RNCCRC(_packedData,18,_packedSize,crc) && crc==hdrCrc)
-				return RNCVersion::RNC1New;
-			else
-				return RNCVersion::RNC1Old;
+		// now the last resort: check CRC.
+		else if (!packedData.readBE(14,hdrCrc)) return;
+		else if (RNCCRC(_packedData,18,_packedSize,crc) && crc==hdrCrc)
+			_ver=Version::RNC1New;
+		else
+			_ver=Version::RNC1Old;
+	} else if (hdr==FourCC('RNC\002')) {
+		_ver=Version::RNC2;
+	} else return;
 
-			// this would be good for files, where we know the size, but not for memory buffer.
-			// it is not good idea to make separate logic for the 2
-#if 0
-			if (_packedSize+12==packedData.size())
-			{
-				return RNCVersion::RNC1Old;
-			}
-			return RNCVersion::RNC1New;
-#endif
-		} else if (hdr==FourCC('RNC\002')) {
-			return RNCVersion::RNC2;
-		} else {
-			return RNCVersion::Invalid;
-		}
-	}();
-	if (_ver==RNCVersion::Invalid) return;
-
-	if (_ver!=RNCVersion::RNC1Old)
+	if (_ver!=Version::RNC1Old)
 	{
 		if (!packedData.readBE(12,_rawCRC)) return;
 		if (!packedData.readBE(14,_packedCRC)) return;
 		if (!packedData.read(17,_chunks)) return;
 	}
 
-	size_t hdrSize=(_ver==RNCVersion::RNC1Old)?12:18;
-	// nope, messes with type detection & crc
-#if 0
-	// Hack: sometimes the packed size header is smaller than the actual data amount
-	// since reading the bistream is non-destructive. let it go beyond the advertised size (but not beyond buffer)
-	// works only on std. RNC1 & RNC2, not the old one.
-	if (_ver!=RNCVersion::RNC1Old && _packedSize+hdrSize<packedData.size())
-	{
-		_packedSize=packedData.size()-hdrSize;
-	}
-#endif
+	size_t hdrSize=(_ver==Version::RNC1Old)?12:18;
 	if (_packedSize+hdrSize<=packedData.size()) _isValid=true;
 }
 
@@ -136,7 +110,7 @@ bool RNCDecompressor::isValid() const
 bool RNCDecompressor::verifyPacked() const
 {
 	if (!_isValid) return false;
-	if (_ver!=RNCVersion::RNC1Old)
+	if (_ver!=Version::RNC1Old)
 	{
 		uint16_t crc;
 		return RNCCRC(_packedData,18,_packedSize,crc) && crc==_packedCRC;
@@ -146,11 +120,28 @@ bool RNCDecompressor::verifyPacked() const
 bool RNCDecompressor::verifyRaw(const Buffer &rawData) const
 {
 	if (!_isValid || rawData.size()<_rawSize) return false;
-	if (_ver!=RNCVersion::RNC1Old)
+	if (_ver!=Version::RNC1Old)
 	{
 		uint16_t crc;
 		return RNCCRC(rawData,0,_rawSize,crc) && crc==_rawCRC;
 	} else return true;
+}
+
+const std::string &RNCDecompressor::getName() const
+{
+	if (!_isValid) return Decompressor::getName();
+	static std::string names[3]={
+		"RNC1: Rob Northen RNC1 Compressor (old)",
+		"RNC1: Rob Northen RNC1 Compressor ",
+		"RNC2: Rob Northen RNC2 Compressor"};
+	return names[static_cast<uint32_t>(_ver)];
+}
+
+size_t RNCDecompressor::getPackedSize() const
+{
+	if (!_isValid) return 0;
+	if (_ver==Version::RNC1Old) return _packedSize+18;
+		else return _packedSize+12;
 }
 
 size_t RNCDecompressor::getRawSize() const
@@ -165,13 +156,13 @@ bool RNCDecompressor::decompress(Buffer &rawData)
 
 	switch (_ver)
 	{
-		case RNCVersion::RNC1Old:
+		case Version::RNC1Old:
 		return RNC1DecompressOld(rawData);
 
-		case RNCVersion::RNC1New:
+		case Version::RNC1New:
 		return RNC1DecompressNew(rawData);
 
-		case RNCVersion::RNC2:
+		case Version::RNC2:
 		return RNC2Decompress(rawData);
 
 		default:

@@ -2,6 +2,7 @@
 
 #include "CRMDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
+#include "DLTADecode.hpp"
 
 bool CRMDecompressor::detectHeader(uint32_t hdr)
 {
@@ -20,7 +21,7 @@ bool CRMDecompressor::detectHeader(uint32_t hdr)
 
 bool CRMDecompressor::detectHeaderXPK(uint32_t hdr)
 {
-	return (hdr==FourCC('CRMS') || hdr==FourCC('CRM2'));
+	return hdr==FourCC('CRM2') || hdr==FourCC('CRMS');
 }
 
 CRMDecompressor::CRMDecompressor(const Buffer &packedData) :
@@ -34,7 +35,7 @@ CRMDecompressor::CRMDecompressor(const Buffer &packedData) :
 	if (!packedData.readBE(6,_rawSize)) return;
 	if (!_rawSize) return;
 	if (!packedData.readBE(10,_packedSize)) return;
-	if (_packedSize>packedData.size()) return;
+	if (_packedSize+14>packedData.size()) return;
 	if (((hdr>>8)&0xff)=='m') _isSampled=true;
 	if ((hdr&0xff)=='2') _isLZH=true;
 	_isValid=true;
@@ -43,7 +44,7 @@ CRMDecompressor::CRMDecompressor(const Buffer &packedData) :
 CRMDecompressor::CRMDecompressor(uint32_t hdr,const Buffer &packedData) :
 	CRMDecompressor(packedData)
 {
-	// nothing needed, XPK CRM integration includes the whole header
+	_isXPKDelta=(hdr==FourCC('CRMS'));
 }
 
 CRMDecompressor::~CRMDecompressor()
@@ -66,6 +67,41 @@ bool CRMDecompressor::verifyRaw(const Buffer &rawData) const
 {
 	// no CRC
 	return _isValid;
+}
+
+const std::string &CRMDecompressor::getName() const
+{
+	if (!_isValid) return Decompressor::getName();
+	static std::string names[4]={
+		"CrM!: Crunch-Mania standard-mode",
+		"Crm!: Crunch-Mania standard-mode, sampled",
+		"CrM2: Crunch-Mania LZH-mode",
+		"Crm2: Crunch-Mania LZH-mode, sampled"};
+	return names[(_isLZH?2:0)+(_isSampled?1:0)];
+}
+
+const std::string &CRMDecompressor::getSubName() const
+{
+	// the XPK-id is not used in decompressing process.
+	// This means we can have frankenstein configurations
+	// Least we can do is to report them...
+	if (!_isValid) return Decompressor::getName();
+	static std::string names[8]={
+		"XPK-CRM2: Crunch-Mania standard-mode",
+		"XPK-CRM2: Crunch-Mania standard-mode, sampled",
+		"XPK-CRM2: Crunch-Mania LZH-mode",			// good config 1
+		"XPK-CRM2: Crunch-Mania LZH-mode, sampled",
+		"XPK-CRMS: Crunch-Mania standard-mode",
+		"XPK-CRMS: Crunch-Mania standard-mode, sampled",
+		"XPK-CRMS: Crunch-Mania LZH-mode",
+		"XPK-CRMS: Crunch-Mania LZH-mode, sampled"};		// good config 2
+	return names[(_isXPKDelta?4:0)|(_isLZH?2:0)|(_isSampled?1:0)];
+}
+
+size_t CRMDecompressor::getPackedSize() const
+{
+	if (!_isValid) return 0;
+	return _packedSize+14;
 }
 
 size_t CRMDecompressor::getRawSize() const
@@ -276,16 +312,9 @@ bool CRMDecompressor::decompress(Buffer &rawData)
 		}
 	}
 
-	if (_isSampled && streamStatus && !destOffset)
-	{
-		// unobsfuscate!
-		uint8_t ctr=0;
-		for (uint32_t i=0;i<_rawSize;i++)
-		{
-			uint8_t tmp=dest[i];
-			ctr=dest[i]=tmp+ctr;
-		}
-	}
+	bool ret=(streamStatus && !destOffset);
+	if (ret && _isSampled)
+		DLTADecode::decode(rawData,rawData,0,_rawSize);
 
-	return streamStatus && !destOffset;
+	return ret;
 }

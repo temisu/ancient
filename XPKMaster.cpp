@@ -7,15 +7,21 @@
 #include "XPKMaster.hpp"
 
 // Sub-decompressors
+#include "CBR0Decompressor.hpp"
 #include "CRMDecompressor.hpp"
 #include "DEFLATEDecompressor.hpp"
+#include "DLTADecode.hpp"
+#include "FRLEDecompressor.hpp"
+#include "IMPDecompressor.hpp"
 #include "MASHDecompressor.hpp"
 #include "NONEDecompressor.hpp"
+#include "NUKEDecompressor.hpp"
+#include "RLENDecompressor.hpp"
 #include "SQSHDecompressor.hpp"
 
 bool XPKMaster::detectHeader(uint32_t hdr)
 {
-	return (hdr==FourCC('XPKF'));
+	return hdr==FourCC('XPKF');
 }
 
 XPKMaster::XPKMaster(const Buffer &packedData) :
@@ -129,6 +135,25 @@ bool XPKMaster::verifyRaw(const Buffer &rawData) const
 	return destOffset==_rawSize;
 }
 
+const std::string &XPKMaster::getName() const
+{
+	if (!_isValid) return Decompressor::getName();
+	std::unique_ptr<Decompressor> sub;
+	forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
+	{
+		sub.reset(createSubDecompressor(chunk));
+		return false;
+	});
+	if (sub) return sub->getSubName();
+		else return Decompressor::getName();
+}
+
+size_t XPKMaster::getPackedSize() const
+{
+	if (!_isValid) return 0;
+	return _packedSize+8;
+}
+
 size_t XPKMaster::getRawSize() const
 {
 	if (!_isValid) return 0;
@@ -177,14 +202,26 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 Decompressor *XPKMaster::createSubDecompressor(const Buffer &buffer) const
 {
+	if (CBR0Decompressor::detectHeaderXPK(_type))
+		return new CBR0Decompressor(_type,buffer);
 	if (CRMDecompressor::detectHeaderXPK(_type))
 		return new CRMDecompressor(_type,buffer);
 	if (DEFLATEDecompressor::detectHeaderXPK(_type))
 		return new DEFLATEDecompressor(_type,buffer);
+	if (DLTADecode::detectHeaderXPK(_type))
+		return new DLTADecode(_type,buffer);
+	if (FRLEDecompressor::detectHeaderXPK(_type))
+		return new FRLEDecompressor(_type,buffer);
+	if (IMPDecompressor::detectHeaderXPK(_type))
+		return new IMPDecompressor(_type,buffer);
 	if (MASHDecompressor::detectHeaderXPK(_type))
 		return new MASHDecompressor(_type,buffer);
 	if (NONEDecompressor::detectHeaderXPK(_type))
 		return new NONEDecompressor(_type,buffer);
+	if (NUKEDecompressor::detectHeaderXPK(_type))
+		return new NUKEDecompressor(_type,buffer);
+	if (RLENDecompressor::detectHeaderXPK(_type))
+		return new RLENDecompressor(_type,buffer);
 	if (SQSHDecompressor::detectHeaderXPK(_type))
 		return new SQSHDecompressor(_type,buffer);
 	return nullptr;

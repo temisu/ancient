@@ -1,17 +1,17 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef SQSHDECOMPRESSOR_HPP
-#define SQSHDECOMPRESSOR_HPP
+#ifndef DLTADECODE_HPP
+#define DLTADECODE_HPP
 
 #include "Decompressor.hpp"
 
 // XPK sub-decompressor
-class SQSHDecompressor : public Decompressor
+class DLTADecode : public Decompressor
 {
 public:
-	SQSHDecompressor(uint32_t hdr,const Buffer &packedData);
+	DLTADecode(uint32_t hdr,const Buffer &packedData);
 
-	virtual ~SQSHDecompressor();
+	virtual ~DLTADecode();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -24,12 +24,13 @@ public:
 
 	static bool detectHeaderXPK(uint32_t hdr);
 
+	// static method for easy external usage. Buffers can be the same for in-place replacement
+	static bool decode(Buffer &bufferDest,const Buffer &bufferSrc,size_t offset,size_t size);
 protected:
 	virtual const std::string &getSubName() const override final;
 
 private:
 	bool		_isValid=false;
-	uint32_t	_rawSize=0;
 };
 
 #endif

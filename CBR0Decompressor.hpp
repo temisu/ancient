@@ -1,17 +1,17 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef SQSHDECOMPRESSOR_HPP
-#define SQSHDECOMPRESSOR_HPP
+#ifndef CBR0DECOMPRESSOR_HPP
+#define CBR0DECOMPRESSOR_HPP
 
 #include "Decompressor.hpp"
 
 // XPK sub-decompressor
-class SQSHDecompressor : public Decompressor
+class CBR0Decompressor : public Decompressor
 {
 public:
-	SQSHDecompressor(uint32_t hdr,const Buffer &packedData);
+	CBR0Decompressor(uint32_t hdr,const Buffer &packedData);
 
-	virtual ~SQSHDecompressor();
+	virtual ~CBR0Decompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -29,7 +29,6 @@ protected:
 
 private:
 	bool		_isValid=false;
-	uint32_t	_rawSize=0;
 };
 
 #endif

@@ -1,0 +1,86 @@
+/* Copyright (C) Teemu Suutari */
+
+#include "RLENDecompressor.hpp"
+
+bool RLENDecompressor::detectHeaderXPK(uint32_t hdr)
+{
+	return hdr==FourCC('RLEN');
+}
+
+RLENDecompressor::RLENDecompressor(uint32_t hdr,const Buffer &packedData) :
+	Decompressor(packedData)
+{
+	if (!detectHeaderXPK(hdr)) return;
+	_isValid=true;
+}
+
+RLENDecompressor::~RLENDecompressor()
+{
+	// nothing needed
+}
+
+bool RLENDecompressor::isValid() const
+{
+	return _isValid;
+}
+
+bool RLENDecompressor::verifyPacked() const
+{
+	return _isValid;
+}
+
+bool RLENDecompressor::verifyRaw(const Buffer &rawData) const
+{
+	return _isValid;
+}
+
+const std::string &RLENDecompressor::getSubName() const
+{
+	if (!_isValid) return Decompressor::getSubName();
+	static std::string name="XPK-RLEN: RLE compressor";
+	return name;
+}
+
+size_t RLENDecompressor::getPackedSize() const
+{
+	return 0;
+}
+
+size_t RLENDecompressor::getRawSize() const
+{
+	return 0;
+}
+
+bool RLENDecompressor::decompress(Buffer &rawData)
+{
+	if (!_isValid) return false;
+
+	const uint8_t *bufPtr=_packedData.data();
+	size_t bufOffset=0;
+	size_t packedSize=_packedData.size();
+
+	uint8_t *dest=rawData.data();
+	size_t destOffset=0;
+	size_t rawSize=rawData.size();
+
+	while (destOffset<rawSize)
+	{
+		if (bufOffset==packedSize) break;
+		uint32_t count=uint32_t(bufPtr[bufOffset++]);
+		if (count<128)
+		{
+			if (!count) break;	// lets have this as error...
+			if (bufOffset+count>packedSize || destOffset+count>rawSize) break;
+			for (uint32_t i=0;i<count;i++) dest[destOffset++]=bufPtr[bufOffset++];
+		} else {
+			// I can see from different implementations that count=0x80 is buggy...
+			// lets try to have it more or less correctly here
+			count=256-count;
+			if (bufOffset==packedSize || destOffset+count>rawSize) break;
+			uint8_t ch=bufPtr[bufOffset++];
+			for (uint32_t i=0;i<count;i++) dest[destOffset++]=ch;
+		}
+	}
+
+	return destOffset==rawSize;
+}

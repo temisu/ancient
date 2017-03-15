@@ -16,16 +16,18 @@ public:
 	virtual bool verifyPacked() const override final;
 	virtual bool verifyRaw(const Buffer &rawData) const override final;
 
+	virtual const std::string &getName() const override final;
+	virtual size_t getPackedSize() const override final;
 	virtual size_t getRawSize() const override final;
+
 	virtual bool decompress(Buffer &rawData) override final;
 
 	static bool detectHeader(uint32_t hdr);
 
 private:
-	enum class RNCVersion
+	enum class Version
 	{
-		Invalid=0,
-		RNC1Old,
+		RNC1Old=0,
 		RNC1New,
 		RNC2
 	};
@@ -40,7 +42,7 @@ private:
 	uint16_t	_rawCRC=0;
 	uint16_t	_packedCRC=0;
 	uint8_t		_chunks=0;
-	RNCVersion	_ver=RNCVersion::Invalid;
+	Version		_ver;
 };
 
 #endif

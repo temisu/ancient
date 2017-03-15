@@ -1,13 +1,11 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
-
 #include "MASHDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
 bool MASHDecompressor::detectHeaderXPK(uint32_t hdr)
 {
-	return (hdr==FourCC('MASH'));
+	return hdr==FourCC('MASH');
 }
 
 MASHDecompressor::MASHDecompressor(uint32_t hdr,const Buffer &packedData) :
@@ -37,6 +35,19 @@ bool MASHDecompressor::verifyRaw(const Buffer &rawData) const
 {
 	// nothing can be done
 	return _isValid;
+}
+
+const std::string &MASHDecompressor::getSubName() const
+{
+	if (!_isValid) return Decompressor::getSubName();
+	static std::string name="XPK-MASH: MASH LZRW-compressor";
+	return name;
+}
+
+size_t MASHDecompressor::getPackedSize() const
+{
+	// not relevant for pure sub-decompressors
+	return 0;
 }
 
 size_t MASHDecompressor::getRawSize() const

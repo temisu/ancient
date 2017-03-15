@@ -41,6 +41,11 @@ bool IMPDecompressor::detectHeader(uint32_t hdr)
 	return readIMPHeader(hdr,dummy);
 }
 
+bool IMPDecompressor::detectHeaderXPK(uint32_t hdr)
+{
+	return hdr==FourCC('IMPL');
+}
+
 IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
 	Decompressor(packedData)
 {
@@ -56,6 +61,19 @@ IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
 	_isValid=true;
 }
 
+IMPDecompressor::IMPDecompressor(uint32_t hdr,const Buffer &packedData) :
+	Decompressor(packedData)
+{
+	if (packedData.size()<0x2e) return;
+	_checksumAddition=7;
+
+	if (!packedData.readBE(4,_rawSize)) return;
+	if (!packedData.readBE(8,_endOffset)) return;
+	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x2e<packedData.size()) return;
+	_isXPK=true;
+	_isValid=true;
+}
+
 IMPDecompressor::~IMPDecompressor()
 {
 	// nothing needed
@@ -68,21 +86,44 @@ bool IMPDecompressor::isValid() const
 
 bool IMPDecompressor::verifyPacked() const
 {
-	// size is divisible by 2
-	uint32_t sum=_checksumAddition;
-	for (uint32_t i=0;i<_endOffset+0x2e;i+=2)
+	if (!_isXPK)
 	{
-		uint16_t tmp;
-		if (!_packedData.readBE(i,tmp)) return false;
-		sum+=uint32_t(tmp);
-	}
-	return _checksum==sum;
+		// size is divisible by 2
+		uint32_t sum=_checksumAddition;
+		for (uint32_t i=0;i<_endOffset+0x2e;i+=2)
+		{
+			uint16_t tmp;
+			if (!_packedData.readBE(i,tmp)) return false;
+			sum+=uint32_t(tmp);
+		}
+		return _checksum==sum;
+	} else return true;
 }
 
 bool IMPDecompressor::verifyRaw(const Buffer &rawData) const
 {
 	// no CRC
 	return _isValid;
+}
+
+const std::string &IMPDecompressor::getName() const
+{
+	if (!_isValid) return Decompressor::getName();
+	static std::string name="IMP!: File Imploder";
+	return name;
+}
+
+const std::string &IMPDecompressor::getSubName() const
+{
+	if (!_isValid) return Decompressor::getSubName();
+	static std::string name="XPK-IMPL: File Imploder";
+	return name;
+}
+
+size_t IMPDecompressor::getPackedSize() const
+{
+	if (!_isValid) return 0;
+	return _endOffset+0x32;
 }
 
 size_t IMPDecompressor::getRawSize() const

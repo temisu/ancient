@@ -4,7 +4,7 @@
 
 bool TPWMDecompressor::detectHeader(uint32_t hdr)
 {
-	return (hdr==FourCC('TPWM'));
+	return hdr==FourCC('TPWM');
 }
 
 TPWMDecompressor::TPWMDecompressor(const Buffer &packedData) :
@@ -40,6 +40,21 @@ bool TPWMDecompressor::verifyRaw(const Buffer &rawData) const
 {
 	// no CRC
 	return _isValid;
+}
+
+const std::string &TPWMDecompressor::getName() const
+{
+	if (!_isValid) return Decompressor::getName();
+	static std::string name="TPWM: Turbo Packer";
+	return name;
+}
+
+size_t TPWMDecompressor::getPackedSize() const
+{
+	// No packed size in the stream :(
+	// After decompression, we can tell how many bytes were actually used
+	if (!_isValid) return 0;
+	return _decompressedPackedSize;
 }
 
 size_t TPWMDecompressor::getRawSize() const
@@ -117,5 +132,7 @@ bool TPWMDecompressor::decompress(Buffer &rawData)
 		}
 	}
 
-	return streamStatus && destOffset==_rawSize;
+	bool ret=(streamStatus && destOffset==_rawSize);
+	if (ret) _decompressedPackedSize=bufOffset;
+	return ret;
 }

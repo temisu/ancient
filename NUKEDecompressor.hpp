@@ -1,17 +1,17 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef SQSHDECOMPRESSOR_HPP
-#define SQSHDECOMPRESSOR_HPP
+#ifndef NUKEDECOMPRESSOR_HPP
+#define NUKEDECOMPRESSOR_HPP
 
 #include "Decompressor.hpp"
 
 // XPK sub-decompressor
-class SQSHDecompressor : public Decompressor
+class NUKEDecompressor : public Decompressor
 {
 public:
-	SQSHDecompressor(uint32_t hdr,const Buffer &packedData);
+	NUKEDecompressor(uint32_t hdr,const Buffer &packedData);
 
-	virtual ~SQSHDecompressor();
+	virtual ~NUKEDecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -29,7 +29,7 @@ protected:
 
 private:
 	bool		_isValid=false;
-	uint32_t	_rawSize=0;
+	bool		_isDUKE=false;
 };
 
 #endif

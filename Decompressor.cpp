@@ -20,6 +20,18 @@ Decompressor::~Decompressor()
 	// nothing needed
 }
 
+const std::string &Decompressor::getName() const
+{
+	static std::string name="<invalid>";
+	return name;
+}
+
+const std::string &Decompressor::getSubName() const
+{
+	static std::string name="<invalid>";
+	return name;
+}
+
 Decompressor *CreateDecompressor(const Buffer &packedData)
 {
 	uint32_t hdr;

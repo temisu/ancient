@@ -1,13 +1,11 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
-
 #include "SQSHDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
 bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr)
 {
-	return (hdr==FourCC('SQSH'));
+	return hdr==FourCC('SQSH');
 }
 
 SQSHDecompressor::SQSHDecompressor(uint32_t hdr,const Buffer &packedData) :
@@ -38,6 +36,18 @@ bool SQSHDecompressor::verifyPacked() const
 bool SQSHDecompressor::verifyRaw(const Buffer &rawData) const
 {
 	return _isValid;
+}
+
+const std::string &SQSHDecompressor::getSubName() const
+{
+	if (!_isValid) return Decompressor::getSubName();
+	static std::string name="XPK-SQSH: SQSH compressor for sampled sounds";
+	return name;
+}
+	
+size_t SQSHDecompressor::getPackedSize() const
+{
+	return 0;
 }
 
 size_t SQSHDecompressor::getRawSize() const

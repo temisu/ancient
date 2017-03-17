@@ -11,7 +11,9 @@
 #include "CRMDecompressor.hpp"
 #include "DEFLATEDecompressor.hpp"
 #include "DLTADecode.hpp"
+#include "FASTDecompressor.hpp"
 #include "FRLEDecompressor.hpp"
+#include "HUFFDecompressor.hpp"
 #include "IMPDecompressor.hpp"
 #include "MASHDecompressor.hpp"
 #include "NONEDecompressor.hpp"
@@ -35,6 +37,10 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	if (!packedData.readBE(4,_packedSize)) return;
 	if (!packedData.readBE(8,_type)) return;
 	if (!packedData.readBE(12,_rawSize)) return;
+
+	if (!_rawSize || !_packedSize) return;
+	if (_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) return;
+
 	uint8_t flags;
 	if (!packedData.read(32,flags)) return;
 	_longHeaders=(flags&1)?true:false;
@@ -49,7 +55,7 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	}
 
 	if (_packedSize+8>packedData.size()) return;
-	_isValid=true;
+	_isValid=detectSubDecompressor();
 }
 
 XPKMaster::~XPKMaster()
@@ -200,6 +206,37 @@ bool XPKMaster::decompress(Buffer &rawData)
 	return destOffset==_rawSize;
 }
 
+bool XPKMaster::detectSubDecompressor() const
+{
+	if (CBR0Decompressor::detectHeaderXPK(_type))
+		return true;
+	if (CRMDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (DEFLATEDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (DLTADecode::detectHeaderXPK(_type))
+		return true;
+	if (FASTDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (FRLEDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (HUFFDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (IMPDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (MASHDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (NONEDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (NUKEDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (RLENDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (SQSHDecompressor::detectHeaderXPK(_type))
+		return true;
+	return false;
+}
+
 Decompressor *XPKMaster::createSubDecompressor(const Buffer &buffer) const
 {
 	if (CBR0Decompressor::detectHeaderXPK(_type))
@@ -210,8 +247,12 @@ Decompressor *XPKMaster::createSubDecompressor(const Buffer &buffer) const
 		return new DEFLATEDecompressor(_type,buffer);
 	if (DLTADecode::detectHeaderXPK(_type))
 		return new DLTADecode(_type,buffer);
+	if (FASTDecompressor::detectHeaderXPK(_type))
+		return new FASTDecompressor(_type,buffer);
 	if (FRLEDecompressor::detectHeaderXPK(_type))
 		return new FRLEDecompressor(_type,buffer);
+	if (HUFFDecompressor::detectHeaderXPK(_type))
+		return new HUFFDecompressor(_type,buffer);
 	if (IMPDecompressor::detectHeaderXPK(_type))
 		return new IMPDecompressor(_type,buffer);
 	if (MASHDecompressor::detectHeaderXPK(_type))

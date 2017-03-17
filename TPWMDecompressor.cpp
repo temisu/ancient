@@ -17,6 +17,7 @@ TPWMDecompressor::TPWMDecompressor(const Buffer &packedData) :
 
 	if (!packedData.readBE(4,_rawSize)) return;
 	if (!_rawSize) return;
+	if (_rawSize>getMaxRawSize()) return;
 	_isValid=true;
 }
 

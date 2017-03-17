@@ -57,6 +57,8 @@ IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
 	if (!packedData.readBE(4,_rawSize)) return;
 	if (!packedData.readBE(8,_endOffset)) return;
 	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x32<packedData.size()) return;
+	if (!_rawSize || !_endOffset) return;
+	if (_rawSize>getMaxRawSize() || _endOffset>getMaxPackedSize()) return;
 	if (!packedData.readBE(_endOffset+0x2e,_checksum)) return;
 	_isValid=true;
 }
@@ -64,6 +66,7 @@ IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
 IMPDecompressor::IMPDecompressor(uint32_t hdr,const Buffer &packedData) :
 	Decompressor(packedData)
 {
+	if (!detectHeaderXPK(hdr)) return;
 	if (packedData.size()<0x2e) return;
 	_checksumAddition=7;
 

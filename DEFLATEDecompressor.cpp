@@ -47,6 +47,7 @@ bool DEFLATEDecompressor::detectGZIP()
 
 	uint8_t flags;
 	if (!_packedData.read(3,flags)) return false;
+	if (flags&0xe0) return false;
 	
 	uint32_t currentOffset=10;
 
@@ -79,7 +80,9 @@ bool DEFLATEDecompressor::detectGZIP()
 	_packedSize=uint32_t(_packedData.size())-8;
 
 	if (!_packedData.readLE(_packedData.size()-8,_rawCRC)) return false;
-	if (!_packedData.readLE(_packedData.size()-4,_rawSize)) return false;
+	uint32_t tmp;
+	if (!_packedData.readLE(_packedData.size()-4,tmp)) return false;
+	_rawSize=tmp;
 
 	_type=Type::GZIP;
 	return true;
@@ -107,7 +110,6 @@ bool DEFLATEDecompressor::detectZLib()
 	if (flags&0x20)
 	{
 		if (_packedSize<4) return false;
-		_packedSize-=4;
 		_packedOffset+=4;
 	}
 
@@ -170,7 +172,7 @@ bool DEFLATEDecompressor::verifyRaw(const Buffer &rawData) const
 		return CRC32(rawData,0,_rawSize,crc) && crc==_rawCRC;
 	} else if (_type==Type::ZLib) {
 		uint32_t adler;
-		return Adler32(rawData,0,rawData.size(),adler) && adler==_rawCRC;
+		return Adler32(rawData,0,_rawSize,adler) && adler==_rawCRC;
 	} else return true;
 }
 
@@ -193,23 +195,30 @@ const std::string &DEFLATEDecompressor::getSubName() const
 
 size_t DEFLATEDecompressor::getPackedSize() const
 {
-	// no way to know :(
-	return 0;
+	// no way to know before decompressing
+	if (!_isValid) return 0;
+	if (_type==Type::GZIP)
+	{
+		return _packedSize+8;
+	} else if (_type==Type::ZLib) {
+		return _packedSize+2;
+	} else  return _packedSize;
 }
 
 
 size_t DEFLATEDecompressor::getRawSize() const
 {
+	// same thing, decompression needed first
 	if (!_isValid) return 0;
 	return _rawSize;
 }
 
 bool DEFLATEDecompressor::decompress(Buffer &rawData)
 {
-	if (_type==Type::ZLib)
-		_rawSize=uint32_t(rawData.size());
+	size_t rawSize=_rawSize;
+	if (rawSize<rawData.size()) rawSize=rawData.size();
 
-	if (!_isValid || rawData.size()<_rawSize) return false;
+	if (!_isValid || rawData.size()<rawSize) return false;
 
 	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
@@ -260,7 +269,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 	uint8_t *dest=rawData.data();
 	size_t destOffset=0;
 
-	bool final=false;
+	bool final;
 	do {
 		final=readBit();
 		uint8_t blockType=readBits(2);
@@ -273,7 +282,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 			if (!_packedData.readLE(bufOffset+2,nlen)) streamStatus=false;
 			bufOffset+=4;
 			if (len!=uint16_t(~nlen)) streamStatus=false;
-			if (!streamStatus || bufOffset+len>_packedSize || destOffset+len>_rawSize)
+			if (!streamStatus || bufOffset+len>_packedSize || destOffset+len>rawSize)
 			{
 				streamStatus=false;
 			} else {
@@ -409,7 +418,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 				{
 					streamStatus=false;
 				} else if (code<256) {
-					if (destOffset>=_rawSize)
+					if (destOffset>=rawSize)
 					{
 						streamStatus=false;
 					} else dest[destOffset++]=code;
@@ -448,7 +457,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 						11,11,12,12,13,13};
 					uint32_t distance=readBits(distanceBits[distCode])+distanceAdditions[distCode];
 
-					if (!streamStatus || distance>destOffset || destOffset+count>_rawSize)
+					if (!streamStatus || distance>destOffset || destOffset+count>rawSize)
 					{
 						streamStatus=false;
 					} else {
@@ -462,5 +471,14 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 		}
 	} while (!final && streamStatus);
 
-	return streamStatus && destOffset==_rawSize;
+	if (streamStatus && !_rawSize)
+	{
+		_rawSize=destOffset;
+	}
+	bool ret=(streamStatus && _rawSize==destOffset);
+	if (ret && _packedSize>bufOffset)
+	{
+		_packedSize=bufOffset;
+	}
+	return ret;
 }

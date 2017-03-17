@@ -48,6 +48,12 @@ public:
 	// Actual decompression
 	virtual bool decompress(Buffer &rawData)=0;
 
+	// the functions are there to protect against "accidental" large files when parsing headers
+	// a.k.a. 16M should be enough for everybody (sizes do not have to accurate) i.e.
+	// compressors can exclude (part of) header for simplification
+	static constexpr size_t getMaxPackedSize() noexcept { return 0x1000000U; }
+	static constexpr size_t getMaxRawSize() noexcept { return 0x1000000U; }
+
 protected:
 	virtual const std::string &getSubName() const;	// for XPK
 

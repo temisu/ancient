@@ -132,6 +132,14 @@ public:
 
 	virtual void resize(size_t newSize) override { }
 
+	// can only make the buffer smaller, can't run away from the current bounds
+	bool adjust(size_t start,size_t length)
+	{
+		if (start<_start || start+length>_start+_length) return false;
+		_start=start;
+		_length=length;
+		return true;
+	}
 private:
 	T &_base;
 	size_t	_start;

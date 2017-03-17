@@ -9,27 +9,31 @@ code quality (translated directly from M68K code to C)
 
 This code should compile cleanly on any C++14 capable compiler, and it is tested on clang.
 
+The provided tool can be used for identifying files, decompressing, verifying and scanning whole directories for
+files of compressed streams.
+
 Decompression algorithms provided:
-- Crunch Mania by Thomas Schwarz: supports both new and old stream formats. Also supports decoding the
-  delta encoding i.e. "sampled mode"
-- File Imploder (and most of its clones)
-- Rob Northen compressors. supports all 3 modes.
-- Turbo Packer by Wolfgang Mayerle.
-- Standard gzip
-- Supports opening XPK-encapsulated files. XPK decompressors supported are:
- * CBR0
- * CRM2
- * CRMS
- * DLTA
- * DUKE
- * FRLE
- * GZIP
- * IMPL
- * MASH
- * NONE
- * NUKE
- * RLEN
- * SQSH
+* CrunchMania by Thomas Schwarz: supports both new and old stream formats. Also supports decoding the delta encoding i.e. "sampled mode"
+* File Imploder (and most of its clones)
+* Rob Northen compressors. supports all 3 modes.
+* Turbo Packer by Wolfgang Mayerle.
+* Standard gzip
+* Supports opening XPK-encapsulated files. XPK decompressors supported are:
+  * CBR0: RLE compressor
+  * CRM2: CrunchMania backend for XPK
+  * CRMS: CrunchMania backend for XPK (sampled)
+  * DLTA: Delta encoding
+  * DUKE: NUKE with Delta encoding
+  * FAST: FAST LZ77 compressor
+  * FRLE: RLE compressor
+  * GZIP: gzip backend for XPK
+  * HUFF: Huffman modeling compressor
+  * IMPL: File Imploder backend for XPK
+  * MASH: MASK LZRW-compressor
+  * NONE: Null compressor
+  * NUKE: NUKE LZ77-compressor
+  * RLEN: RLE compressor
+  * SQSH: SQSH compressor for sampled sounds
 
 Some decompressors have tested better than others. Support for data verification is severely lacking in most formats.
 Also there is not support for password protected files.

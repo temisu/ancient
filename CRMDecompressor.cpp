@@ -33,8 +33,9 @@ CRMDecompressor::CRMDecompressor(const Buffer &packedData) :
 	if (!detectHeader(hdr)) return;
 
 	if (!packedData.readBE(6,_rawSize)) return;
-	if (!_rawSize) return;
 	if (!packedData.readBE(10,_packedSize)) return;
+	if (!_rawSize || !_packedSize) return;
+	if (_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) return;
 	if (_packedSize+14>packedData.size()) return;
 	if (((hdr>>8)&0xff)=='m') _isSampled=true;
 	if ((hdr&0xff)=='2') _isLZH=true;

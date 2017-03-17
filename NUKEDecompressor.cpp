@@ -64,6 +64,8 @@ size_t NUKEDecompressor::getRawSize() const
 
 bool NUKEDecompressor::decompress(Buffer &rawData)
 {
+	if (!_isValid) return false;
+
 	// Stream reading
 	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
@@ -93,8 +95,8 @@ bool NUKEDecompressor::decompress(Buffer &rawData)
 				streamStatus=false;
 				return 0;
 			}
-			bufBits1Content=bufPtr[bufOffset++]<<8;
-			bufBits1Content|=bufPtr[bufOffset++];
+			bufBits1Content=uint16_t(bufPtr[bufOffset++])<<8;
+			bufBits1Content|=uint16_t(bufPtr[bufOffset++]);
 			bufBits1Length=16;
 		}
 		uint8_t ret=bufBits1Content>>15;

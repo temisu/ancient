@@ -47,6 +47,7 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
 	if (!packedData.readBE(4,_rawSize)) return;
 	if (!packedData.readBE(8,_packedSize)) return;
 	if (!_rawSize || !_packedSize) return;
+	if (_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) return;
 
 	if (hdr==FourCC('RNC\001'))
 	{
@@ -140,8 +141,8 @@ const std::string &RNCDecompressor::getName() const
 size_t RNCDecompressor::getPackedSize() const
 {
 	if (!_isValid) return 0;
-	if (_ver==Version::RNC1Old) return _packedSize+18;
-		else return _packedSize+12;
+	if (_ver==Version::RNC1Old) return _packedSize+12;
+		else return _packedSize+18;
 }
 
 size_t RNCDecompressor::getRawSize() const

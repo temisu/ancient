@@ -26,6 +26,7 @@ public:
 
 private:
 	Decompressor *createSubDecompressor(const Buffer &buffer) const;
+	bool detectSubDecompressor() const;
 
 	template <typename F>
 	bool forEachChunk(F func) const;

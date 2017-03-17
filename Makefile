@@ -8,8 +8,8 @@ CXXFLAGS = $(COMMONFLAGS) -std=c++14
 
 PROG	= ancient
 OBJS	= Buffer.o CRC32.o CBR0Decompressor.o CRMDecompressor.o Decompressor.o \
-	DEFLATEDecompressor.o DLTADecode.o FRLEDecompressor.o \
-	IMPDecompressor.o MASHDecompressor.o NONEDecompressor.o \
+	DEFLATEDecompressor.o DLTADecode.o FASTDecompressor.o FRLEDecompressor.o \
+	HUFFDecompressor.o IMPDecompressor.o MASHDecompressor.o NONEDecompressor.o \
 	NUKEDecompressor.o RLENDecompressor.o RNCDecompressor.o \
 	SQSHDecompressor.o TPWMDecompressor.o XPKMaster.o main.o
 

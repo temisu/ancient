@@ -41,9 +41,9 @@ private:
 	};
 
 	bool		_isValid=false;
-	uint32_t	_packedSize=0;
-	uint32_t	_packedOffset=0;
-	uint32_t	_rawSize=0;
+	size_t		_packedSize=0;
+	size_t		_packedOffset=0;
+	size_t		_rawSize=0;
 	uint32_t	_rawCRC;
 	Type		_type;
 };

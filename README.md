@@ -15,6 +15,7 @@ files of compressed streams.
 Decompression algorithms provided:
 * CrunchMania by Thomas Schwarz: supports both new and old stream formats. Also supports decoding the delta encoding i.e. "sampled mode"
 * File Imploder (and most of its clones)
+* PowerPacker
 * Rob Northen compressors. supports all 3 modes.
 * Turbo Packer by Wolfgang Mayerle.
 * Standard gzip
@@ -28,10 +29,12 @@ Decompression algorithms provided:
   * FRLE: RLE compressor
   * GZIP: gzip backend for XPK
   * HUFF: Huffman modeling compressor
+  * HFMN: Huffman modeling compressor
   * IMPL: File Imploder backend for XPK
   * MASH: MASK LZRW-compressor
   * NONE: Null compressor
   * NUKE: NUKE LZ77-compressor
+  * PWPK: PowerPacker backend for XPK
   * RLEN: RLE compressor
   * SQSH: SQSH compressor for sampled sounds
 

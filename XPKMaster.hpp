@@ -4,6 +4,7 @@
 #define XPKMASTER_HPP
 
 #include "Decompressor.hpp"
+#include "XPKDecompressor.hpp"
 
 class XPKMaster : public Decompressor
 {
@@ -25,11 +26,13 @@ public:
 	static bool detectHeader(uint32_t hdr);
 
 private:
-	Decompressor *createSubDecompressor(const Buffer &buffer) const;
+	XPKDecompressor *createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const;
 	bool detectSubDecompressor() const;
 
 	template <typename F>
 	bool forEachChunk(F func) const;
+
+	const Buffer &_packedData;
 
 	bool		_isValid=false;
 	uint32_t	_packedSize=0;

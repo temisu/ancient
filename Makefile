@@ -9,9 +9,9 @@ CXXFLAGS = $(COMMONFLAGS) -std=c++14
 PROG	= ancient
 OBJS	= Buffer.o CRC32.o CBR0Decompressor.o CRMDecompressor.o Decompressor.o \
 	DEFLATEDecompressor.o DLTADecode.o FASTDecompressor.o FRLEDecompressor.o \
-	HUFFDecompressor.o IMPDecompressor.o MASHDecompressor.o NONEDecompressor.o \
-	NUKEDecompressor.o RLENDecompressor.o RNCDecompressor.o \
-	SQSHDecompressor.o TPWMDecompressor.o XPKMaster.o main.o
+	HFMNDecompressor.o HUFFDecompressor.o IMPDecompressor.o MASHDecompressor.o NONEDecompressor.o \
+	NUKEDecompressor.o PPDecompressor.o RLENDecompressor.o RNCDecompressor.o \
+	SQSHDecompressor.o TPWMDecompressor.o XPKDecompressor.o XPKMaster.o main.o
 
 all: $(PROG)
 
@@ -28,9 +28,10 @@ clean:
 	rm -f $(OBJS) $(PROG) *~
 
 test: $(PROG)
-	for a in xpk_testfiles/*.pack ; do  ./ancient verify $$a $$(echo $$a | sed s/_xpk.*/.raw/) >/dev/null ; done
+	for a in xpk_testfiles/*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/_xpk.*/.raw/) >/dev/null ; done
+	for a in pp_files/test*.pp ; do ./ancient verify $$a $$(echo $$a | sed s/\\.pp/.raw/) >/dev/null ; done
+	for a in xtra_files/test*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/pack/raw/) >/dev/null ; done
 	for a in good_files/test*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/pack/raw/) >/dev/null ; done
 	for a in regression_test/test*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/pack/raw/) >/dev/null ; done
-	for a in xtra_files/test*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/pack/raw/) >/dev/null ; done
 
 .PHONY:

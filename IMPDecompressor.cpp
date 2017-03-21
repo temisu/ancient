@@ -27,7 +27,7 @@ static bool readIMPHeader(uint32_t hdr,uint32_t &addition)
 		case FourCC('M.H.'):
 		case FourCC('PARA'):
 		case FourCC('RDC9'):
-		addition=7;
+		addition=0; 		// disable checksum for now
 		return true;
 
 		default:
@@ -47,7 +47,7 @@ bool IMPDecompressor::detectHeaderXPK(uint32_t hdr)
 }
 
 IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
-	Decompressor(packedData)
+	_packedData(packedData)
 {
 	if (packedData.size()<0x32) return;
 	uint32_t hdr;
@@ -63,12 +63,12 @@ IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
 	_isValid=true;
 }
 
-IMPDecompressor::IMPDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+IMPDecompressor::IMPDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	if (packedData.size()<0x2e) return;
-	_checksumAddition=7;
+	_checksumAddition=0;
 
 	if (!packedData.readBE(4,_rawSize)) return;
 	if (!packedData.readBE(8,_endOffset)) return;
@@ -89,7 +89,7 @@ bool IMPDecompressor::isValid() const
 
 bool IMPDecompressor::verifyPacked() const
 {
-	if (!_isXPK)
+	if (!_isXPK && _checksumAddition)
 	{
 		// size is divisible by 2
 		uint32_t sum=_checksumAddition;
@@ -118,7 +118,7 @@ const std::string &IMPDecompressor::getName() const
 
 const std::string &IMPDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-IMPL: File Imploder";
 	return name;
 }

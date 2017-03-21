@@ -8,8 +8,8 @@ bool HUFFDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('HUFF');
 }
 
-HUFFDecompressor::HUFFDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+HUFFDecompressor::HUFFDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	if (packedData.size()<6) return;
@@ -46,19 +46,9 @@ bool HUFFDecompressor::verifyRaw(const Buffer &rawData) const
 
 const std::string &HUFFDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-HUFF: Huffman compressor";
 	return name;
-}
-
-size_t HUFFDecompressor::getPackedSize() const
-{
-	return 0;
-}
-
-size_t HUFFDecompressor::getRawSize() const
-{
-	return 0;
 }
 
 bool HUFFDecompressor::decompress(Buffer &rawData)

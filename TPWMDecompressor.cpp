@@ -8,7 +8,7 @@ bool TPWMDecompressor::detectHeader(uint32_t hdr)
 }
 
 TPWMDecompressor::TPWMDecompressor(const Buffer &packedData) :
-	Decompressor(packedData)
+	_packedData(packedData)
 {
 	if (packedData.size()<12) return;
 	uint32_t hdr;

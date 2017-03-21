@@ -25,7 +25,7 @@ bool CRMDecompressor::detectHeaderXPK(uint32_t hdr)
 }
 
 CRMDecompressor::CRMDecompressor(const Buffer &packedData) :
-	Decompressor(packedData)
+	_packedData(packedData)
 {
 	if (packedData.size()<20) return;
 	uint32_t hdr;
@@ -42,7 +42,7 @@ CRMDecompressor::CRMDecompressor(const Buffer &packedData) :
 	_isValid=true;
 }
 
-CRMDecompressor::CRMDecompressor(uint32_t hdr,const Buffer &packedData) :
+CRMDecompressor::CRMDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
 	CRMDecompressor(packedData)
 {
 	_isXPKDelta=(hdr==FourCC('CRMS'));

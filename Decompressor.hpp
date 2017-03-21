@@ -16,15 +16,11 @@ constexpr uint32_t FourCC(uint32_t cc) noexcept
 	return cc;
 }
 
-class XPKMaster;
-
 class Decompressor
 {
-friend class XPKMaster;
-protected:
-	Decompressor(const Buffer &packedData);
-
 public:
+	Decompressor()=default;
+
 	Decompressor(const Decompressor&)=delete;
 	Decompressor& operator=(const Decompressor&)=delete;
 
@@ -53,13 +49,8 @@ public:
 	// compressors can exclude (part of) header for simplification
 	static constexpr size_t getMaxPackedSize() noexcept { return 0x1000000U; }
 	static constexpr size_t getMaxRawSize() noexcept { return 0x1000000U; }
-
-protected:
-	virtual const std::string &getSubName() const;	// for XPK
-
-	const Buffer &_packedData;
 };
 
-Decompressor *CreateDecompressor(const Buffer &packedData);
+Decompressor *CreateDecompressor(const Buffer &packedData,bool exactSizeKnown);
 
 #endif

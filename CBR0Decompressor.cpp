@@ -7,8 +7,8 @@ bool CBR0Decompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('CBR0');
 }
 
-CBR0Decompressor::CBR0Decompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+CBR0Decompressor::CBR0Decompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	_isValid=true;
@@ -36,19 +36,9 @@ bool CBR0Decompressor::verifyRaw(const Buffer &rawData) const
 
 const std::string &CBR0Decompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-CBR0: RLE compressor";
 	return name;
-}
-
-size_t CBR0Decompressor::getPackedSize() const
-{
-	return 0;
-}
-
-size_t CBR0Decompressor::getRawSize() const
-{
-	return 0;
 }
 
 bool CBR0Decompressor::decompress(Buffer &rawData)

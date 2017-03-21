@@ -136,7 +136,7 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		std::unique_ptr<Buffer> packed{readFile(argv[2])};
-		std::unique_ptr<Decompressor> decompressor{CreateDecompressor(*packed)};
+		std::unique_ptr<Decompressor> decompressor{CreateDecompressor(*packed,true)};
 		if (!decompressor)
 		{
 			fprintf(stderr,"Unknown compression format in file %s\n",argv[2]);
@@ -156,7 +156,7 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		std::unique_ptr<Buffer> packed{readFile(argv[2])};
-		std::unique_ptr<Decompressor> decompressor{CreateDecompressor(*packed)};
+		std::unique_ptr<Decompressor> decompressor{CreateDecompressor(*packed,true)};
 		if (!decompressor)
 		{
 			fprintf(stderr,"Unknown compression format in file %s\n",argv[2]);
@@ -232,7 +232,7 @@ int main(int argc,char **argv)
 						for (size_t i=0;i<packed->size();)
 						{
 							if (!scanBuffer.adjust(i,packed->size()-i)) break;
-							std::unique_ptr<Decompressor> decompressor{CreateDecompressor(scanBuffer)};
+							std::unique_ptr<Decompressor> decompressor{CreateDecompressor(scanBuffer,false)};
 							if (decompressor && decompressor->isValid() && decompressor->verifyPacked())
 							{
 								std::unique_ptr<Buffer> raw{new VectorBuffer()};
@@ -248,7 +248,7 @@ int main(int argc,char **argv)
 								{
 									// final checks with the limited buffer and fresh decompressor
 									ConstSubBuffer finalBuffer(*packed,i,decompressor->getPackedSize());
-									std::unique_ptr<Decompressor> decompressor2{CreateDecompressor(finalBuffer)};
+									std::unique_ptr<Decompressor> decompressor2{CreateDecompressor(finalBuffer,true)};
 									if (decompressor2 && decompressor2->isValid() && decompressor2->verifyPacked() && decompressor2->decompress(*raw) && decompressor2->verifyRaw(*raw))
 									{
 										std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";
@@ -272,6 +272,7 @@ int main(int argc,char **argv)
 		return 0;
 	} else {
 		fprintf(stderr,"Unknown command\n");
+		usage();
 		return -1;
 	}
 }

@@ -25,6 +25,8 @@ public:
 	static bool detectHeader(uint32_t hdr);
 
 private:
+	const Buffer &_packedData;
+
 	bool		_isValid=false;
 	uint32_t	_rawSize=0;
 	size_t		_decompressedPackedSize=0;

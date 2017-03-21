@@ -8,14 +8,16 @@ bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('SQSH');
 }
 
-SQSHDecompressor::SQSHDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+SQSHDecompressor::SQSHDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
+	if (packedData.size()<3) return;
 	uint16_t tmp;
 	if (!packedData.readBE(0,tmp)) return;
 	_rawSize=uint32_t(tmp);
-
+	if (!_rawSize) return;
+	if (_rawSize>Decompressor::getMaxRawSize()) return;
 	_isValid=true;
 }
 
@@ -40,25 +42,14 @@ bool SQSHDecompressor::verifyRaw(const Buffer &rawData) const
 
 const std::string &SQSHDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-SQSH: SQSH compressor for sampled sounds";
 	return name;
 }
 	
-size_t SQSHDecompressor::getPackedSize() const
-{
-	return 0;
-}
-
-size_t SQSHDecompressor::getRawSize() const
-{
-	if (!_isValid) return 0;
-	return _rawSize;
-}
-
 bool SQSHDecompressor::decompress(Buffer &rawData)
 {
-	if (!_isValid || _packedData.size()<3 || !_rawSize || rawData.size()<_rawSize) return false;
+	if (!_isValid || rawData.size()!=_rawSize) return false;
 
 	// Stream reading
 	bool streamStatus=true;

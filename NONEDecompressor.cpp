@@ -9,8 +9,8 @@ bool NONEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('NONE');
 }
 
-NONEDecompressor::NONEDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+NONEDecompressor::NONEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	_isValid=true;
@@ -38,20 +38,9 @@ bool NONEDecompressor::verifyRaw(const Buffer &rawData) const
 
 const std::string &NONEDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-NONE: Null compressor";
 	return name;
-}
-
-size_t NONEDecompressor::getPackedSize() const
-{
-	return 0;
-}
-
-size_t NONEDecompressor::getRawSize() const
-{
-	if (!_isValid) return 0;
-	return _packedData.size();
 }
 
 bool NONEDecompressor::decompress(Buffer &rawData)

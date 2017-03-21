@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "XPKMaster.hpp"
+#include "XPKDecompressor.hpp"
 
 // Sub-decompressors
 #include "CBR0Decompressor.hpp"
@@ -13,11 +14,13 @@
 #include "DLTADecode.hpp"
 #include "FASTDecompressor.hpp"
 #include "FRLEDecompressor.hpp"
+#include "HFMNDecompressor.hpp"
 #include "HUFFDecompressor.hpp"
 #include "IMPDecompressor.hpp"
 #include "MASHDecompressor.hpp"
 #include "NONEDecompressor.hpp"
 #include "NUKEDecompressor.hpp"
+#include "PPDecompressor.hpp"
 #include "RLENDecompressor.hpp"
 #include "SQSHDecompressor.hpp"
 
@@ -27,7 +30,7 @@ bool XPKMaster::detectHeader(uint32_t hdr)
 }
 
 XPKMaster::XPKMaster(const Buffer &packedData) :
-	Decompressor(packedData)
+	_packedData(packedData)
 {
 	if (packedData.size()<44) return;
 	uint32_t hdr;
@@ -95,6 +98,7 @@ bool XPKMaster::verifyPacked() const
 
 	if (!headerChecksum(_packedData,0,36)) return false;
 
+	std::unique_ptr<XPKDecompressor::State> state;
 	return forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
 		if (!headerChecksum(header,0,header.size())) return false;
@@ -105,9 +109,8 @@ bool XPKMaster::verifyPacked() const
 
 		if (chunkType==1)
 		{
-			std::unique_ptr<Decompressor> sub{createSubDecompressor(chunk)};
-			if (!sub || !sub->isValid() || (sub->getRawSize() && sub->getRawSize()!=rawChunkSize) ||
-				!sub->verifyPacked()) return false;
+			std::unique_ptr<XPKDecompressor> sub{createSubDecompressor(chunk,state)};
+			if (!sub || !sub->isValid() || !sub->verifyPacked()) return false;
 		} else if (chunkType!=0 && chunkType!=15) return false;
 		return true;
 	});
@@ -121,6 +124,7 @@ bool XPKMaster::verifyRaw(const Buffer &rawData) const
 	if (::memcmp(_packedData.data()+16,rawData.data(),std::min(_rawSize,16U))) return false;
 
 	uint32_t destOffset=0;
+	std::unique_ptr<XPKDecompressor::State> state;
 	if (!forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
 		if (destOffset+rawChunkSize>rawData.size()) return false;
@@ -129,9 +133,8 @@ bool XPKMaster::verifyRaw(const Buffer &rawData) const
 		ConstSubBuffer VerifyBuffer(rawData,destOffset,rawChunkSize);
 		if (chunkType==1)
 		{
-			std::unique_ptr<Decompressor> sub{createSubDecompressor(chunk)};
-			if (!sub || !sub->isValid() || (sub->getRawSize() && sub->getRawSize()!=rawChunkSize) ||
-				!sub->verifyRaw(VerifyBuffer)) return false;
+			std::unique_ptr<XPKDecompressor> sub{createSubDecompressor(chunk,state)};
+			if (!sub || !sub->isValid() || !sub->verifyRaw(VerifyBuffer)) return false;
 		} else if (chunkType!=0 && chunkType!=15) return false;
 
 		destOffset+=rawChunkSize;
@@ -144,10 +147,11 @@ bool XPKMaster::verifyRaw(const Buffer &rawData) const
 const std::string &XPKMaster::getName() const
 {
 	if (!_isValid) return Decompressor::getName();
-	std::unique_ptr<Decompressor> sub;
+	std::unique_ptr<XPKDecompressor> sub;
+	std::unique_ptr<XPKDecompressor::State> state;
 	forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
-		sub.reset(createSubDecompressor(chunk));
+		sub.reset(createSubDecompressor(chunk,state));
 		return false;
 	});
 	if (sub) return sub->getSubName();
@@ -171,6 +175,7 @@ bool XPKMaster::decompress(Buffer &rawData)
 	if (!_isValid || rawData.size()<_rawSize) return false;
 
 	uint32_t destOffset=0;
+	std::unique_ptr<XPKDecompressor::State> state;
 	if (!forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
 		if (destOffset+rawChunkSize>rawData.size()) return false;
@@ -186,9 +191,8 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 			case 1:
 			{
-				std::unique_ptr<Decompressor> sub{createSubDecompressor(chunk)};
-				if (!sub || !sub->isValid() || (sub->getRawSize() && sub->getRawSize()!=rawChunkSize) ||
-					!sub->decompress(DestBuffer)) return false;
+				std::unique_ptr<XPKDecompressor> sub{createSubDecompressor(chunk,state)};
+				if (!sub || !sub->isValid() || !sub->decompress(DestBuffer)) return false;
 			}
 			break;
 
@@ -220,6 +224,8 @@ bool XPKMaster::detectSubDecompressor() const
 		return true;
 	if (FRLEDecompressor::detectHeaderXPK(_type))
 		return true;
+	if (HFMNDecompressor::detectHeaderXPK(_type))
+		return true;
 	if (HUFFDecompressor::detectHeaderXPK(_type))
 		return true;
 	if (IMPDecompressor::detectHeaderXPK(_type))
@@ -229,6 +235,8 @@ bool XPKMaster::detectSubDecompressor() const
 	if (NONEDecompressor::detectHeaderXPK(_type))
 		return true;
 	if (NUKEDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (PPDecompressor::detectHeaderXPK(_type))
 		return true;
 	if (RLENDecompressor::detectHeaderXPK(_type))
 		return true;
@@ -237,34 +245,38 @@ bool XPKMaster::detectSubDecompressor() const
 	return false;
 }
 
-Decompressor *XPKMaster::createSubDecompressor(const Buffer &buffer) const
+XPKDecompressor *XPKMaster::createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const
 {
 	if (CBR0Decompressor::detectHeaderXPK(_type))
-		return new CBR0Decompressor(_type,buffer);
+		return new CBR0Decompressor(_type,buffer,state);
 	if (CRMDecompressor::detectHeaderXPK(_type))
-		return new CRMDecompressor(_type,buffer);
+		return new CRMDecompressor(_type,buffer,state);
 	if (DEFLATEDecompressor::detectHeaderXPK(_type))
-		return new DEFLATEDecompressor(_type,buffer);
+		return new DEFLATEDecompressor(_type,buffer,state);
 	if (DLTADecode::detectHeaderXPK(_type))
-		return new DLTADecode(_type,buffer);
+		return new DLTADecode(_type,buffer,state);
 	if (FASTDecompressor::detectHeaderXPK(_type))
-		return new FASTDecompressor(_type,buffer);
+		return new FASTDecompressor(_type,buffer,state);
 	if (FRLEDecompressor::detectHeaderXPK(_type))
-		return new FRLEDecompressor(_type,buffer);
+		return new FRLEDecompressor(_type,buffer,state);
+	if (HFMNDecompressor::detectHeaderXPK(_type))
+		return new HFMNDecompressor(_type,buffer,state);
 	if (HUFFDecompressor::detectHeaderXPK(_type))
-		return new HUFFDecompressor(_type,buffer);
+		return new HUFFDecompressor(_type,buffer,state);
 	if (IMPDecompressor::detectHeaderXPK(_type))
-		return new IMPDecompressor(_type,buffer);
+		return new IMPDecompressor(_type,buffer,state);
 	if (MASHDecompressor::detectHeaderXPK(_type))
-		return new MASHDecompressor(_type,buffer);
+		return new MASHDecompressor(_type,buffer,state);
 	if (NONEDecompressor::detectHeaderXPK(_type))
-		return new NONEDecompressor(_type,buffer);
+		return new NONEDecompressor(_type,buffer,state);
 	if (NUKEDecompressor::detectHeaderXPK(_type))
-		return new NUKEDecompressor(_type,buffer);
+		return new NUKEDecompressor(_type,buffer,state);
+	if (PPDecompressor::detectHeaderXPK(_type))
+		return new PPDecompressor(_type,buffer,state);
 	if (RLENDecompressor::detectHeaderXPK(_type))
-		return new RLENDecompressor(_type,buffer);
+		return new RLENDecompressor(_type,buffer,state);
 	if (SQSHDecompressor::detectHeaderXPK(_type))
-		return new SQSHDecompressor(_type,buffer);
+		return new SQSHDecompressor(_type,buffer,state);
 	return nullptr;
 }
 

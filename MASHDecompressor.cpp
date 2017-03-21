@@ -8,8 +8,8 @@ bool MASHDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('MASH');
 }
 
-MASHDecompressor::MASHDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+MASHDecompressor::MASHDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	_isValid=true;
@@ -39,21 +39,9 @@ bool MASHDecompressor::verifyRaw(const Buffer &rawData) const
 
 const std::string &MASHDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-MASH: MASH LZRW-compressor";
 	return name;
-}
-
-size_t MASHDecompressor::getPackedSize() const
-{
-	// not relevant for pure sub-decompressors
-	return 0;
-}
-
-size_t MASHDecompressor::getRawSize() const
-{
-	// stream does not encode raw size
-	return 0;
 }
 
 bool MASHDecompressor::decompress(Buffer &rawData)

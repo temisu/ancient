@@ -79,10 +79,13 @@ bool DEFLATEDecompressor::detectGZIP()
 	if (currentOffset+8>_packedData.size()) return false;
 	_packedSize=uint32_t(_packedData.size())-8;
 
-	if (!_packedData.readLE(_packedData.size()-8,_rawCRC)) return false;
-	uint32_t tmp;
-	if (!_packedData.readLE(_packedData.size()-4,tmp)) return false;
-	_rawSize=tmp;
+	if (_exactSizeKnown)
+	{
+		if (!_packedData.readLE(_packedData.size()-8,_rawCRC)) return false;
+		uint32_t tmp;
+		if (!_packedData.readLE(_packedData.size()-4,tmp)) return false;
+		_rawSize=tmp;
+	}
 
 	_type=Type::GZIP;
 	return true;
@@ -119,14 +122,15 @@ bool DEFLATEDecompressor::detectZLib()
 	return true;
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData) :
-	Decompressor(packedData)
+DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,bool exactSizeKnown) :
+	_packedData(packedData),
+	_exactSizeKnown(exactSizeKnown)
 {
 	_isValid=detectGZIP();
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectZLib())
 	{
@@ -138,7 +142,7 @@ DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData) 
 }
 
 DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,uint32_t packedSize,uint32_t rawSize) :
-	Decompressor(packedData)
+	_packedData(packedData)
 {
 	_packedSize=uint32_t(packedData.size());
 	_packedOffset=0;
@@ -165,14 +169,14 @@ bool DEFLATEDecompressor::verifyPacked() const
 
 bool DEFLATEDecompressor::verifyRaw(const Buffer &rawData) const
 {
-	if (_type==Type::GZIP)
+	if (_type==Type::GZIP && _exactSizeKnown)
 	{
 		if (rawData.size()<_rawSize) return false;
 		uint32_t crc;
 		return CRC32(rawData,0,_rawSize,crc) && crc==_rawCRC;
 	} else if (_type==Type::ZLib) {
 		uint32_t adler;
-		return Adler32(rawData,0,_rawSize,adler) && adler==_rawCRC;
+		return Adler32(rawData,0,rawData.size(),adler) && adler==_rawCRC;
 	} else return true;
 }
 
@@ -188,7 +192,7 @@ const std::string &DEFLATEDecompressor::getName() const
 
 const std::string &DEFLATEDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-GZIP: Deflate";
 	return name;
 }

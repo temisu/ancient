@@ -1,17 +1,26 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef IMPDECOMPRESSOR_HPP
-#define IMPDECOMPRESSOR_HPP
+#ifndef PPDECOMPRESSOR_HPP
+#define PPDECOMPRESSOR_HPP
 
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
-class IMPDecompressor : public Decompressor, public XPKDecompressor
+
+class PPDecompressor : public Decompressor, public XPKDecompressor
 {
+	class PPState : public XPKDecompressor::State
+{
+	public:
+		PPState(uint32_t mode);
+		virtual ~PPState();
+
+		uint32_t _cachedMode;
+	};
 public:
-	IMPDecompressor(const Buffer &packedData);
-	IMPDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
-	virtual ~IMPDecompressor();
+	PPDecompressor(const Buffer &packedData,bool exactSizeKnown);
+	PPDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	virtual ~PPDecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -32,11 +41,12 @@ private:
 	const Buffer &_packedData;
 
 	bool		_isValid=false;
-	uint32_t	_rawSize=0;
-	uint32_t	_endOffset=0;
-	uint32_t	_checksumAddition=0;
-	uint32_t	_checksum=0;
+	size_t		_dataStart=0;
+	size_t		_rawSize=0;
+	uint8_t		_startShift=0;
+	uint8_t		_modeTable[4];
 	bool		_isXPK=false;
 };
+
 
 #endif

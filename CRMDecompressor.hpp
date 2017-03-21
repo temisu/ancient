@@ -4,12 +4,13 @@
 #define CRMDECOMPRESSOR_HPP
 
 #include "Decompressor.hpp"
+#include "XPKDecompressor.hpp"
 
-class CRMDecompressor : public Decompressor
+class CRMDecompressor : public Decompressor, public XPKDecompressor
 {
 public:
 	CRMDecompressor(const Buffer &packedData);
-	CRMDecompressor(uint32_t hdr,const Buffer &packedData);		// XPK sub-decompressor
+	CRMDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 	virtual ~CRMDecompressor();
 
 	virtual bool isValid() const override final;
@@ -17,6 +18,8 @@ public:
 	virtual bool verifyRaw(const Buffer &rawData) const override final;
 
 	virtual const std::string &getName() const override final;
+	virtual const std::string &getSubName() const override final;
+
 	virtual size_t getPackedSize() const override final;
 	virtual size_t getRawSize() const override final;
 
@@ -25,10 +28,9 @@ public:
 	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);
 
-protected:
-	virtual const std::string &getSubName() const override final;
-
 private:
+	const Buffer &_packedData;
+
 	bool		_isValid=false;
 	uint32_t	_packedSize=0;
 	uint32_t	_rawSize=0;

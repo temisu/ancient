@@ -7,8 +7,8 @@ bool FASTDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('FAST');
 }
 
-FASTDecompressor::FASTDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+FASTDecompressor::FASTDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	_isValid=true;
@@ -36,19 +36,9 @@ bool FASTDecompressor::verifyRaw(const Buffer &rawData) const
 
 const std::string &FASTDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-FAST: Fast LZ77 compressor";
 	return name;
-}
-
-size_t FASTDecompressor::getPackedSize() const
-{
-	return 0;
-}
-
-size_t FASTDecompressor::getRawSize() const
-{
-	return 0;
 }
 
 bool FASTDecompressor::decompress(Buffer &rawData)

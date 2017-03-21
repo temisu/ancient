@@ -4,12 +4,13 @@
 #define DEFLATEDECOMPRESSOR_HPP
 
 #include "Decompressor.hpp"
+#include "XPKDecompressor.hpp"
 
-class DEFLATEDecompressor : public Decompressor
+class DEFLATEDecompressor : public Decompressor, public XPKDecompressor
 {
 public:
-	DEFLATEDecompressor(const Buffer &packedData);
-	DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData);				// XPK sub-decompressor
+	DEFLATEDecompressor(const Buffer &packedData,bool exactSizeKnown);
+	DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 	DEFLATEDecompressor(const Buffer &packedData,uint32_t packedSize,uint32_t rawSize);	// completely raw stream
 	virtual ~DEFLATEDecompressor();
 
@@ -18,16 +19,15 @@ public:
 	virtual bool verifyRaw(const Buffer &rawData) const override final;
 
 	virtual size_t getRawSize() const override final;
-	virtual const std::string &getName() const override final;
 	virtual size_t getPackedSize() const override final;
+
+	virtual const std::string &getName() const override final;
+	virtual const std::string &getSubName() const override final;
 
 	virtual bool decompress(Buffer &rawData) override final;
 
 	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);
-
-protected:
-	virtual const std::string &getSubName() const override final;
 
 private:
 	bool detectGZIP();
@@ -40,12 +40,15 @@ private:
 		Raw
 	};
 
+	const Buffer &_packedData;
+
 	bool		_isValid=false;
 	size_t		_packedSize=0;
 	size_t		_packedOffset=0;
 	size_t		_rawSize=0;
 	uint32_t	_rawCRC;
 	Type		_type;
+	bool		_exactSizeKnown=true;
 };
 
 #endif

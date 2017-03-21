@@ -1,16 +1,16 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef DLTADECODE_HPP
-#define DLTADECODE_HPP
+#ifndef HFMNDECOMPRESSOR_HPP
+#define HFMNDECOMPRESSOR_HPP
 
 #include "XPKDecompressor.hpp"
 
-class DLTADecode : public XPKDecompressor
+class HFMNDecompressor : public XPKDecompressor
 {
 public:
-	DLTADecode(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	HFMNDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
-	virtual ~DLTADecode();
+	virtual ~HFMNDecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -22,12 +22,13 @@ public:
 
 	static bool detectHeaderXPK(uint32_t hdr);
 
-	// static method for easy external usage. Buffers can be the same for in-place replacement
-	static bool decode(Buffer &bufferDest,const Buffer &bufferSrc,size_t offset,size_t size);
 private:
 	const Buffer &_packedData;
 
 	bool		_isValid=false;
+
+	size_t		_headerSize;
+	size_t		_rawSize;
 };
 
 #endif

@@ -7,8 +7,8 @@ bool DLTADecode::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('DLTA');
 }
 
-DLTADecode::DLTADecode(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+DLTADecode::DLTADecode(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	_isValid=true;
@@ -36,20 +36,9 @@ bool DLTADecode::verifyRaw(const Buffer &rawData) const
 
 const std::string &DLTADecode::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-DLTA: Delta encoding";
 	return name;
-}
-
-size_t DLTADecode::getPackedSize() const
-{
-	return 0;
-}
-
-size_t DLTADecode::getRawSize() const
-{
-	if (!_isValid) return 0;
-	return _packedData.size();
 }
 
 bool DLTADecode::decode(Buffer &bufferDest,const Buffer &bufferSrc,size_t offset,size_t size)

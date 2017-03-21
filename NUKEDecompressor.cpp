@@ -12,8 +12,8 @@ bool NUKEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('NUKE') || hdr==FourCC('DUKE');
 }
 
-NUKEDecompressor::NUKEDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+NUKEDecompressor::NUKEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	if (hdr==FourCC('DUKE')) _isDUKE=true;
@@ -44,22 +44,10 @@ bool NUKEDecompressor::verifyRaw(const Buffer &rawData) const
 
 const std::string &NUKEDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string nameN="XPK-NUKE: NUKE LZ77-compressor";
 	static std::string nameD="XPK-DUKE: NUKE LZ77-compressor with delta";
 	return (_isDUKE)?nameD:nameN;
-}
-
-size_t NUKEDecompressor::getPackedSize() const
-{
-	// not relevant for pure sub-decompressors
-	return 0;
-}
-
-size_t NUKEDecompressor::getRawSize() const
-{
-	// stream does not encode raw size
-	return 0;
 }
 
 bool NUKEDecompressor::decompress(Buffer &rawData)

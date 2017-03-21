@@ -40,7 +40,7 @@ bool RNCDecompressor::detectHeader(uint32_t hdr)
 }
 
 RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
-	Decompressor(packedData)
+	_packedData(packedData)
 {
 	uint32_t hdr;
 	if (!packedData.readBE(0,hdr)) return;

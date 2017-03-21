@@ -7,8 +7,8 @@ bool RLENDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('RLEN');
 }
 
-RLENDecompressor::RLENDecompressor(uint32_t hdr,const Buffer &packedData) :
-	Decompressor(packedData)
+RLENDecompressor::RLENDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
 	_isValid=true;
@@ -36,19 +36,9 @@ bool RLENDecompressor::verifyRaw(const Buffer &rawData) const
 
 const std::string &RLENDecompressor::getSubName() const
 {
-	if (!_isValid) return Decompressor::getSubName();
+	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-RLEN: RLE compressor";
 	return name;
-}
-
-size_t RLENDecompressor::getPackedSize() const
-{
-	return 0;
-}
-
-size_t RLENDecompressor::getRawSize() const
-{
-	return 0;
 }
 
 bool RLENDecompressor::decompress(Buffer &rawData)

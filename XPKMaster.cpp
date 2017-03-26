@@ -4,6 +4,8 @@
 #include <memory>
 #include <algorithm>
 
+#include <SubBuffer.hpp>
+
 #include "XPKMaster.hpp"
 #include "XPKDecompressor.hpp"
 
@@ -21,8 +23,10 @@
 #include "NONEDecompressor.hpp"
 #include "NUKEDecompressor.hpp"
 #include "PPDecompressor.hpp"
+#include "RAKEDecompressor.hpp"
 #include "RLENDecompressor.hpp"
 #include "SQSHDecompressor.hpp"
+#include "TDCSDecompressor.hpp"
 
 bool XPKMaster::detectHeader(uint32_t hdr)
 {
@@ -109,7 +113,7 @@ bool XPKMaster::verifyPacked() const
 
 		if (chunkType==1)
 		{
-			std::unique_ptr<XPKDecompressor> sub{createSubDecompressor(chunk,state)};
+			auto sub{createSubDecompressor(chunk,state)};
 			if (!sub || !sub->isValid() || !sub->verifyPacked()) return false;
 		} else if (chunkType!=0 && chunkType!=15) return false;
 		return true;
@@ -133,7 +137,7 @@ bool XPKMaster::verifyRaw(const Buffer &rawData) const
 		ConstSubBuffer VerifyBuffer(rawData,destOffset,rawChunkSize);
 		if (chunkType==1)
 		{
-			std::unique_ptr<XPKDecompressor> sub{createSubDecompressor(chunk,state)};
+			auto sub{createSubDecompressor(chunk,state)};
 			if (!sub || !sub->isValid() || !sub->verifyRaw(VerifyBuffer)) return false;
 		} else if (chunkType!=0 && chunkType!=15) return false;
 
@@ -151,7 +155,7 @@ const std::string &XPKMaster::getName() const
 	std::unique_ptr<XPKDecompressor::State> state;
 	forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
-		sub.reset(createSubDecompressor(chunk,state));
+		sub=createSubDecompressor(chunk,state);
 		return false;
 	});
 	if (sub) return sub->getSubName();
@@ -191,7 +195,7 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 			case 1:
 			{
-				std::unique_ptr<XPKDecompressor> sub{createSubDecompressor(chunk,state)};
+				auto sub{createSubDecompressor(chunk,state)};
 				if (!sub || !sub->isValid() || !sub->decompress(DestBuffer)) return false;
 			}
 			break;
@@ -238,45 +242,53 @@ bool XPKMaster::detectSubDecompressor() const
 		return true;
 	if (PPDecompressor::detectHeaderXPK(_type))
 		return true;
+	if (RAKEDecompressor::detectHeaderXPK(_type))
+		return true;
 	if (RLENDecompressor::detectHeaderXPK(_type))
 		return true;
 	if (SQSHDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (TDCSDecompressor::detectHeaderXPK(_type))
 		return true;
 	return false;
 }
 
-XPKDecompressor *XPKMaster::createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const
+std::unique_ptr<XPKDecompressor> XPKMaster::createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const
 {
 	if (CBR0Decompressor::detectHeaderXPK(_type))
-		return new CBR0Decompressor(_type,buffer,state);
+		return std::make_unique<CBR0Decompressor>(_type,buffer,state);
 	if (CRMDecompressor::detectHeaderXPK(_type))
-		return new CRMDecompressor(_type,buffer,state);
+		return std::make_unique<CRMDecompressor>(_type,buffer,state);
 	if (DEFLATEDecompressor::detectHeaderXPK(_type))
-		return new DEFLATEDecompressor(_type,buffer,state);
+		return std::make_unique<DEFLATEDecompressor>(_type,buffer,state);
 	if (DLTADecode::detectHeaderXPK(_type))
-		return new DLTADecode(_type,buffer,state);
+		return std::make_unique<DLTADecode>(_type,buffer,state);
 	if (FASTDecompressor::detectHeaderXPK(_type))
-		return new FASTDecompressor(_type,buffer,state);
+		return std::make_unique<FASTDecompressor>(_type,buffer,state);
 	if (FRLEDecompressor::detectHeaderXPK(_type))
-		return new FRLEDecompressor(_type,buffer,state);
+		return std::make_unique<FRLEDecompressor>(_type,buffer,state);
 	if (HFMNDecompressor::detectHeaderXPK(_type))
-		return new HFMNDecompressor(_type,buffer,state);
+		return std::make_unique<HFMNDecompressor>(_type,buffer,state);
 	if (HUFFDecompressor::detectHeaderXPK(_type))
-		return new HUFFDecompressor(_type,buffer,state);
+		return std::make_unique<HUFFDecompressor>(_type,buffer,state);
 	if (IMPDecompressor::detectHeaderXPK(_type))
-		return new IMPDecompressor(_type,buffer,state);
+		return std::make_unique<IMPDecompressor>(_type,buffer,state);
 	if (MASHDecompressor::detectHeaderXPK(_type))
-		return new MASHDecompressor(_type,buffer,state);
+		return std::make_unique<MASHDecompressor>(_type,buffer,state);
 	if (NONEDecompressor::detectHeaderXPK(_type))
-		return new NONEDecompressor(_type,buffer,state);
+		return std::make_unique<NONEDecompressor>(_type,buffer,state);
 	if (NUKEDecompressor::detectHeaderXPK(_type))
-		return new NUKEDecompressor(_type,buffer,state);
+		return std::make_unique<NUKEDecompressor>(_type,buffer,state);
 	if (PPDecompressor::detectHeaderXPK(_type))
-		return new PPDecompressor(_type,buffer,state);
+		return std::make_unique<PPDecompressor>(_type,buffer,state);
+	if (RAKEDecompressor::detectHeaderXPK(_type))
+		return std::make_unique<RAKEDecompressor>(_type,buffer,state);
 	if (RLENDecompressor::detectHeaderXPK(_type))
-		return new RLENDecompressor(_type,buffer,state);
+		return std::make_unique<RLENDecompressor>(_type,buffer,state);
 	if (SQSHDecompressor::detectHeaderXPK(_type))
-		return new SQSHDecompressor(_type,buffer,state);
+		return std::make_unique<SQSHDecompressor>(_type,buffer,state);
+	if (TDCSDecompressor::detectHeaderXPK(_type))
+		return std::make_unique<TDCSDecompressor>(_type,buffer,state);
 	return nullptr;
 }
 

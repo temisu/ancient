@@ -26,7 +26,7 @@ public:
 	static bool detectHeader(uint32_t hdr);
 
 private:
-	XPKDecompressor *createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const;
+	std::unique_ptr<XPKDecompressor> createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const;
 	bool detectSubDecompressor() const;
 
 	template <typename F>

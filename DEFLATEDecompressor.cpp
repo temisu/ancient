@@ -319,7 +319,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 				uint32_t hclen=readBits(4)+4;
 
 				uint8_t lengthTable[19];
-				for (uint32_t i=0;i<hclen;i++) lengthTable[i]=0;
+				for (uint32_t i=0;i<19;i++) lengthTable[i]=0;
 				static const uint8_t lengthTableOrder[19]={
 					16,17,18, 0, 8, 7, 9, 6,
 					10, 5,11, 4,12, 3,13, 2,

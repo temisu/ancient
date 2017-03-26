@@ -11,6 +11,7 @@
 #include <dirent.h>
 
 #include <Buffer.hpp>
+#include <SubBuffer.hpp>
 #include "Decompressor.hpp"
 
 class VectorBuffer : public Buffer
@@ -66,10 +67,10 @@ void VectorBuffer::resize(size_t newSize)
 	return _data.resize(newSize);
 }
 
-Buffer *readFile(const std::string &fileName)
+std::unique_ptr<Buffer> readFile(const std::string &fileName)
 {
 
-	Buffer *ret=new VectorBuffer();
+	std::unique_ptr<Buffer> ret=std::make_unique<VectorBuffer>();
 	std::ifstream file(fileName.c_str(),std::ios::in|std::ios::binary);
 	bool success=false;
 	if (file.is_open())
@@ -135,8 +136,8 @@ int main(int argc,char **argv)
 			usage();
 			return -1;
 		}
-		std::unique_ptr<Buffer> packed{readFile(argv[2])};
-		std::unique_ptr<Decompressor> decompressor{CreateDecompressor(*packed,true)};
+		auto packed{readFile(argv[2])};
+		auto decompressor{CreateDecompressor(*packed,true)};
 		if (!decompressor)
 		{
 			fprintf(stderr,"Unknown compression format in file %s\n",argv[2]);
@@ -155,8 +156,8 @@ int main(int argc,char **argv)
 			usage();
 			return -1;
 		}
-		std::unique_ptr<Buffer> packed{readFile(argv[2])};
-		std::unique_ptr<Decompressor> decompressor{CreateDecompressor(*packed,true)};
+		auto packed{readFile(argv[2])};
+		auto decompressor{CreateDecompressor(*packed,true)};
 		if (!decompressor)
 		{
 			fprintf(stderr,"Unknown compression format in file %s\n",argv[2]);
@@ -172,7 +173,7 @@ int main(int argc,char **argv)
 			fprintf(stderr,"File %s has errors in packed stream\n",argv[2]);
 			return -1;
 		}
-		std::unique_ptr<Buffer> raw{new VectorBuffer()};
+		std::unique_ptr<Buffer> raw=std::make_unique<VectorBuffer>();
 		raw->resize(decompressor->getRawSize());
 		if (!decompressor->decompress(*raw))
 		{
@@ -189,7 +190,7 @@ int main(int argc,char **argv)
 			writeFile(argv[3],*raw);
 			return 0;
 		} else {
-			std::unique_ptr<Buffer> verify{readFile(argv[3])};
+			auto verify{readFile(argv[3])};
 			if (raw->size()!=verify->size())
 			{
 				fprintf(stderr,"Verify failed for %s and %s - sizes differ\n",argv[2],argv[3]);
@@ -227,15 +228,15 @@ int main(int argc,char **argv)
 					{
 						processDir(name);
 					} else if (de->d_type==DT_REG) {
-						std::unique_ptr<Buffer> packed{readFile(name)};
+						auto packed{readFile(name)};
 						ConstSubBuffer scanBuffer(*packed,0,packed->size());
 						for (size_t i=0;i<packed->size();)
 						{
 							if (!scanBuffer.adjust(i,packed->size()-i)) break;
-							std::unique_ptr<Decompressor> decompressor{CreateDecompressor(scanBuffer,false)};
+							auto decompressor{CreateDecompressor(scanBuffer,false)};
 							if (decompressor && decompressor->isValid() && decompressor->verifyPacked())
 							{
-								std::unique_ptr<Buffer> raw{new VectorBuffer()};
+								std::unique_ptr<Buffer> raw=std::make_unique<VectorBuffer>();
 								raw->resize((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
 								bool success=true;
 								if (!decompressor->getPackedSize())
@@ -248,7 +249,7 @@ int main(int argc,char **argv)
 								{
 									// final checks with the limited buffer and fresh decompressor
 									ConstSubBuffer finalBuffer(*packed,i,decompressor->getPackedSize());
-									std::unique_ptr<Decompressor> decompressor2{CreateDecompressor(finalBuffer,true)};
+									auto decompressor2{CreateDecompressor(finalBuffer,true)};
 									if (decompressor2 && decompressor2->isValid() && decompressor2->verifyPacked() && decompressor2->decompress(*raw) && decompressor2->verifyRaw(*raw))
 									{
 										std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";

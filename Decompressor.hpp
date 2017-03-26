@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include <string>
+#include <memory>
 
 #include <Buffer.hpp>
 
@@ -51,6 +52,6 @@ public:
 	static constexpr size_t getMaxRawSize() noexcept { return 0x1000000U; }
 };
 
-Decompressor *CreateDecompressor(const Buffer &packedData,bool exactSizeKnown);
+std::unique_ptr<Decompressor> CreateDecompressor(const Buffer &packedData,bool exactSizeKnown);
 
 #endif

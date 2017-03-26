@@ -21,25 +21,25 @@ const std::string &Decompressor::getName() const
 	return name;
 }
 
-Decompressor *CreateDecompressor(const Buffer &packedData,bool exactSizeKnown)
+std::unique_ptr<Decompressor> CreateDecompressor(const Buffer &packedData,bool exactSizeKnown)
 {
 	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return nullptr;
+	if (!packedData.readBE(0,hdr)) return std::unique_ptr<Decompressor>();
 
 	if (CRMDecompressor::detectHeader(hdr))
-		return new CRMDecompressor(packedData);
+		return std::make_unique<CRMDecompressor>(packedData);
 	if (DEFLATEDecompressor::detectHeader(hdr))
-		return new DEFLATEDecompressor(packedData,exactSizeKnown);
+		return std::make_unique<DEFLATEDecompressor>(packedData,exactSizeKnown);
 	if (IMPDecompressor::detectHeader(hdr))
-		return new IMPDecompressor(packedData);
+		return std::make_unique<IMPDecompressor>(packedData);
 	if (PPDecompressor::detectHeader(hdr))
-		return new PPDecompressor(packedData,exactSizeKnown);
+		return std::make_unique<PPDecompressor>(packedData,exactSizeKnown);
 	if (RNCDecompressor::detectHeader(hdr))
-		return new RNCDecompressor(packedData);
+		return std::make_unique<RNCDecompressor>(packedData);
 	if (TPWMDecompressor::detectHeader(hdr))
-		return new TPWMDecompressor(packedData);
+		return std::make_unique<TPWMDecompressor>(packedData);
 	if (XPKMaster::detectHeader(hdr))
-		return new XPKMaster(packedData);
+		return std::make_unique<XPKMaster>(packedData);
 
 	return nullptr;
 }

@@ -25,9 +25,9 @@ Decompression algorithms provided:
   * CRMS: CrunchMania backend for XPK (sampled)
   * DLTA: Delta encoding
   * DUKE: NUKE with Delta encoding
-  * FAST: FAST LZ77 compressor
+  * FAST: FAST LZ77-compressor
   * FRLE: RLE compressor
-  * GZIP: gzip backend for XPK
+  * GZIP: zlib backend for XPK (Deflate)
   * HUFF: Huffman modeling compressor
   * HFMN: Huffman modeling compressor
   * IMPL: File Imploder backend for XPK
@@ -35,8 +35,10 @@ Decompression algorithms provided:
   * NONE: Null compressor
   * NUKE: NUKE LZ77-compressor
   * PWPK: PowerPacker backend for XPK
+  * RAKE: RAKE LZ77-compressor
   * RLEN: RLE compressor
   * SQSH: SQSH compressor for sampled sounds
+  * TDCS: TDCS LZ77-compressor
 
 Some decompressors have tested better than others. Support for data verification is severely lacking in most formats.
 Also there is not support for password protected files.

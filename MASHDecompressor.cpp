@@ -46,6 +46,8 @@ const std::string &MASHDecompressor::getSubName() const
 
 bool MASHDecompressor::decompress(Buffer &rawData)
 {
+	if (!_isValid) return false;
+
 	// Stream reading
 	bool streamStatus=true;
 	size_t packedSize=_packedData.size();

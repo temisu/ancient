@@ -51,7 +51,7 @@ const std::string &HUFFDecompressor::getSubName() const
 	return name;
 }
 
-bool HUFFDecompressor::decompress(Buffer &rawData)
+bool HUFFDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
 

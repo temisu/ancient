@@ -300,3 +300,8 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 
 	return streamStatus && !destOffset;
 }
+
+bool IMPDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+{
+	return decompress(rawData);
+}

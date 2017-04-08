@@ -1,16 +1,16 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef MASHDECOMPRESSOR_HPP
-#define MASHDECOMPRESSOR_HPP
+#ifndef ACCADECOMPRESSOR_HPP
+#define ACCADECOMPRESSOR_HPP
 
 #include "XPKDecompressor.hpp"
 
-class MASHDecompressor : public XPKDecompressor
+class ACCADecompressor : public XPKDecompressor
 {
 public:
-	MASHDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	ACCADecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
-	virtual ~MASHDecompressor();
+	virtual ~ACCADecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;

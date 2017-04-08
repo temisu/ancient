@@ -44,7 +44,7 @@ const std::string &MASHDecompressor::getSubName() const
 	return name;
 }
 
-bool MASHDecompressor::decompress(Buffer &rawData)
+bool MASHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
 
@@ -172,7 +172,6 @@ bool MASHDecompressor::decompress(Buffer &rawData)
 			for (uint32_t i=0;i<count;i++,destOffset++)
 				dest[destOffset]=dest[destOffset-distance];
 		}
-
 	}
 
 	return streamStatus && destOffset==rawSize;

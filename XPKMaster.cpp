@@ -10,6 +10,7 @@
 #include "XPKDecompressor.hpp"
 
 // Sub-decompressors
+#include "ACCADecompressor.hpp"
 #include "CBR0Decompressor.hpp"
 #include "CRMDecompressor.hpp"
 #include "DEFLATEDecompressor.hpp"
@@ -24,7 +25,11 @@
 #include "NUKEDecompressor.hpp"
 #include "PPDecompressor.hpp"
 #include "RAKEDecompressor.hpp"
+#include "RDCNDecompressor.hpp"
 #include "RLENDecompressor.hpp"
+#include "SHR3Decompressor.hpp"
+#include "SHRIDecompressor.hpp"
+#include "SMPLDecompressor.hpp"
 #include "SQSHDecompressor.hpp"
 #include "TDCSDecompressor.hpp"
 
@@ -185,6 +190,7 @@ bool XPKMaster::decompress(Buffer &rawData)
 		if (destOffset+rawChunkSize>rawData.size()) return false;
 		if (!rawChunkSize) return true;
 
+		ConstSubBuffer previousBuffer(rawData,0,destOffset);
 		SubBuffer DestBuffer(rawData,destOffset,rawChunkSize);
 		switch (chunkType)
 		{
@@ -196,7 +202,7 @@ bool XPKMaster::decompress(Buffer &rawData)
 			case 1:
 			{
 				auto sub{createSubDecompressor(chunk,state)};
-				if (!sub || !sub->isValid() || !sub->decompress(DestBuffer)) return false;
+				if (!sub || !sub->isValid() || !sub->decompress(DestBuffer,previousBuffer)) return false;
 			}
 			break;
 
@@ -216,6 +222,8 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 bool XPKMaster::detectSubDecompressor() const
 {
+	if (ACCADecompressor::detectHeaderXPK(_type))
+		return true;
 	if (CBR0Decompressor::detectHeaderXPK(_type))
 		return true;
 	if (CRMDecompressor::detectHeaderXPK(_type))
@@ -244,7 +252,15 @@ bool XPKMaster::detectSubDecompressor() const
 		return true;
 	if (RAKEDecompressor::detectHeaderXPK(_type))
 		return true;
+	if (RDCNDecompressor::detectHeaderXPK(_type))
+		return true;
 	if (RLENDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (SHR3Decompressor::detectHeaderXPK(_type))
+		return true;
+	if (SHRIDecompressor::detectHeaderXPK(_type))
+		return true;
+	if (SMPLDecompressor::detectHeaderXPK(_type))
 		return true;
 	if (SQSHDecompressor::detectHeaderXPK(_type))
 		return true;
@@ -255,6 +271,8 @@ bool XPKMaster::detectSubDecompressor() const
 
 std::unique_ptr<XPKDecompressor> XPKMaster::createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const
 {
+	if (ACCADecompressor::detectHeaderXPK(_type))
+		return std::make_unique<ACCADecompressor>(_type,buffer,state);
 	if (CBR0Decompressor::detectHeaderXPK(_type))
 		return std::make_unique<CBR0Decompressor>(_type,buffer,state);
 	if (CRMDecompressor::detectHeaderXPK(_type))
@@ -283,8 +301,16 @@ std::unique_ptr<XPKDecompressor> XPKMaster::createSubDecompressor(const Buffer &
 		return std::make_unique<PPDecompressor>(_type,buffer,state);
 	if (RAKEDecompressor::detectHeaderXPK(_type))
 		return std::make_unique<RAKEDecompressor>(_type,buffer,state);
+	if (RDCNDecompressor::detectHeaderXPK(_type))
+		return std::make_unique<RDCNDecompressor>(_type,buffer,state);
 	if (RLENDecompressor::detectHeaderXPK(_type))
 		return std::make_unique<RLENDecompressor>(_type,buffer,state);
+	if (SHR3Decompressor::detectHeaderXPK(_type))
+		return std::make_unique<SHR3Decompressor>(_type,buffer,state);
+	if (SHRIDecompressor::detectHeaderXPK(_type))
+		return std::make_unique<SHRIDecompressor>(_type,buffer,state);
+	if (SMPLDecompressor::detectHeaderXPK(_type))
+		return std::make_unique<SMPLDecompressor>(_type,buffer,state);
 	if (SQSHDecompressor::detectHeaderXPK(_type))
 		return std::make_unique<SQSHDecompressor>(_type,buffer,state);
 	if (TDCSDecompressor::detectHeaderXPK(_type))

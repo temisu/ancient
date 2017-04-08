@@ -20,6 +20,7 @@ Decompression algorithms provided:
 * Turbo Packer by Wolfgang Mayerle.
 * Standard gzip
 * Supports opening XPK-encapsulated files. XPK decompressors supported are:
+  * ACCA: Andre's Code Compression Algorithm
   * CBR0: RLE compressor
   * CRM2: CrunchMania backend for XPK
   * CRMS: CrunchMania backend for XPK (sampled)
@@ -36,12 +37,16 @@ Decompression algorithms provided:
   * NUKE: NUKE LZ77-compressor
   * PWPK: PowerPacker backend for XPK
   * RAKE: RAKE LZ77-compressor
+  * RDCN: Ross Data Compression
   * RLEN: RLE compressor
+  * SHR3: LZ-compressor with arithmetic encoding
+  * SHRI: LZ-compressor with arithmetic encoding
+  * SMPL: SMPL Huffman compressor with delta encoding
   * SQSH: SQSH compressor for sampled sounds
   * TDCS: TDCS LZ77-compressor
 
 Some decompressors have tested better than others. Support for data verification is severely lacking in most formats.
-Also there is not support for password protected files.
+Also there is no support for password protected files.
 
 Special thanks go to Cholok for providing me references for many of the compressors with sources.
 

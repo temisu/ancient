@@ -41,7 +41,7 @@ const std::string &RLENDecompressor::getSubName() const
 	return name;
 }
 
-bool RLENDecompressor::decompress(Buffer &rawData)
+bool RLENDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
 

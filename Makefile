@@ -7,11 +7,13 @@ CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++14
 
 PROG	= ancient
-OBJS	= Buffer.o SubBuffer.o CRC32.o CBR0Decompressor.o CRMDecompressor.o Decompressor.o \
+OBJS	= Buffer.o SubBuffer.o CRC32.o XPKDecompressor.o XPKMaster.o main.o \
+	ACCADecompressor.o CBR0Decompressor.o CRMDecompressor.o Decompressor.o \
 	DEFLATEDecompressor.o DLTADecode.o FASTDecompressor.o FRLEDecompressor.o \
 	HFMNDecompressor.o HUFFDecompressor.o IMPDecompressor.o MASHDecompressor.o NONEDecompressor.o \
-	NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o RLENDecompressor.o RNCDecompressor.o \
-	SQSHDecompressor.o TDCSDecompressor.o TPWMDecompressor.o XPKDecompressor.o XPKMaster.o main.o
+	NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o RDCNDecompressor.o \
+	RLENDecompressor.o RNCDecompressor.o SHR3Decompressor.o SHRIDecompressor.o SMPLDecompressor.o \
+	SQSHDecompressor.o TDCSDecompressor.o TPWMDecompressor.o
 
 all: $(PROG)
 

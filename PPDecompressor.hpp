@@ -9,14 +9,16 @@
 
 class PPDecompressor : public Decompressor, public XPKDecompressor
 {
+private:
 	class PPState : public XPKDecompressor::State
-{
+	{
 	public:
 		PPState(uint32_t mode);
 		virtual ~PPState();
 
 		uint32_t _cachedMode;
 	};
+
 public:
 	PPDecompressor(const Buffer &packedData,bool exactSizeKnown);
 	PPDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
@@ -33,6 +35,7 @@ public:
 	virtual size_t getRawSize() const override final;
 
 	virtual bool decompress(Buffer &rawData) override final;
+	virtual bool decompress(Buffer &rawData,const Buffer &previousData) override final;
 
 	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);

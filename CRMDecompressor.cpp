@@ -319,3 +319,8 @@ bool CRMDecompressor::decompress(Buffer &rawData)
 
 	return ret;
 }
+
+bool CRMDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+{
+	return decompress(rawData);
+}

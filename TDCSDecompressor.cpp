@@ -43,7 +43,7 @@ const std::string &TDCSDecompressor::getSubName() const
 	return name;
 }
 
-bool TDCSDecompressor::decompress(Buffer &rawData)
+bool TDCSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
 

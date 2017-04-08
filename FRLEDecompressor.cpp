@@ -41,7 +41,7 @@ const std::string &FRLEDecompressor::getSubName() const
 	return name;
 }
 
-bool FRLEDecompressor::decompress(Buffer &rawData)
+bool FRLEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
 

@@ -11,7 +11,7 @@ class DEFLATEDecompressor : public Decompressor, public XPKDecompressor
 public:
 	DEFLATEDecompressor(const Buffer &packedData,bool exactSizeKnown);
 	DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
-	DEFLATEDecompressor(const Buffer &packedData,uint32_t packedSize,uint32_t rawSize);	// completely raw stream
+	DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize);	// completely raw stream
 	virtual ~DEFLATEDecompressor();
 
 	virtual bool isValid() const override final;
@@ -25,6 +25,7 @@ public:
 	virtual const std::string &getSubName() const override final;
 
 	virtual bool decompress(Buffer &rawData) override final;
+	virtual bool decompress(Buffer &rawData,const Buffer &previousData) override final;
 
 	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);

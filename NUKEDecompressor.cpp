@@ -50,7 +50,7 @@ const std::string &NUKEDecompressor::getSubName() const
 	return (_isDUKE)?nameD:nameN;
 }
 
-bool NUKEDecompressor::decompress(Buffer &rawData)
+bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
 

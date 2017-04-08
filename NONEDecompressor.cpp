@@ -43,7 +43,7 @@ const std::string &NONEDecompressor::getSubName() const
 	return name;
 }
 
-bool NONEDecompressor::decompress(Buffer &rawData)
+bool NONEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid || rawData.size()<_packedData.size()) return false;
 

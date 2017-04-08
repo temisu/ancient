@@ -18,7 +18,7 @@ public:
 
 	virtual const std::string &getSubName() const override final;
 
-	virtual bool decompress(Buffer &rawData) override final;
+	virtual bool decompress(Buffer &rawData,const Buffer &previousData) override final;
 
 	static bool detectHeaderXPK(uint32_t hdr);
 

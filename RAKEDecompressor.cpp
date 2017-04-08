@@ -51,7 +51,7 @@ const std::string &RAKEDecompressor::getSubName() const
 	return name;
 }
 
-bool RAKEDecompressor::decompress(Buffer &rawData)
+bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
 

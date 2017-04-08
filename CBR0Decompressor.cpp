@@ -41,7 +41,7 @@ const std::string &CBR0Decompressor::getSubName() const
 	return name;
 }
 
-bool CBR0Decompressor::decompress(Buffer &rawData)
+bool CBR0Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
 

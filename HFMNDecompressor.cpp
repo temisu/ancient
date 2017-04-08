@@ -53,7 +53,7 @@ const std::string &HFMNDecompressor::getSubName() const
 	return name;
 }
 
-bool HFMNDecompressor::decompress(Buffer &rawData)
+bool HFMNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid || rawData.size()!=_rawSize) return false;
 

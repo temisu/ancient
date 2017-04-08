@@ -42,7 +42,7 @@ public:
 	virtual const std::string &getSubName() const;
 
 	// Actual decompression
-	virtual bool decompress(Buffer &rawData)=0;
+	virtual bool decompress(Buffer &rawData,const Buffer &previousData)=0;
 };
 
 #endif

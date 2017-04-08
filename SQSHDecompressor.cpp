@@ -47,7 +47,7 @@ const std::string &SQSHDecompressor::getSubName() const
 	return name;
 }
 	
-bool SQSHDecompressor::decompress(Buffer &rawData)
+bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid || rawData.size()!=_rawSize) return false;
 

@@ -64,6 +64,15 @@ public:
 		return true;
 	}
 
+	inline bool readLE(size_t offset,uint64_t &retValue) const
+	{
+		if (offset+8>size()) return false;
+		const uint8_t *_ptr=reinterpret_cast<const uint8_t*>(data())+offset;
+		retValue=(uint64_t(_ptr[7])<<56)|(uint64_t(_ptr[6])<<48)|(uint64_t(_ptr[5])<<40)|(uint64_t(_ptr[4])<<32)|
+			(uint64_t(_ptr[3])<<24)|(uint64_t(_ptr[2])<<16)|(uint64_t(_ptr[1])<<8)|uint64_t(_ptr[0]);
+		return true;
+	}
+
 	inline bool readLE(size_t offset,uint32_t &retValue) const
 	{
 		if (offset+4>size()) return false;

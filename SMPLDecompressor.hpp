@@ -1,16 +1,16 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef MASHDECOMPRESSOR_HPP
-#define MASHDECOMPRESSOR_HPP
+#ifndef SMPLDECOMPRESSOR_HPP
+#define SMPLDECOMPRESSOR_HPP
 
 #include "XPKDecompressor.hpp"
 
-class MASHDecompressor : public XPKDecompressor
+class SMPLDecompressor : public XPKDecompressor
 {
 public:
-	MASHDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	SMPLDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
-	virtual ~MASHDecompressor();
+	virtual ~SMPLDecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;

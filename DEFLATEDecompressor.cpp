@@ -77,7 +77,7 @@ bool DEFLATEDecompressor::detectGZIP()
 	_packedOffset=currentOffset;
 
 	if (currentOffset+8>_packedData.size()) return false;
-	_packedSize=uint32_t(_packedData.size())-8;
+	_packedSize=_packedData.size()-8;
 
 	if (_exactSizeKnown)
 	{
@@ -134,17 +134,18 @@ DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData,s
 {
 	if (!detectZLib())
 	{
-		_packedSize=uint32_t(packedData.size());
+		_packedSize=packedData.size();
 		_packedOffset=0;
 		_type=Type::Raw;
 	}
 	_isValid=true;
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,uint32_t packedSize,uint32_t rawSize) :
+DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize) :
 	_packedData(packedData)
 {
-	_packedSize=uint32_t(packedData.size());
+	_packedSize=packedSize;
+	if (_packedSize>_packedData.size()) return;
 	_packedOffset=0;
 	_rawSize=rawSize;
 	_type=Type::Raw;
@@ -485,4 +486,9 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 		_packedSize=bufOffset;
 	}
 	return ret;
+}
+
+bool DEFLATEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+{
+	return decompress(rawData);
 }

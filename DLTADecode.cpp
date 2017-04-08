@@ -58,7 +58,7 @@ bool DLTADecode::decode(Buffer &bufferDest,const Buffer &bufferSrc,size_t offset
 }
 
 
-bool DLTADecode::decompress(Buffer &rawData)
+bool DLTADecode::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid || rawData.size()<_packedData.size()) return false;
 

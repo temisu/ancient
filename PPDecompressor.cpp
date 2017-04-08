@@ -236,3 +236,8 @@ bool PPDecompressor::decompress(Buffer &rawData)
 
 	return streamStatus && !destOffset;
 }
+
+bool PPDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+{
+	return decompress(rawData);
+}

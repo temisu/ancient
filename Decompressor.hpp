@@ -9,13 +9,8 @@
 #include <string>
 #include <memory>
 
+#include <Common.hpp>
 #include <Buffer.hpp>
-
-constexpr uint32_t FourCC(uint32_t cc) noexcept
-{
-	// return with something else if behavior is not same as in clang/gcc for multibyte literals
-	return cc;
-}
 
 class Decompressor
 {

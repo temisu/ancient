@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #include <Buffer.hpp>
 #include <SubBuffer.hpp>
@@ -224,10 +225,12 @@ int main(int argc,char **argv)
 					std::string subName(de->d_name);
 					if (subName=="." || subName=="..") continue;
 					std::string name=inputDir+"/"+subName;
-					if (de->d_type==DT_DIR)
+					struct stat st;
+					if (stat(name.c_str(),&st)<0) continue;
+					if (st.st_mode&S_IFDIR)
 					{
 						processDir(name);
-					} else if (de->d_type==DT_REG) {
+					} else if (st.st_mode&S_IFREG) {
 						auto packed{readFile(name)};
 						ConstSubBuffer scanBuffer(*packed,0,packed->size());
 						for (size_t i=0;i<packed->size();)

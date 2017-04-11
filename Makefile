@@ -1,19 +1,22 @@
 # Copyright (C) Teemu Suutari
 
+VPATH	:= src
+
 CC	= clang
 CXX	= clang++
-COMMONFLAGS = -Os -Wall -Wsign-compare -Wshorten-64-to-32 -Wno-error=multichar -Wno-multichar -I.
+COMMONFLAGS = -Os -Wall -Wsign-compare -Wshorten-64-to-32 -Wno-error=multichar -Wno-multichar -Isrc
 CFLAGS	= $(COMMONFLAGS)
-CXXFLAGS = $(COMMONFLAGS) -std=c++14
+CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti -fno-exceptions
 
 PROG	= ancient
 OBJS	= Buffer.o SubBuffer.o CRC32.o XPKDecompressor.o XPKMaster.o main.o \
-	ACCADecompressor.o CBR0Decompressor.o CRMDecompressor.o Decompressor.o \
+	ACCADecompressor.o BLZWDecompressor.o CBR0Decompressor.o CRMDecompressor.o Decompressor.o \
 	DEFLATEDecompressor.o DLTADecode.o FASTDecompressor.o FRLEDecompressor.o \
-	HFMNDecompressor.o HUFFDecompressor.o IMPDecompressor.o MASHDecompressor.o NONEDecompressor.o \
+	HFMNDecompressor.o HUFFDecompressor.o IMPDecompressor.o LZW2Decompressor.o \
+	LZW4Decompressor.o LZW5Decompressor.o MASHDecompressor.o NONEDecompressor.o \
 	NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o RDCNDecompressor.o \
-	RLENDecompressor.o RNCDecompressor.o SHR3Decompressor.o SHRIDecompressor.o SMPLDecompressor.o \
-	SQSHDecompressor.o TDCSDecompressor.o TPWMDecompressor.o
+	RLENDecompressor.o RNCDecompressor.o SHR3Decompressor.o SHRIDecompressor.o SLZ3Decompressor.o \
+	SMPLDecompressor.o SQSHDecompressor.o TDCSDecompressor.o TPWMDecompressor.o
 
 all: $(PROG)
 

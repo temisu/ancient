@@ -10,7 +10,7 @@ code quality (translated directly from M68K code to C)
 This code should compile cleanly on any C++14 capable compiler, and it is tested on clang.
 
 The provided tool can be used for identifying files, decompressing, verifying and scanning whole directories for
-files of compressed streams.
+files of compressed streams. There is no support for password protected files.
 
 Decompression algorithms provided:
 * CrunchMania by Thomas Schwarz: supports both new and old stream formats. Also supports decoding the delta encoding i.e. "sampled mode"
@@ -18,9 +18,10 @@ Decompression algorithms provided:
 * PowerPacker
 * Rob Northen compressors. supports all 3 modes.
 * Turbo Packer by Wolfgang Mayerle.
-* Standard gzip
+* Standard gzip (only ancient in context of XPK though)
 * Supports opening XPK-encapsulated files. XPK decompressors supported are:
   * ACCA: Andre's Code Compression Algorithm
+  * BLZW: BLZW LZW-compressor
   * CBR0: RLE compressor
   * CRM2: CrunchMania backend for XPK
   * CRMS: CrunchMania backend for XPK (sampled)
@@ -32,7 +33,11 @@ Decompression algorithms provided:
   * HUFF: Huffman modeling compressor
   * HFMN: Huffman modeling compressor
   * IMPL: File Imploder backend for XPK
-  * MASH: MASK LZRW-compressor
+  * LZW2: LZW2 CyberYAFA compressor
+  * LZW3: LZW3 CyberYAFA compressor
+  * LZW4: LZW4 CyberYAFA compressor
+  * LZW5: LZW5 CyberYAFA compressor
+  * MASH: MASH LZRW-compressor
   * NONE: Null compressor
   * NUKE: NUKE LZ77-compressor
   * PWPK: PowerPacker backend for XPK
@@ -41,13 +46,11 @@ Decompression algorithms provided:
   * RLEN: RLE compressor
   * SHR3: LZ-compressor with arithmetic encoding
   * SHRI: LZ-compressor with arithmetic encoding
+  * SLZ3: SLZ3 CyberYAFA compressor
   * SMPL: SMPL Huffman compressor with delta encoding
   * SQSH: SQSH compressor for sampled sounds
   * TDCS: TDCS LZ77-compressor
 
-Some decompressors have tested better than others. Support for data verification is severely lacking in most formats.
-Also there is no support for password protected files.
-
-Special thanks go to Cholok for providing me references for many of the compressors with sources.
+Special thanks go to Cholok for providing me references to many of the compressors.
 
 Feedback: tz at iki dot fi

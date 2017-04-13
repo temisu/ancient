@@ -151,7 +151,7 @@ bool ACCADecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 					for (uint32_t i=0;i<count;i++) dest[destOffset++]=repeatChar;
 				}
 			} else {
-				if (distance>destOffset || destOffset+count>rawSize)
+				if (!streamStatus || distance>destOffset || destOffset+count>rawSize)
 				{
 					streamStatus=false;
 				} else {

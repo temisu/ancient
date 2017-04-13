@@ -17,10 +17,13 @@
 #include "DEFLATEDecompressor.hpp"
 #include "DLTADecode.hpp"
 #include "FASTDecompressor.hpp"
+#include "FBR2Decompressor.hpp"
 #include "FRLEDecompressor.hpp"
 #include "HFMNDecompressor.hpp"
 #include "HUFFDecompressor.hpp"
+#include "ILZRDecompressor.hpp"
 #include "IMPDecompressor.hpp"
+#include "LZBSDecompressor.hpp"
 #include "LZW2Decompressor.hpp"
 #include "LZW4Decompressor.hpp"
 #include "LZW5Decompressor.hpp"
@@ -37,6 +40,7 @@
 #include "SMPLDecompressor.hpp"
 #include "SQSHDecompressor.hpp"
 #include "TDCSDecompressor.hpp"
+#include "ZENODecompressor.hpp"
 
 bool XPKMaster::detectHeader(uint32_t hdr)
 {
@@ -53,10 +57,13 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	registerDecompressor<DEFLATEDecompressor>();	// handles GZIP
 	registerDecompressor<DLTADecode>();
 	registerDecompressor<FASTDecompressor>();
+	registerDecompressor<FBR2Decompressor>();
 	registerDecompressor<FRLEDecompressor>();
 	registerDecompressor<HFMNDecompressor>();
 	registerDecompressor<HUFFDecompressor>();
+	registerDecompressor<ILZRDecompressor>();
 	registerDecompressor<IMPDecompressor>();	// handles IMPL
+	registerDecompressor<LZBSDecompressor>();
 	registerDecompressor<LZW2Decompressor>();	// handles LZW2 and LZW3
 	registerDecompressor<LZW4Decompressor>();
 	registerDecompressor<LZW5Decompressor>();
@@ -73,6 +80,7 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	registerDecompressor<SMPLDecompressor>();
 	registerDecompressor<SQSHDecompressor>();
 	registerDecompressor<TDCSDecompressor>();
+	registerDecompressor<ZENODecompressor>();
 
 	if (packedData.size()<44) return;
 	uint32_t hdr;

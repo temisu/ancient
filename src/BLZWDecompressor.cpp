@@ -22,7 +22,7 @@ BLZWDecompressor::BLZWDecompressor(uint32_t hdr,const Buffer &packedData,std::un
 	_maxBits=tmp;
 	if (!_packedData.readBE(2,tmp)) return;
 	_stackLength=uint32_t(tmp)+5;
-	if ((8<<_maxBits)+_stackLength>Decompressor::getMaxMemorySize()) return;
+	if ((5U<<_maxBits)+_stackLength>Decompressor::getMaxMemorySize()) return;
 	_isValid=true;
 }
 
@@ -90,8 +90,8 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t rawSize=rawData.size();
 
 	uint32_t maxCode=1<<_maxBits;
-	auto prefix=std::make_unique<uint32_t[]>(maxCode-258);
-	auto suffix=std::make_unique<uint32_t[]>(maxCode-258);
+	auto prefix=std::make_unique<uint32_t[]>(maxCode-259);
+	auto suffix=std::make_unique<uint8_t[]>(maxCode-259);
 	auto stack=std::make_unique<uint8_t[]>(_stackLength);
 
 	uint32_t freeIndex,codeBits,prevCode,newCode;

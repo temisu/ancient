@@ -118,7 +118,7 @@ size_t CRMDecompressor::getRawSize() const
 
 bool CRMDecompressor::decompress(Buffer &rawData)
 {
-	if (!_isValid || rawData.size()<_rawSize) return false;
+	if (!_isValid || rawData.size()!=_rawSize) return false;
 
 	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();

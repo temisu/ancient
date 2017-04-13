@@ -86,7 +86,7 @@ const std::string &SHRIDecompressor::getSubName() const
 bool SHRIDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	if (!_isValid) return false;
-	if (rawData.size()<_rawSize) return false;
+	if (rawData.size()!=_rawSize) return false;
 
 	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();

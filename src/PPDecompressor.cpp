@@ -244,5 +244,6 @@ bool PPDecompressor::decompress(Buffer &rawData)
 
 bool PPDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
+	if (_rawSize!=rawData.size()) return false;
 	return decompress(rawData);
 }

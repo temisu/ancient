@@ -21,35 +21,39 @@ Decompression algorithms provided:
 * Standard gzip (only ancient in context of XPK though)
 * Supports opening XPK-encapsulated files. XPK decompressors supported are:
   * ACCA: Andre's Code Compression Algorithm
-  * BLZW: BLZW LZW-compressor
+  * BLZW: LZW-compressor
   * CBR0: RLE compressor
   * CRM2: CrunchMania backend for XPK
   * CRMS: CrunchMania backend for XPK (sampled)
   * DLTA: Delta encoding
   * DUKE: NUKE with Delta encoding
-  * FAST: FAST LZ77-compressor
+  * FAST: LZ77-compressor
+  * FBR2: CyberYAFA compressor
   * FRLE: RLE compressor
   * GZIP: zlib backend for XPK (Deflate)
   * HUFF: Huffman modeling compressor
   * HFMN: Huffman modeling compressor
+  * ILZR: Incremental Lempel-Ziv-Renau compressor
   * IMPL: File Imploder backend for XPK
-  * LZW2: LZW2 CyberYAFA compressor
-  * LZW3: LZW3 CyberYAFA compressor
-  * LZW4: LZW4 CyberYAFA compressor
-  * LZW5: LZW5 CyberYAFA compressor
-  * MASH: MASH LZRW-compressor
+  * LZBS: CyberYAFA compressor
+  * LZW2: CyberYAFA compressor
+  * LZW3: CyberYAFA compressor
+  * LZW4: CyberYAFA compressor
+  * LZW5: CyberYAFA compressor
+  * MASH: LZRW-compressor
   * NONE: Null compressor
-  * NUKE: NUKE LZ77-compressor
+  * NUKE: LZ77-compressor
   * PWPK: PowerPacker backend for XPK
-  * RAKE: RAKE LZ77-compressor
+  * RAKE: LZ77-compressor
   * RDCN: Ross Data Compression
   * RLEN: RLE compressor
   * SHR3: LZ-compressor with arithmetic encoding
   * SHRI: LZ-compressor with arithmetic encoding
-  * SLZ3: SLZ3 CyberYAFA compressor
-  * SMPL: SMPL Huffman compressor with delta encoding
-  * SQSH: SQSH compressor for sampled sounds
-  * TDCS: TDCS LZ77-compressor
+  * SLZ3: CyberYAFA compressor
+  * SMPL: Huffman compressor with delta encoding
+  * SQSH: Compressor for sampled sounds
+  * TDCS: LZ77-compressor
+  * ZENO: LZW-compressor
 
 Special thanks go to Cholok for providing me references to many of the compressors.
 

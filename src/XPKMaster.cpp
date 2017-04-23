@@ -23,6 +23,7 @@
 #include "HUFFDecompressor.hpp"
 #include "ILZRDecompressor.hpp"
 #include "IMPDecompressor.hpp"
+#include "LHLBDecompressor.hpp"
 #include "LZBSDecompressor.hpp"
 #include "LZW2Decompressor.hpp"
 #include "LZW4Decompressor.hpp"
@@ -63,6 +64,7 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	registerDecompressor<HUFFDecompressor>();
 	registerDecompressor<ILZRDecompressor>();
 	registerDecompressor<IMPDecompressor>();	// handles IMPL
+	registerDecompressor<LHLBDecompressor>();
 	registerDecompressor<LZBSDecompressor>();
 	registerDecompressor<LZW2Decompressor>();	// handles LZW2 and LZW3
 	registerDecompressor<LZW4Decompressor>();
@@ -71,7 +73,7 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	registerDecompressor<NONEDecompressor>();
 	registerDecompressor<NUKEDecompressor>();
 	registerDecompressor<PPDecompressor>();		// handles PWPK
-	registerDecompressor<RAKEDecompressor>();
+	registerDecompressor<RAKEDecompressor>();	// handles FRHT and RAKE
 	registerDecompressor<RDCNDecompressor>();
 	registerDecompressor<RLENDecompressor>();
 	registerDecompressor<SHR3Decompressor>();

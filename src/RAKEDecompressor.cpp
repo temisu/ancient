@@ -5,7 +5,7 @@
 
 bool RAKEDecompressor::detectHeaderXPK(uint32_t hdr)
 {
-	return hdr==FourCC('RAKE');
+	return (hdr==FourCC('FRHT') || hdr==FourCC('RAKE'));
 }
 
 std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
@@ -17,6 +17,7 @@ RAKEDecompressor::RAKEDecompressor(uint32_t hdr,const Buffer &packedData,std::un
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
+	if (hdr==FourCC('RAKE')) _isRAKE=true;
 	if (packedData.size()<4) return;
 
 	uint16_t tmp;
@@ -52,8 +53,9 @@ bool RAKEDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &RAKEDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-RAKE: RAKE LZ77-compressor";
-	return name;
+	static std::string nameFRHT="XPK-FRHT: FRHT LZ77-compressor";
+	static std::string nameRAKE="XPK-RAKE: RAKE LZ77-compressor";
+	return (_isRAKE)?nameRAKE:nameFRHT;
 }
 
 bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)

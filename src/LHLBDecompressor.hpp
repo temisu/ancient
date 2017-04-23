@@ -1,16 +1,16 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef RAKEDECOMPRESSOR_HPP
-#define RAKEDECOMPRESSOR_HPP
+#ifndef LHLBDECOMPRESSOR_HPP
+#define LHLBDECOMPRESSOR_HPP
 
 #include "XPKDecompressor.hpp"
 
-class RAKEDecompressor : public XPKDecompressor
+class LHLBDecompressor : public XPKDecompressor
 {
 public:
-	RAKEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	LHLBDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
-	virtual ~RAKEDecompressor();
+	virtual ~LHLBDecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -27,8 +27,6 @@ private:
 	const Buffer &_packedData;
 
 	bool		_isValid=false;
-	bool		_isRAKE=false;
-	size_t		_midStreamOffset=0;
 };
 
 #endif

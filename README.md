@@ -29,12 +29,14 @@ Decompression algorithms provided:
   * DUKE: NUKE with Delta encoding
   * FAST: LZ77-compressor
   * FBR2: CyberYAFA compressor
+  * FRHT: LZ77-compressor
   * FRLE: RLE compressor
   * GZIP: zlib backend for XPK (Deflate)
   * HUFF: Huffman modeling compressor
   * HFMN: Huffman modeling compressor
   * ILZR: Incremental Lempel-Ziv-Renau compressor
   * IMPL: File Imploder backend for XPK
+  * LHLB: LZRW-compressor
   * LZBS: CyberYAFA compressor
   * LZW2: CyberYAFA compressor
   * LZW3: CyberYAFA compressor

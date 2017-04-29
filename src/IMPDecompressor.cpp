@@ -46,6 +46,11 @@ bool IMPDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('IMPL');
 }
 
+bool IMPDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> IMPDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<IMPDecompressor>(hdr,packedData,state);

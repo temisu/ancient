@@ -7,6 +7,11 @@ bool FRLEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('FRLE');
 }
 
+bool FRLEDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> FRLEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<FRLEDecompressor>(hdr,packedData,state);
@@ -42,7 +47,7 @@ bool FRLEDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &FRLEDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-FRLE: RLE compressor";
+	static std::string name="XPK-FRLE: RLE-compressor";
 	return name;
 }
 

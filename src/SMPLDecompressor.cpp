@@ -8,6 +8,11 @@ bool SMPLDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('SMPL');
 }
 
+bool SMPLDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> SMPLDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<SMPLDecompressor>(hdr,packedData,state);
@@ -51,7 +56,7 @@ bool SMPLDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &SMPLDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-SMPL: SMPL Huffman compressor with delta encoding";
+	static std::string name="XPK-SMPL: Huffman compressor with delta encoding";
 	return name;
 }
 

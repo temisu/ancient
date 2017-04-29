@@ -7,6 +7,6 @@
 
 #include "Buffer.hpp"
 
-bool CRC32(const Buffer &buffer,size_t offset,size_t len,uint32_t &retValue);
+bool CRC32(const Buffer &buffer,size_t offset,size_t len,uint32_t &accumulator);
 
 #endif

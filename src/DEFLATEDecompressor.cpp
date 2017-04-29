@@ -34,6 +34,11 @@ bool DEFLATEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return (hdr==FourCC('GZIP'));
 }
 
+bool DEFLATEDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> DEFLATEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<DEFLATEDecompressor>(hdr,packedData,state);
@@ -178,7 +183,7 @@ bool DEFLATEDecompressor::verifyRaw(const Buffer &rawData) const
 	if (_type==Type::GZIP && _exactSizeKnown)
 	{
 		if (rawData.size()<_rawSize) return false;
-		uint32_t crc;
+		uint32_t crc=0;
 		return CRC32(rawData,0,_rawSize,crc) && crc==_rawCRC;
 	} else if (_type==Type::ZLib) {
 		uint32_t adler;

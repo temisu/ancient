@@ -1,11 +1,16 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "ZENODecompressor.hpp"
-#include "HuffmanDecoder.hpp"
 
 bool ZENODecompressor::detectHeaderXPK(uint32_t hdr)
 {
 	return hdr==FourCC('ZENO');
+}
+
+
+bool ZENODecompressor::isRecursive()
+{
+	return false;
 }
 
 std::unique_ptr<XPKDecompressor> ZENODecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
@@ -55,7 +60,7 @@ bool ZENODecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &ZENODecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-ZENO: ZENO LZW-compressor";
+	static std::string name="XPK-ZENO: LZW-compressor";
 	return name;
 }
 

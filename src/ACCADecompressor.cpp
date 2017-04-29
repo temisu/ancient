@@ -1,11 +1,15 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "ACCADecompressor.hpp"
-#include "HuffmanDecoder.hpp"
 
 bool ACCADecompressor::detectHeaderXPK(uint32_t hdr)
 {
 	return hdr==FourCC('ACCA');
+}
+
+bool ACCADecompressor::isRecursive()
+{
+	return false;
 }
 
 std::unique_ptr<XPKDecompressor> ACCADecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
@@ -45,7 +49,7 @@ bool ACCADecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &ACCADecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-ACCA: Andre's Code Compression Algorithm";
+	static std::string name="XPK-ACCA: Andre's code compression algorithm";
 	return name;
 }
 

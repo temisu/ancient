@@ -7,6 +7,11 @@ bool TDCSDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('TDCS');
 }
 
+bool TDCSDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> TDCSDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<TDCSDecompressor>(hdr,packedData,state);
@@ -44,7 +49,7 @@ bool TDCSDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &TDCSDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-TDCS: TDCS LZ77-compressor";
+	static std::string name="XPK-TDCS: LZ77-compressor";
 	return name;
 }
 

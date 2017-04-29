@@ -8,6 +8,11 @@ bool RAKEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return (hdr==FourCC('FRHT') || hdr==FourCC('RAKE'));
 }
 
+bool RAKEDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<RAKEDecompressor>(hdr,packedData,state);
@@ -53,8 +58,8 @@ bool RAKEDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &RAKEDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string nameFRHT="XPK-FRHT: FRHT LZ77-compressor";
-	static std::string nameRAKE="XPK-RAKE: RAKE LZ77-compressor";
+	static std::string nameFRHT="XPK-FRHT: LZ77-compressor";
+	static std::string nameRAKE="XPK-RAKE: LZ77-compressor";
 	return (_isRAKE)?nameRAKE:nameFRHT;
 }
 

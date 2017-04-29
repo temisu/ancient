@@ -28,6 +28,7 @@
 #include "LZW2Decompressor.hpp"
 #include "LZW4Decompressor.hpp"
 #include "LZW5Decompressor.hpp"
+#include "LZXDecompressor.hpp"
 #include "MASHDecompressor.hpp"
 #include "NONEDecompressor.hpp"
 #include "NUKEDecompressor.hpp"
@@ -35,6 +36,7 @@
 #include "RAKEDecompressor.hpp"
 #include "RDCNDecompressor.hpp"
 #include "RLENDecompressor.hpp"
+#include "SDHCDecompressor.hpp"
 #include "SHR3Decompressor.hpp"
 #include "SHRIDecompressor.hpp"
 #include "SLZ3Decompressor.hpp"
@@ -48,7 +50,7 @@ bool XPKMaster::detectHeader(uint32_t hdr)
 	return hdr==FourCC('XPKF');
 }
 
-XPKMaster::XPKMaster(const Buffer &packedData) :
+XPKMaster::XPKMaster(const Buffer &packedData,bool allowRecursion) :
 	_packedData(packedData)
 {
 	registerDecompressor<ACCADecompressor>();
@@ -69,6 +71,7 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	registerDecompressor<LZW2Decompressor>();	// handles LZW2 and LZW3
 	registerDecompressor<LZW4Decompressor>();
 	registerDecompressor<LZW5Decompressor>();
+	registerDecompressor<LZXDecompressor>();	// handles ELZX and SLZX
 	registerDecompressor<MASHDecompressor>();
 	registerDecompressor<NONEDecompressor>();
 	registerDecompressor<NUKEDecompressor>();
@@ -76,6 +79,7 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	registerDecompressor<RAKEDecompressor>();	// handles FRHT and RAKE
 	registerDecompressor<RDCNDecompressor>();
 	registerDecompressor<RLENDecompressor>();
+	registerDecompressor<SDHCDecompressor>();
 	registerDecompressor<SHR3Decompressor>();
 	registerDecompressor<SHRIDecompressor>();
 	registerDecompressor<SLZ3Decompressor>();
@@ -110,7 +114,17 @@ XPKMaster::XPKMaster(const Buffer &packedData) :
 	}
 
 	if (_packedSize+8>packedData.size()) return;
-	_isValid=detectSubDecompressor();
+	for (auto &it : _decompressors)
+	{
+		if (std::get<0>(it)(_type)) 
+		{
+			if (std::get<1>(it)() && !allowRecursion) return;
+			else {
+				_isValid=true;
+				return;
+			}
+		}
+	}
 }
 
 XPKMaster::~XPKMaster()
@@ -263,20 +277,11 @@ bool XPKMaster::decompress(Buffer &rawData)
 	return destOffset==_rawSize;
 }
 
-bool XPKMaster::detectSubDecompressor() const
-{
-	for (auto &it : _decompressors)
-	{
-		if (it.first(_type)) return true;
-	}
-	return false;
-}
-
 std::unique_ptr<XPKDecompressor> XPKMaster::createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const
 {
 	for (auto &it : _decompressors)
 	{
-		if (it.first(_type)) return it.second(_type,buffer,state);
+		if (std::get<0>(it)(_type)) return std::get<2>(it)(_type,buffer,state);
 	}
 	return nullptr;
 }

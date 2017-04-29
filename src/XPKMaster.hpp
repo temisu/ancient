@@ -9,7 +9,7 @@
 class XPKMaster : public Decompressor
 {
 public:
-	XPKMaster(const Buffer &packedData);
+	XPKMaster(const Buffer &packedData,bool allowRecursion=true);
 
 	virtual ~XPKMaster();
 
@@ -27,12 +27,11 @@ public:
 
 private:
 	std::unique_ptr<XPKDecompressor> createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const;
-	bool detectSubDecompressor() const;
 
 	template<class T>
 	void registerDecompressor()
 	{
-		_decompressors.push_back(std::make_pair(T::detectHeaderXPK,T::create));
+		_decompressors.push_back(std::make_tuple(T::detectHeaderXPK,T::isRecursive,T::create));
 	}
 
 	template <typename F>
@@ -47,7 +46,7 @@ private:
 	uint32_t	_type=0;
 	bool		_longHeaders=false;
 
-	std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> _decompressors;
+	std::vector<std::tuple<bool(*)(uint32_t),bool(*)(),std::unique_ptr<XPKDecompressor>(*)(uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> _decompressors;
 };
 
 #endif

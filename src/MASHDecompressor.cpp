@@ -8,6 +8,11 @@ bool MASHDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('MASH');
 }
 
+bool MASHDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> MASHDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<MASHDecompressor>(hdr,packedData,state);
@@ -45,7 +50,7 @@ bool MASHDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &MASHDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-MASH: MASH LZRW-compressor";
+	static std::string name="XPK-MASH: LZRW-compressor";
 	return name;
 }
 

@@ -3,13 +3,16 @@
 #include <string.h>
 
 #include "NUKEDecompressor.hpp"
-#include "HuffmanDecoder.hpp"
-
 #include "DLTADecode.hpp"
 
 bool NUKEDecompressor::detectHeaderXPK(uint32_t hdr)
 {
 	return hdr==FourCC('NUKE') || hdr==FourCC('DUKE');
+}
+
+bool NUKEDecompressor::isRecursive()
+{
+	return false;
 }
 
 std::unique_ptr<XPKDecompressor> NUKEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
@@ -50,8 +53,8 @@ bool NUKEDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &NUKEDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string nameN="XPK-NUKE: NUKE LZ77-compressor";
-	static std::string nameD="XPK-DUKE: NUKE LZ77-compressor with delta";
+	static std::string nameN="XPK-NUKE: LZ77-compressor";
+	static std::string nameD="XPK-DUKE: LZ77-compressor with delta encoding";
 	return (_isDUKE)?nameD:nameN;
 }
 

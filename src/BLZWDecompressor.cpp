@@ -1,11 +1,15 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "BLZWDecompressor.hpp"
-#include "HuffmanDecoder.hpp"
 
 bool BLZWDecompressor::detectHeaderXPK(uint32_t hdr)
 {
 	return hdr==FourCC('BLZW');
+}
+
+bool BLZWDecompressor::isRecursive()
+{
+	return false;
 }
 
 std::unique_ptr<XPKDecompressor> BLZWDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
@@ -51,7 +55,7 @@ bool BLZWDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &BLZWDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-BLZW: BLZW LZW-compressor";
+	static std::string name="XPK-BLZW: LZW-compressor";
 	return name;
 }
 

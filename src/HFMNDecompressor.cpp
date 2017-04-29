@@ -8,6 +8,11 @@ bool HFMNDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('HFMN');
 }
 
+bool HFMNDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> HFMNDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<HFMNDecompressor>(hdr,packedData,state);

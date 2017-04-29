@@ -39,6 +39,7 @@ public:
 
 	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);
+	static bool isRecursive();
 	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
 private:

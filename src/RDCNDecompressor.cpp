@@ -1,11 +1,15 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "RDCNDecompressor.hpp"
-#include "HuffmanDecoder.hpp"
 
 bool RDCNDecompressor::detectHeaderXPK(uint32_t hdr)
 {
 	return hdr==FourCC('RDCN');
+}
+
+bool RDCNDecompressor::isRecursive()
+{
+	return false;
 }
 
 std::unique_ptr<XPKDecompressor> RDCNDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
@@ -45,7 +49,7 @@ bool RDCNDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &RDCNDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-RDCN: Ross Data Compression";
+	static std::string name="XPK-RDCN: Ross data compression";
 	return name;
 }
 

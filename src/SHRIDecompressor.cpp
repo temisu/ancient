@@ -17,6 +17,11 @@ bool SHRIDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('SHRI');
 }
 
+bool SHRIDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> SHRIDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<SHRIDecompressor>(hdr,packedData,state);

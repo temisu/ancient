@@ -9,6 +9,11 @@ bool NONEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('NONE');
 }
 
+bool NONEDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> NONEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<NONEDecompressor>(hdr,packedData,state);

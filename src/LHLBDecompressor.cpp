@@ -7,6 +7,11 @@ bool LHLBDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('LHLB');
 }
 
+bool LHLBDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> LHLBDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<LHLBDecompressor>(hdr,packedData,state);
@@ -44,7 +49,7 @@ bool LHLBDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &LHLBDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-LHLB: LHLB LZRW-compressor";
+	static std::string name="XPK-LHLB: LZRW-compressor";
 	return name;
 }
 

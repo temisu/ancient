@@ -7,6 +7,11 @@ bool DLTADecode::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('DLTA');
 }
 
+bool DLTADecode::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> DLTADecode::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<DLTADecode>(hdr,packedData,state);

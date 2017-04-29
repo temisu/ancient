@@ -7,6 +7,11 @@ bool RLENDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('RLEN');
 }
 
+bool RLENDecompressor::isRecursive()
+{
+	return false;
+}
+
 std::unique_ptr<XPKDecompressor> RLENDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<RLENDecompressor>(hdr,packedData,state);
@@ -42,7 +47,7 @@ bool RLENDecompressor::verifyRaw(const Buffer &rawData) const
 const std::string &RLENDecompressor::getSubName() const
 {
 	if (!_isValid) return XPKDecompressor::getSubName();
-	static std::string name="XPK-RLEN: RLE compressor";
+	static std::string name="XPK-RLEN: RLE-compressor";
 	return name;
 }
 

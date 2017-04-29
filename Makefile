@@ -9,14 +9,17 @@ CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti -fno-exceptions
 
 PROG	= ancient
-OBJS	= Buffer.o SubBuffer.o CRC32.o XPKDecompressor.o XPKMaster.o main.o \
-	ACCADecompressor.o BLZWDecompressor.o CBR0Decompressor.o CRMDecompressor.o Decompressor.o \
-	DEFLATEDecompressor.o DLTADecode.o FASTDecompressor.o FBR2Decompressor.o FRLEDecompressor.o \
-	HFMNDecompressor.o HUFFDecompressor.o ILZRDecompressor.o IMPDecompressor.o LHLBDecompressor.o \
-	LZBSDecompressor.o LZW2Decompressor.o LZW4Decompressor.o LZW5Decompressor.o MASHDecompressor.o \
-	NONEDecompressor.o NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o RDCNDecompressor.o \
-	RLENDecompressor.o RNCDecompressor.o SHR3Decompressor.o SHRIDecompressor.o SLZ3Decompressor.o \
-	SMPLDecompressor.o SQSHDecompressor.o TDCSDecompressor.o TPWMDecompressor.o ZENODecompressor.o
+OBJS	= Buffer.o SubBuffer.o CRC32.o Decompressor.o \
+	XPKDecompressor.o XPKMaster.o main.o \
+	ACCADecompressor.o BLZWDecompressor.o CBR0Decompressor.o CRMDecompressor.o \
+	DEFLATEDecompressor.o DLTADecode.o FASTDecompressor.o FBR2Decompressor.o \
+	FRLEDecompressor.o HFMNDecompressor.o HUFFDecompressor.o ILZRDecompressor.o \
+	IMPDecompressor.o LHLBDecompressor.o LZBSDecompressor.o LZW2Decompressor.o \
+	LZW4Decompressor.o LZW5Decompressor.o LZXDecompressor.o MASHDecompressor.o \
+	NONEDecompressor.o NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o \
+	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SDHCDecompressor.o \
+	SHR3Decompressor.o SHRIDecompressor.o SLZ3Decompressor.o SMPLDecompressor.o \
+	SQSHDecompressor.o TDCSDecompressor.o TPWMDecompressor.o ZENODecompressor.o
 
 all: $(PROG)
 

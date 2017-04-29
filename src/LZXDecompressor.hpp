@@ -1,16 +1,15 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef LZW2DECOMPRESSOR_HPP
-#define LZW2DECOMPRESSOR_HPP
+#ifndef LZXDECOMPRESSOR_HPP
+#define LZXDECOMPRESSOR_HPP
 
 #include "XPKDecompressor.hpp"
 
-class LZW2Decompressor : public XPKDecompressor
+class LZXDecompressor : public XPKDecompressor
 {
 public:
-	LZW2Decompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
-
-	virtual ~LZW2Decompressor();
+	LZXDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	virtual ~LZXDecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -28,7 +27,12 @@ private:
 	const Buffer &_packedData;
 
 	bool		_isValid=false;
-	uint32_t	_ver=0;
+	bool		_isSampled=false;
+	bool		_isCompressed=false;
+	size_t		_packedSize=0;
+	size_t		_packedOffset=0;
+	size_t		_rawSize=0;
+	uint32_t	_rawCRC;
 };
 
 #endif

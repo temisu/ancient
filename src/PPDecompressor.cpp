@@ -1,7 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "PPDecompressor.hpp"
-#include "HuffmanDecoder.hpp"
 
 PPDecompressor::PPState::PPState(uint32_t mode) :
 	_cachedMode(mode)
@@ -22,6 +21,11 @@ bool PPDecompressor::detectHeader(uint32_t hdr)
 bool PPDecompressor::detectHeaderXPK(uint32_t hdr)
 {
 	return hdr==FourCC('PWPK');
+}
+
+bool PPDecompressor::isRecursive()
+{
+	return false;
 }
 
 std::unique_ptr<XPKDecompressor> PPDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)

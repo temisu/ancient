@@ -1,11 +1,15 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "SLZ3Decompressor.hpp"
-#include "HuffmanDecoder.hpp"
 
 bool SLZ3Decompressor::detectHeaderXPK(uint32_t hdr)
 {
 	return hdr==FourCC('SLZ3');
+}
+
+bool SLZ3Decompressor::isRecursive()
+{
+	return false;
 }
 
 std::unique_ptr<XPKDecompressor> SLZ3Decompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)

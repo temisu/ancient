@@ -1,11 +1,15 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "FBR2Decompressor.hpp"
-#include "HuffmanDecoder.hpp"
 
 bool FBR2Decompressor::detectHeaderXPK(uint32_t hdr)
 {
 	return hdr==FourCC('FBR2');
+}
+
+bool FBR2Decompressor::isRecursive()
+{
+	return false;
 }
 
 std::unique_ptr<XPKDecompressor> FBR2Decompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)

@@ -1,16 +1,16 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef LZW2DECOMPRESSOR_HPP
-#define LZW2DECOMPRESSOR_HPP
+#ifndef SDHCDECOMPRESSOR_HPP
+#define SDHCDECOMPRESSOR_HPP
 
 #include "XPKDecompressor.hpp"
 
-class LZW2Decompressor : public XPKDecompressor
+class SDHCDecompressor : public XPKDecompressor
 {
 public:
-	LZW2Decompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	SDHCDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
-	virtual ~LZW2Decompressor();
+	virtual ~SDHCDecompressor();
 
 	virtual bool isValid() const override final;
 	virtual bool verifyPacked() const override final;
@@ -28,7 +28,7 @@ private:
 	const Buffer &_packedData;
 
 	bool		_isValid=false;
-	uint32_t	_ver=0;
+	uint16_t	_mode=0;
 };
 
 #endif

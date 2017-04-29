@@ -27,6 +27,7 @@ Decompression algorithms provided:
   * CRMS: CrunchMania backend for XPK (sampled)
   * DLTA: Delta encoding
   * DUKE: NUKE with Delta encoding
+  * ELZX: LZX-compressor
   * FAST: LZ77-compressor
   * FBR2: CyberYAFA compressor
   * FRHT: LZ77-compressor
@@ -49,9 +50,11 @@ Decompression algorithms provided:
   * RAKE: LZ77-compressor
   * RDCN: Ross Data Compression
   * RLEN: RLE compressor
+  * SDHC: Sample delta huffman compressor
   * SHR3: LZ-compressor with arithmetic encoding
   * SHRI: LZ-compressor with arithmetic encoding
   * SLZ3: CyberYAFA compressor
+  * SLZX: LZX-compressor with delta encoding
   * SMPL: Huffman compressor with delta encoding
   * SQSH: Compressor for sampled sounds
   * TDCS: LZ77-compressor

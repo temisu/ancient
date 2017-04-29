@@ -4,7 +4,7 @@
 
 #include "Buffer.hpp"
 
-bool CRC32(const Buffer &buffer,size_t offset,size_t len,uint32_t &retValue)
+bool CRC32(const Buffer &buffer,size_t offset,size_t len,uint32_t &accumulator)
 {
 	static const uint32_t CRCTable[256]={
 		0x00000000U,0x77073096U,0xee0e612cU,0x990951baU,0x076dc419U,0x706af48fU,0xe963a535U,0x9e6495a3U,
@@ -42,9 +42,9 @@ bool CRC32(const Buffer &buffer,size_t offset,size_t len,uint32_t &retValue)
 
 	if (!len || offset+len>buffer.size()) return false;
 	const uint8_t *ptr=buffer.data()+offset;
-	retValue=~0U;
+	accumulator=~accumulator;
 	for (size_t i=0;i<len;i++)
-		retValue=(retValue>>8)^CRCTable[(retValue&0xff)^ptr[i]];
-	retValue=~retValue;
+		accumulator=(accumulator>>8)^CRCTable[(accumulator&0xff)^ptr[i]];
+	accumulator=~accumulator;
 	return true;
 }

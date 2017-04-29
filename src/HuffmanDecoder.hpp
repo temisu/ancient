@@ -24,6 +24,9 @@ private:
 	static const size_t _length=(2<<depth)-2;
 
 public:
+	HuffmanDecoder(const HuffmanDecoder&)=delete;
+	HuffmanDecoder& operator=(const HuffmanDecoder&)=delete;
+
 	HuffmanDecoder() :
 		_isValid(true)
 	{
@@ -43,8 +46,17 @@ public:
 	{
 	}
 
-	bool isValid() { return _isValid; }
-	
+	void reset()
+	{
+		_isValid=true;
+		for (size_t i=0;i<_length;i++) _table[i]=emptyValue;
+	}
+
+	bool isValid() const
+	{
+		return _isValid;
+	}
+
 	template<typename F>
 	T decode(F bitReader) const
 	{
@@ -115,7 +127,16 @@ public:
 	{
 	}
 
-	bool isValid() { return _isValid; }
+	void reset()
+	{
+		_isValid=true;
+		_table.clear();
+	}
+
+	bool isValid() const
+	{
+		return _isValid;
+	}
 
 	template<typename F>
 	T decode(F bitReader) const

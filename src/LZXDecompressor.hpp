@@ -32,7 +32,7 @@ private:
 	size_t		_packedSize=0;
 	size_t		_packedOffset=0;
 	size_t		_rawSize=0;
-	uint32_t	_rawCRC;
+	uint32_t	_rawCRC=0;
 };
 
 #endif

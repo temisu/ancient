@@ -9,4 +9,6 @@
 
 bool CRC32(const Buffer &buffer,size_t offset,size_t len,uint32_t &accumulator);
 
+void CRC32Byte(uint8_t ch,uint32_t &accumulator);
+
 #endif

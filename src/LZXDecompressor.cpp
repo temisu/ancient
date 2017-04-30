@@ -77,18 +77,37 @@ LZXDecompressor::~LZXDecompressor()
 
 bool LZXDecompressor::isValid() const
 {
-	// header CRC already checked
 	return _isValid;
 }
 
 bool LZXDecompressor::verifyPacked() const
 {
+	// header CRC already checked
 	return _isValid;
 }
 
 bool LZXDecompressor::verifyRaw(const Buffer &rawData) const
 {
-	return _isValid;
+	if (!_isValid || rawData.size()!=_rawSize) return false;
+	if (_isSampled)
+	{
+		// Correct place for CRC is just before delta decoding
+		// but that would mess the decompression flow.
+		// fortunately delta decoding is trivially reversible
+		uint32_t crc=0;
+		uint8_t ch=0;
+		const uint8_t *buffer=rawData.data();
+		for (size_t i=0;i<_rawSize;i++)
+		{
+			uint8_t tmp=buffer[i];
+			CRC32Byte(tmp-ch,crc);
+			ch=tmp;
+		}
+		return crc==_rawCRC;
+	} else {
+		uint32_t crc=0;
+		return CRC32(rawData,0,_rawSize,crc) && crc==_rawCRC;
+	}
 }
 
 const std::string &LZXDecompressor::getSubName() const

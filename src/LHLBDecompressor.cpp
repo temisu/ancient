@@ -128,6 +128,7 @@ bool LHLBDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 				uint32_t tmpIndex1=huff[code+317];
 				do {
 					freq[tmpIndex1]++;
+					if (tmpIndex1==632) break;
 					if (freq[tmpIndex1]>freq[tmpIndex1+1])
 					{
 						uint32_t tmpIndex2=tmpIndex1;

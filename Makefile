@@ -14,7 +14,8 @@ OBJS	= Buffer.o SubBuffer.o CRC32.o Decompressor.o \
 	ACCADecompressor.o BLZWDecompressor.o CBR0Decompressor.o CRMDecompressor.o \
 	DEFLATEDecompressor.o DLTADecode.o FASTDecompressor.o FBR2Decompressor.o \
 	FRLEDecompressor.o HFMNDecompressor.o HUFFDecompressor.o ILZRDecompressor.o \
-	IMPDecompressor.o LHLBDecompressor.o LZBSDecompressor.o LZW2Decompressor.o \
+	IMPDecompressor.o LIN1Decompressor.o LIN2Decompressor.o \
+	LHLBDecompressor.o LZBSDecompressor.o LZW2Decompressor.o \
 	LZW4Decompressor.o LZW5Decompressor.o LZXDecompressor.o MASHDecompressor.o \
 	NONEDecompressor.o NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o \
 	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SDHCDecompressor.o \

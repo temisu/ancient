@@ -24,6 +24,8 @@
 #include "ILZRDecompressor.hpp"
 #include "IMPDecompressor.hpp"
 #include "LHLBDecompressor.hpp"
+#include "LIN1Decompressor.hpp"
+#include "LIN2Decompressor.hpp"
 #include "LZBSDecompressor.hpp"
 #include "LZW2Decompressor.hpp"
 #include "LZW4Decompressor.hpp"
@@ -67,6 +69,8 @@ XPKMaster::XPKMaster(const Buffer &packedData,bool allowRecursion) :
 	registerDecompressor<ILZRDecompressor>();
 	registerDecompressor<IMPDecompressor>();	// handles IMPL
 	registerDecompressor<LHLBDecompressor>();
+	registerDecompressor<LIN1Decompressor>();	// handles LIN1 and LIN3
+	registerDecompressor<LIN2Decompressor>();	// handles LIN2 and LIN4
 	registerDecompressor<LZBSDecompressor>();
 	registerDecompressor<LZW2Decompressor>();	// handles LZW2 and LZW3
 	registerDecompressor<LZW4Decompressor>();

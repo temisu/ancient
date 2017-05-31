@@ -117,7 +117,6 @@ bool SDHCDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		}
 	};
 
-
 	switch (_mode&15)
 	{
 		case 1:

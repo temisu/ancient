@@ -137,7 +137,7 @@ bool LZW5Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			case 3:
 			distance=readld();
 			count=uint32_t(readByte())+3;
-			distance=65536-distance;
+			distance=0x10000-distance;
 			doCopy=true;
 			break;
 			

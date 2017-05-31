@@ -38,6 +38,10 @@ Decompression algorithms provided:
   * ILZR: Incremental Lempel-Ziv-Renau compressor
   * IMPL: File Imploder backend for XPK
   * LHLB: LZRW-compressor
+  * LIN1: Lino packer
+  * LIN2: Lino packer
+  * LIN3: Lino packer
+  * LIN4: Lino packer
   * LZBS: CyberYAFA compressor
   * LZW2: CyberYAFA compressor
   * LZW3: CyberYAFA compressor
@@ -60,6 +64,6 @@ Decompression algorithms provided:
   * TDCS: LZ77-compressor
   * ZENO: LZW-compressor
 
-Special thanks go to Cholok for providing me references to many of the compressors.
+Special thanks go to Cholok for providing me references to many of the XPK-compressors.
 
 Feedback: tz at iki dot fi

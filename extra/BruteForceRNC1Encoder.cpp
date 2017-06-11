@@ -335,7 +335,7 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 			sortedList.resize(totalCount);
 			writeBits(5,totalCount);
 			if (!totalCount) return;
-			std::sort(sortedList.begin(),sortedList.end(),[&](const auto &a,const auto &b){return a.second>b.second||(a.second==b.second&a.first<b.first);});
+			std::sort(sortedList.begin(),sortedList.end(),[&](const auto &a,const auto &b){return a.second>b.second||(a.second==b.second&&a.first<b.first);});
 
 			// convert frequencies to bit length
 			const uint32_t initialNorm=1<<30;
@@ -384,7 +384,7 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 			}
 
 			// using the full range will sometimes result out-of-order indexes
-			std::sort(sortedList.begin(),sortedList.end(),[&](const auto &a,const auto &b){return a.second<b.second||(a.second==b.second&a.first<b.first);});
+			std::sort(sortedList.begin(),sortedList.end(),[&](const auto &a,const auto &b){return a.second<b.second||(a.second==b.second&&a.first<b.first);});
 
 			uint32_t maxDepth=0;
 			for (uint32_t i=0;i<totalCount;i++)

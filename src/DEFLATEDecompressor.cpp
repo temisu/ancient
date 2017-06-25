@@ -151,14 +151,21 @@ DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData,s
 	_isValid=true;
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize) :
+DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize,bool isZlib) :
 	_packedData(packedData)
 {
 	_packedSize=packedSize;
 	if (_packedSize>_packedData.size()) return;
-	_packedOffset=0;
-	_rawSize=rawSize;
-	_type=Type::Raw;
+	if (isZlib)
+	{
+		// if it is not real zlib-stream fail.
+		if (!detectZLib()) return;
+	} else {
+		// raw stream
+		_packedOffset=0;
+		_rawSize=rawSize;
+		_type=Type::Raw;
+	}
 	_isValid=true;
 }
 

@@ -11,7 +11,7 @@ class DEFLATEDecompressor : public Decompressor, public XPKDecompressor
 public:
 	DEFLATEDecompressor(const Buffer &packedData,bool exactSizeKnown);
 	DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
-	DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize);	// completely raw stream
+	DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize,bool isZlib=false);		// zlib or completely raw stream
 	virtual ~DEFLATEDecompressor();
 
 	virtual bool isValid() const override final;

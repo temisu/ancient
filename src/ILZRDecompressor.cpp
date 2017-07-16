@@ -97,7 +97,7 @@ bool ILZRDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		{
 			dest[destOffset++]=readBits(8);
 		} else {
-			while (destOffset>(1<<bits)) bits++;
+			while (destOffset>(1U<<bits)) bits++;
 			uint32_t position=readBits(bits);
 			uint32_t count=readBits(4)+3;
 

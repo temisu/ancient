@@ -136,8 +136,8 @@ bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	while (streamStatus && destOffset!=_rawSize)
 	{
-		uint8_t bits;
-		uint32_t count;
+		uint8_t bits=0;
+		uint32_t count=0;
 		bool doRepeat=false;
 
 		if (accum1>=8)

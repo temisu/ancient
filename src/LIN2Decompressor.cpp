@@ -275,7 +275,7 @@ bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			do {
 				uint32_t bits=readBits(3)+minBits;
 				distance=readBits(bits);
-				isMax=(distance==((1<<bits)-1))&&(bits==minBits+7);
+				isMax=(distance==((1U<<bits)-1))&&(bits==minBits+7);
 				if (isMax) minBits++;
 				distance+=(((1<<bits)-1)&~((1<<minBits)-1))+1;
 			} while (isMax);

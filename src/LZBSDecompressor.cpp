@@ -111,7 +111,7 @@ bool LZBSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 						dest[destOffset++]=readBits(8);
 				}
 			} else {
-				while (destOffset>=(1<<bits) && bits<maxBits) bits++;
+				while (destOffset>=(1U<<bits) && bits<maxBits) bits++;
 				uint32_t distance=readBits(bits);
 
 				if (!distance || distance>destOffset || destOffset+count>rawSize)

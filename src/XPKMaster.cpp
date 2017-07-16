@@ -179,7 +179,7 @@ bool XPKMaster::verifyPacked() const
 
 		if (chunkType==1)
 		{
-			auto sub{createSubDecompressor(chunk,state)};
+			auto sub=createSubDecompressor(chunk,state);
 			if (!sub || !sub->isValid() || !sub->verifyPacked()) return false;
 		} else if (chunkType!=0 && chunkType!=15) return false;
 		return true;
@@ -203,7 +203,7 @@ bool XPKMaster::verifyRaw(const Buffer &rawData) const
 		ConstSubBuffer VerifyBuffer(rawData,destOffset,rawChunkSize);
 		if (chunkType==1)
 		{
-			auto sub{createSubDecompressor(chunk,state)};
+			auto sub=createSubDecompressor(chunk,state);
 			if (!sub || !sub->isValid() || !sub->verifyRaw(VerifyBuffer)) return false;
 		} else if (chunkType!=0 && chunkType!=15) return false;
 
@@ -262,7 +262,7 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 			case 1:
 			{
-				auto sub{createSubDecompressor(chunk,state)};
+				auto sub=createSubDecompressor(chunk,state);
 				if (!sub || !sub->isValid() || !sub->decompress(DestBuffer,previousBuffer)) return false;
 			}
 			break;

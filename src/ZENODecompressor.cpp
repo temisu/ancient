@@ -127,7 +127,7 @@ bool ZENODecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	
 	while (streamStatus && destOffset!=rawSize)
 	{
-		if (freeIndex+3>=(1<<codeBits) && codeBits<_maxBits) codeBits++;
+		if (freeIndex+3>=(1U<<codeBits) && codeBits<_maxBits) codeBits++;
 		uint32_t code=readBits(codeBits);
 		bool doExit=false;
 		switch (code)

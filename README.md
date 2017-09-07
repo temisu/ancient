@@ -9,7 +9,7 @@ Even though most of these algorithms are still available for download, scavengin
 * Provide a clean BSD-style licensing - Original implementations or their ports might have strange license or no visible license at all. There are also implementations that have been ripped off from some other source thus their legality is questionable at best.
 * Provide a tested implementation - The code is no good if it does not work properly and the old code has a lot of corner cases. The implementation is tested using the cache of available files (~10k) that used these algorithms. Although it does not offer any guarantee especially when we are talking about undocumented formats, it gives hope that there are less "stupid errors" in the code.
 
-This code should compile cleanly on any C++14 capable compiler, and it is tested on clang. Since it does not use lot of C++14 features, you might get have luck compiling it with C++11 capable compiler if it has some rudimentary C++14 support.
+This code should compile cleanly on any C++14 capable compiler, and it is tested on clang. Since it does not use lot of C++14 features, you might have luck compiling it with C++11 capable compiler if it has some rudimentary C++14 support.
 
 Currently there are no plans to add password protected file support nor any kind of decryption capability. (apart from some very basic password bypassing in some formats that can be done easily)
 
@@ -25,7 +25,7 @@ Decompression algorithms provided:
   * BLZW: LZW-compressor
   * CBR0: RLE compressor
   * CRM2: CrunchMania backend for XPK
-  * CRMS: CrunchMania backend for XPK (sampled)
+  * CRMS: CrunchMania backend for XPK, sampled
   * CYB2: xpkCybPrefs container
   * DLTA: Delta encoding
   * DUKE: NUKE with Delta encoding
@@ -34,7 +34,7 @@ Decompression algorithms provided:
   * FBR2: CyberYAFA compressor
   * FRHT: LZ77-compressor
   * FRLE: RLE compressor
-  * GZIP: zlib backend for XPK (Deflate)
+  * GZIP: Deflate backend for XPK
   * HUFF: Huffman modeling compressor
   * HFMN: Huffman modeling compressor
   * ILZR: Incremental Lempel-Ziv-Renau compressor
@@ -68,6 +68,22 @@ Decompression algorithms provided:
 
 Special thanks go to Cholok for providing me references to many of the XPK-compressors.
 
+
+
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
+
+Currently planned future additions:
+* Completing XPK: ARTM, BZP2, DCMB, DMCU (maybe), LZCB, PPMQ, SASC, SHSC
+* Support for MMCMP, StoneCracker
+* Disk images support for DMS, Warp and DiskSqueeze
+
+Not planned:
+* PPC only XPK compressors
+
+Wishlist:
+* More files for my testbench
+* XPK DMCI and DMCD compressors. I can't find it anywhere or find anyone who knows anything about it. Would be fun to add it for completeness
+* XPK TLTA compressor/encoder. ditto.
+* XPK CBR1 compressor. Is this a thing? Probably not but I'd like to get my hands on the actual library to see it myself.
 
 Feedback: tz at iki dot fi

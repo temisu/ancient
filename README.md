@@ -6,7 +6,7 @@ For simple usage both a simple command line application as well as a simple API 
 
 Even though most of these algorithms are still available for download, scavenging and using them might prove to be a challenge. Thus the purpose of this project is to:
 * Provide a clean, modern implementation of the algorithms - Typically the implementations were not meant to be used outside of the original systems they were made for. Some other ported implementations are incomplete, bad quality or direct translations from old M68K assembly code.
-* Provide a clean BSD-style licensing - Original implmentations or their ports might have strange license or no visible license at all. There are also implementation that have been ripped off from some other source thus their legality is questionable at best.
+* Provide a clean BSD-style licensing - Original implementations or their ports might have strange license or no visible license at all. There are also implementations that have been ripped off from some other source thus their legality is questionable at best.
 * Provide a tested implementation - The code is no good if it does not work properly and the old code has a lot of corner cases. The implementation is tested using the cache of available files (~10k) that used these algorithms. Although it does not offer any guarantee especially when we are talking about undocumented formats, it gives hope that there are less "stupid errors" in the code.
 
 This code should compile cleanly on any C++14 capable compiler, and it is tested on clang. Since it does not use lot of C++14 features, you might get have luck compiling it with C++11 capable compiler if it has some rudimentary C++14 support.

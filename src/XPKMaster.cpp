@@ -215,6 +215,8 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 std::unique_ptr<XPKDecompressor> XPKMaster::createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state)
 {
+	// since this method is used externally, better check recursion level
+	if (recursionLevel>=getMaxRecursionLevel()) return nullptr;
 	for (auto &it : _decompressors)
 	{
 		if (std::get<0>(it)(type)) return std::get<1>(it)(type,recursionLevel,buffer,state);

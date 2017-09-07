@@ -17,17 +17,13 @@ bool SHR3Decompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('SHR3');
 }
 
-bool SHR3Decompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> SHR3Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<SHR3Decompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> SHR3Decompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<SHR3Decompressor>(hdr,packedData,state);
-}
-
-SHR3Decompressor::SHR3Decompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+SHR3Decompressor::SHR3Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData),
 	_state(state)
 {
@@ -367,3 +363,5 @@ bool SHR3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	}
 	return ret;
 }
+
+static XPKDecompressor::Registry<SHR3Decompressor> SHR3Registration;

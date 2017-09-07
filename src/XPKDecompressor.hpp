@@ -18,19 +18,19 @@ public:
 	class State
 	{
 	public:
-		State()=default;
-
 		State(const State&)=delete;
 		State& operator=(const State&)=delete;
 
+		State()=default;
 		virtual ~State();
-	};
 
-	XPKDecompressor()=default;
+		uint32_t getRecursionLevel() const;
+	};
 
 	XPKDecompressor(const XPKDecompressor&)=delete;
 	XPKDecompressor& operator=(const XPKDecompressor&)=delete;
 
+	XPKDecompressor(uint32_t recursionLevel=0);
 	virtual ~XPKDecompressor();
 
 	// if the data-stream is constructed properly, return true
@@ -43,6 +43,27 @@ public:
 
 	// Actual decompression
 	virtual bool decompress(Buffer &rawData,const Buffer &previousData)=0;
+
+	template<class T>
+	class Registry
+	{
+	public:
+		Registry()
+		{
+			registerDecompressor(T::detectHeaderXPK,T::create);
+		}
+
+		~Registry()
+		{
+			// TODO: no cleanup yet
+		}
+	};
+
+private:
+	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&));
+
+protected:
+	uint32_t	_recursionLevel;
 };
 
 #endif

@@ -7,17 +7,13 @@ bool FRLEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('FRLE');
 }
 
-bool FRLEDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> FRLEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<FRLEDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> FRLEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<FRLEDecompressor>(hdr,packedData,state);
-}
-
-FRLEDecompressor::FRLEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+FRLEDecompressor::FRLEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -89,3 +85,5 @@ bool FRLEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<FRLEDecompressor> FRLERegistration;

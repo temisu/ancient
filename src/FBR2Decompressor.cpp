@@ -7,17 +7,13 @@ bool FBR2Decompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('FBR2');
 }
 
-bool FBR2Decompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> FBR2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<FBR2Decompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> FBR2Decompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<FBR2Decompressor>(hdr,packedData,state);
-}
-
-FBR2Decompressor::FBR2Decompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+FBR2Decompressor::FBR2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -134,3 +130,5 @@ bool FBR2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return streamStatus && destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<FBR2Decompressor> FBR2Registration;

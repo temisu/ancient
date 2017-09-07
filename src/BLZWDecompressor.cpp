@@ -7,17 +7,13 @@ bool BLZWDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('BLZW');
 }
 
-bool BLZWDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> BLZWDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<BLZWDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> BLZWDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<BLZWDecompressor>(hdr,packedData,state);
-}
-
-BLZWDecompressor::BLZWDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+BLZWDecompressor::BLZWDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -186,3 +182,5 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	}
 	return streamStatus && destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<BLZWDecompressor> BLZWRegistration;

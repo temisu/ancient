@@ -46,14 +46,9 @@ bool IMPDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('IMPL');
 }
 
-bool IMPDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> IMPDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
-}
-
-std::unique_ptr<XPKDecompressor> IMPDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<IMPDecompressor>(hdr,packedData,state);
+	return std::make_unique<IMPDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
 IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
@@ -73,7 +68,8 @@ IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
 	_isValid=true;
 }
 
-IMPDecompressor::IMPDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+IMPDecompressor::IMPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -316,3 +312,5 @@ bool IMPDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	if (_rawSize!=rawData.size()) return false;
 	return decompress(rawData);
 }
+
+static XPKDecompressor::Registry<IMPDecompressor> IMPRegistration;

@@ -7,17 +7,13 @@ bool LZBSDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('LZBS');
 }
 
-bool LZBSDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> LZBSDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<LZBSDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> LZBSDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<LZBSDecompressor>(hdr,packedData,state);
-}
-
-LZBSDecompressor::LZBSDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+LZBSDecompressor::LZBSDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -127,3 +123,5 @@ bool LZBSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return streamStatus && destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<LZBSDecompressor> LZBSRegistration;

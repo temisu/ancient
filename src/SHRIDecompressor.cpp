@@ -17,17 +17,13 @@ bool SHRIDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('SHRI');
 }
 
-bool SHRIDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> SHRIDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<SHRIDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> SHRIDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<SHRIDecompressor>(hdr,packedData,state);
-}
-
-SHRIDecompressor::SHRIDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+SHRIDecompressor::SHRIDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData),
 	_state(state)
 {
@@ -381,3 +377,5 @@ bool SHRIDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	}
 	return ret;
 }
+
+static XPKDecompressor::Registry<SHRIDecompressor> SHRIRegistration;

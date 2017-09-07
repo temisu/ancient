@@ -8,17 +8,13 @@ bool HUFFDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('HUFF');
 }
 
-bool HUFFDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> HUFFDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<HUFFDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> HUFFDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<HUFFDecompressor>(hdr,packedData,state);
-}
-
-HUFFDecompressor::HUFFDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+HUFFDecompressor::HUFFDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -142,3 +138,5 @@ bool HUFFDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return streamStatus && destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<HUFFDecompressor> HUFFRegistration;

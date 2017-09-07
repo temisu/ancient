@@ -7,17 +7,13 @@ bool LHLBDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('LHLB');
 }
 
-bool LHLBDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> LHLBDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<LHLBDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> LHLBDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<LHLBDecompressor>(hdr,packedData,state);
-}
-
-LHLBDecompressor::LHLBDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+LHLBDecompressor::LHLBDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -191,3 +187,5 @@ bool LHLBDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return streamStatus && destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<LHLBDecompressor> LHLBRegistration;

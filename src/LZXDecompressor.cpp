@@ -14,17 +14,13 @@ bool LZXDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('ELZX') || hdr==FourCC('SLZX');
 }
 
-bool LZXDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> LZXDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<LZXDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> LZXDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<LZXDecompressor>(hdr,packedData,state);
-}
-
-LZXDecompressor::LZXDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+LZXDecompressor::LZXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -355,3 +351,5 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		DLTADecode::decode(rawData,rawData,0,_rawSize);
 	return ret;
 }
+
+static XPKDecompressor::Registry<LZXDecompressor> LZXRegistration;

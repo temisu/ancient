@@ -8,17 +8,13 @@ bool RAKEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return (hdr==FourCC('FRHT') || hdr==FourCC('RAKE'));
 }
 
-bool RAKEDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<RAKEDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<RAKEDecompressor>(hdr,packedData,state);
-}
-
-RAKEDecompressor::RAKEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+RAKEDecompressor::RAKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -210,3 +206,5 @@ bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return streamStatus && !destOffset;
 }
+
+static XPKDecompressor::Registry<RAKEDecompressor> RAKERegistration;

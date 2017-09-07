@@ -7,17 +7,13 @@ bool DLTADecode::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('DLTA');
 }
 
-bool DLTADecode::isRecursive()
+std::unique_ptr<XPKDecompressor> DLTADecode::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<DLTADecode>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> DLTADecode::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<DLTADecode>(hdr,packedData,state);
-}
-
-DLTADecode::DLTADecode(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+DLTADecode::DLTADecode(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -74,3 +70,5 @@ bool DLTADecode::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return decode(rawData,_packedData,0,_packedData.size());
 }
+
+static XPKDecompressor::Registry<DLTADecode> DLTARegistration;

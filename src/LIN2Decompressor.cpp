@@ -8,17 +8,13 @@ bool LIN2Decompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('LIN2') || hdr==FourCC('LIN4');
 }
 
-bool LIN2Decompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> LIN2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<LIN2Decompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> LIN2Decompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<LIN2Decompressor>(hdr,packedData,state);
-}
-
-LIN2Decompressor::LIN2Decompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+LIN2Decompressor::LIN2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -296,3 +292,5 @@ bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return streamStatus && destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<LIN2Decompressor> LIN2Registration;

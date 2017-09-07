@@ -28,7 +28,7 @@ public:
 	virtual bool verifyPacked() const=0;
 	virtual bool verifyRaw(const Buffer &rawData) const=0;
 
-	// Bookkeeping
+	// Book keeping
 	// Name is human readable long name
 	virtual const std::string &getName() const;
 	// PackedSize or RawSize are taken from the stream

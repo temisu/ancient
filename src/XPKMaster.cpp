@@ -9,89 +9,21 @@
 #include "XPKMaster.hpp"
 #include "XPKDecompressor.hpp"
 
-// Sub-decompressors
-#include "ACCADecompressor.hpp"
-#include "BLZWDecompressor.hpp"
-#include "CBR0Decompressor.hpp"
-#include "CRMDecompressor.hpp"
-#include "DEFLATEDecompressor.hpp"
-#include "DLTADecode.hpp"
-#include "FASTDecompressor.hpp"
-#include "FBR2Decompressor.hpp"
-#include "FRLEDecompressor.hpp"
-#include "HFMNDecompressor.hpp"
-#include "HUFFDecompressor.hpp"
-#include "ILZRDecompressor.hpp"
-#include "IMPDecompressor.hpp"
-#include "LHLBDecompressor.hpp"
-#include "LIN1Decompressor.hpp"
-#include "LIN2Decompressor.hpp"
-#include "LZBSDecompressor.hpp"
-#include "LZW2Decompressor.hpp"
-#include "LZW4Decompressor.hpp"
-#include "LZW5Decompressor.hpp"
-#include "LZXDecompressor.hpp"
-#include "MASHDecompressor.hpp"
-#include "NONEDecompressor.hpp"
-#include "NUKEDecompressor.hpp"
-#include "PPDecompressor.hpp"
-#include "RAKEDecompressor.hpp"
-#include "RDCNDecompressor.hpp"
-#include "RLENDecompressor.hpp"
-#include "SDHCDecompressor.hpp"
-#include "SHR3Decompressor.hpp"
-#include "SHRIDecompressor.hpp"
-#include "SLZ3Decompressor.hpp"
-#include "SMPLDecompressor.hpp"
-#include "SQSHDecompressor.hpp"
-#include "TDCSDecompressor.hpp"
-#include "ZENODecompressor.hpp"
-
 bool XPKMaster::detectHeader(uint32_t hdr)
 {
 	return hdr==FourCC('XPKF');
 }
 
-XPKMaster::XPKMaster(const Buffer &packedData,bool allowRecursion) :
+std::vector<std::tuple<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> XPKMaster::_decompressors;
+
+void XPKMaster::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&))
+{
+	_decompressors.push_back(std::make_tuple(detect,create));
+}
+
+XPKMaster::XPKMaster(const Buffer &packedData,uint32_t recursionLevel) :
 	_packedData(packedData)
 {
-	registerDecompressor<ACCADecompressor>();
-	registerDecompressor<BLZWDecompressor>();
-	registerDecompressor<CBR0Decompressor>();
-	registerDecompressor<CRMDecompressor>();	// handles CRM2 and CRMS
-	registerDecompressor<DEFLATEDecompressor>();	// handles GZIP
-	registerDecompressor<DLTADecode>();
-	registerDecompressor<FASTDecompressor>();
-	registerDecompressor<FBR2Decompressor>();
-	registerDecompressor<FRLEDecompressor>();
-	registerDecompressor<HFMNDecompressor>();
-	registerDecompressor<HUFFDecompressor>();
-	registerDecompressor<ILZRDecompressor>();
-	registerDecompressor<IMPDecompressor>();	// handles IMPL
-	registerDecompressor<LHLBDecompressor>();
-	registerDecompressor<LIN1Decompressor>();	// handles LIN1 and LIN3
-	registerDecompressor<LIN2Decompressor>();	// handles LIN2 and LIN4
-	registerDecompressor<LZBSDecompressor>();
-	registerDecompressor<LZW2Decompressor>();	// handles LZW2 and LZW3
-	registerDecompressor<LZW4Decompressor>();
-	registerDecompressor<LZW5Decompressor>();
-	registerDecompressor<LZXDecompressor>();	// handles ELZX and SLZX
-	registerDecompressor<MASHDecompressor>();
-	registerDecompressor<NONEDecompressor>();
-	registerDecompressor<NUKEDecompressor>();
-	registerDecompressor<PPDecompressor>();		// handles PWPK
-	registerDecompressor<RAKEDecompressor>();	// handles FRHT and RAKE
-	registerDecompressor<RDCNDecompressor>();
-	registerDecompressor<RLENDecompressor>();
-	registerDecompressor<SDHCDecompressor>();
-	registerDecompressor<SHR3Decompressor>();
-	registerDecompressor<SHRIDecompressor>();
-	registerDecompressor<SLZ3Decompressor>();
-	registerDecompressor<SMPLDecompressor>();
-	registerDecompressor<SQSHDecompressor>();
-	registerDecompressor<TDCSDecompressor>();
-	registerDecompressor<ZENODecompressor>();
-
 	if (packedData.size()<44) return;
 	uint32_t hdr;
 	if (!packedData.readBE(0,hdr)) return;
@@ -122,7 +54,7 @@ XPKMaster::XPKMaster(const Buffer &packedData,bool allowRecursion) :
 	{
 		if (std::get<0>(it)(_type)) 
 		{
-			if (std::get<1>(it)() && !allowRecursion) return;
+			if (recursionLevel>=getMaxRecursionLevel()) return;
 			else {
 				_isValid=true;
 				return;
@@ -179,7 +111,7 @@ bool XPKMaster::verifyPacked() const
 
 		if (chunkType==1)
 		{
-			auto sub=createSubDecompressor(chunk,state);
+			auto sub=createDecompressor(_type,_recursionLevel,chunk,state);
 			if (!sub || !sub->isValid() || !sub->verifyPacked()) return false;
 		} else if (chunkType!=0 && chunkType!=15) return false;
 		return true;
@@ -203,7 +135,7 @@ bool XPKMaster::verifyRaw(const Buffer &rawData) const
 		ConstSubBuffer VerifyBuffer(rawData,destOffset,rawChunkSize);
 		if (chunkType==1)
 		{
-			auto sub=createSubDecompressor(chunk,state);
+			auto sub=createDecompressor(_type,_recursionLevel,chunk,state);
 			if (!sub || !sub->isValid() || !sub->verifyRaw(VerifyBuffer)) return false;
 		} else if (chunkType!=0 && chunkType!=15) return false;
 
@@ -221,7 +153,7 @@ const std::string &XPKMaster::getName() const
 	std::unique_ptr<XPKDecompressor::State> state;
 	forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
-		sub=createSubDecompressor(chunk,state);
+		sub=createDecompressor(_type,_recursionLevel,chunk,state);
 		return false;
 	});
 	if (sub) return sub->getSubName();
@@ -262,7 +194,7 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 			case 1:
 			{
-				auto sub=createSubDecompressor(chunk,state);
+				auto sub=createDecompressor(_type,_recursionLevel,chunk,state);
 				if (!sub || !sub->isValid() || !sub->decompress(DestBuffer,previousBuffer)) return false;
 			}
 			break;
@@ -281,11 +213,11 @@ bool XPKMaster::decompress(Buffer &rawData)
 	return destOffset==_rawSize;
 }
 
-std::unique_ptr<XPKDecompressor> XPKMaster::createSubDecompressor(const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state) const
+std::unique_ptr<XPKDecompressor> XPKMaster::createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	for (auto &it : _decompressors)
 	{
-		if (std::get<0>(it)(_type)) return std::get<2>(it)(_type,buffer,state);
+		if (std::get<0>(it)(type)) return std::get<1>(it)(type,recursionLevel,buffer,state);
 	}
 	return nullptr;
 }

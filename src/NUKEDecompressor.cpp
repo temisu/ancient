@@ -10,17 +10,13 @@ bool NUKEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('NUKE') || hdr==FourCC('DUKE');
 }
 
-bool NUKEDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> NUKEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<NUKEDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> NUKEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<NUKEDecompressor>(hdr,packedData,state);
-}
-
-NUKEDecompressor::NUKEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+NUKEDecompressor::NUKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -239,3 +235,5 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		DLTADecode::decode(rawData,rawData,0,rawSize);
 	return ret;
 }
+
+static XPKDecompressor::Registry<NUKEDecompressor> NUKERegistration;

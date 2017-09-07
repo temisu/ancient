@@ -10,7 +10,7 @@ class DEFLATEDecompressor : public Decompressor, public XPKDecompressor
 {
 public:
 	DEFLATEDecompressor(const Buffer &packedData,bool exactSizeKnown);
-	DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	DEFLATEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 	DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize,bool isZlib=false);		// zlib or completely raw stream
 	virtual ~DEFLATEDecompressor();
 
@@ -29,8 +29,7 @@ public:
 
 	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);
-	static bool isRecursive();
-	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
 private:
 	bool detectGZIP();
@@ -43,7 +42,7 @@ private:
 		Raw
 	};
 
-	const Buffer &_packedData;
+	const Buffer	&_packedData;
 
 	bool		_isValid=false;
 	size_t		_packedSize=0;

@@ -12,17 +12,13 @@ bool SDHCDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('SDHC');
 }
 
-bool SDHCDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> SDHCDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return true;
+	return std::make_unique<SDHCDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> SDHCDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<SDHCDecompressor>(hdr,packedData,state);
-}
-
-SDHCDecompressor::SDHCDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+SDHCDecompressor::SDHCDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -48,7 +44,7 @@ bool SDHCDecompressor::verifyPacked() const
 	if (_mode&0x8000U)
 	{
 		ConstSubBuffer src(_packedData,2,_packedData.size()-2);
-		XPKMaster master(src,false);
+		XPKMaster master(src,_recursionLevel+1);
 		if (!master.isValid() || !master.verifyPacked()) return false;
 	}
 	return true;
@@ -74,7 +70,7 @@ bool SDHCDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	ConstSubBuffer src(_packedData,2,_packedData.size()-2);
 	if (_mode&0x8000U)
 	{
-		XPKMaster master(src,false);
+		XPKMaster master(src,_recursionLevel+1);
 		if (!master.isValid() || !master.decompress(rawData)) return false;
 	} else {
 		if (src.size()!=rawData.size()) return false;
@@ -146,3 +142,5 @@ bool SDHCDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return true;
 }
+
+static XPKDecompressor::Registry<SDHCDecompressor> SDHCRegistration;

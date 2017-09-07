@@ -34,14 +34,9 @@ bool DEFLATEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return (hdr==FourCC('GZIP'));
 }
 
-bool DEFLATEDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> DEFLATEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
-}
-
-std::unique_ptr<XPKDecompressor> DEFLATEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<DEFLATEDecompressor>(hdr,packedData,state);
+	return std::make_unique<DEFLATEDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
 bool DEFLATEDecompressor::detectGZIP()
@@ -139,7 +134,8 @@ DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,bool exactSize
 	_isValid=detectGZIP();
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectZLib())
@@ -509,3 +505,5 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 {
 	return decompress(rawData);
 }
+
+static XPKDecompressor::Registry<DEFLATEDecompressor> DEFLATERegistration;

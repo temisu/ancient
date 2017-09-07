@@ -9,17 +9,13 @@ bool NONEDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('NONE');
 }
 
-bool NONEDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> NONEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<NONEDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> NONEDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<NONEDecompressor>(hdr,packedData,state);
-}
-
-NONEDecompressor::NONEDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+NONEDecompressor::NONEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -60,3 +56,5 @@ bool NONEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	::memcpy(rawData.data(),_packedData.data(),_packedData.size());
 	return true;
 }
+
+static XPKDecompressor::Registry<NONEDecompressor> NONERegistration;

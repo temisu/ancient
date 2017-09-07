@@ -8,7 +8,7 @@
 class LZW4Decompressor : public XPKDecompressor
 {
 public:
-	LZW4Decompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	LZW4Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
 	virtual ~LZW4Decompressor();
 
@@ -21,11 +21,10 @@ public:
 	virtual bool decompress(Buffer &rawData,const Buffer &previousData) override final;
 
 	static bool detectHeaderXPK(uint32_t hdr);
-	static bool isRecursive();
-	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
 private:
-	const Buffer &_packedData;
+	const Buffer	&_packedData;
 
 	bool		_isValid=false;
 };

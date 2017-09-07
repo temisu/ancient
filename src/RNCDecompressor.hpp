@@ -36,7 +36,7 @@ private:
 	bool RNC1DecompressNew(Buffer &rawData);
 	bool RNC2Decompress(Buffer &rawData);
 
-	const Buffer &_packedData;
+	const Buffer	&_packedData;
 
 	bool		_isValid=false;
 	uint32_t	_rawSize=0;

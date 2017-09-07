@@ -7,17 +7,13 @@ bool FASTDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('FAST');
 }
 
-bool FASTDecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> FASTDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<FASTDecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> FASTDecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<FASTDecompressor>(hdr,packedData,state);
-}
-
-FASTDecompressor::FASTDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+FASTDecompressor::FASTDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -135,3 +131,5 @@ bool FASTDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	return streamStatus && destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<FASTDecompressor> FASTRegistration;

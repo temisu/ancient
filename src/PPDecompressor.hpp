@@ -6,7 +6,6 @@
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
-
 class PPDecompressor : public Decompressor, public XPKDecompressor
 {
 private:
@@ -21,7 +20,7 @@ private:
 
 public:
 	PPDecompressor(const Buffer &packedData,bool exactSizeKnown);
-	PPDecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	PPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 	virtual ~PPDecompressor();
 
 	virtual bool isValid() const override final;
@@ -39,11 +38,10 @@ public:
 
 	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);
-	static bool isRecursive();
-	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
 private:
-	const Buffer &_packedData;
+	const Buffer	&_packedData;
 
 	bool		_isValid=false;
 	size_t		_dataStart=0;

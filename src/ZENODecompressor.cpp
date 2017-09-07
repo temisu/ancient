@@ -7,18 +7,13 @@ bool ZENODecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('ZENO');
 }
 
-
-bool ZENODecompressor::isRecursive()
+std::unique_ptr<XPKDecompressor> ZENODecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
-	return false;
+	return std::make_unique<ZENODecompressor>(hdr,recursionLevel,packedData,state);
 }
 
-std::unique_ptr<XPKDecompressor> ZENODecompressor::create(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
-{
-	return std::make_unique<ZENODecompressor>(hdr,packedData,state);
-}
-
-ZENODecompressor::ZENODecompressor(uint32_t hdr,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+ZENODecompressor::ZENODecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) return;
@@ -191,3 +186,5 @@ bool ZENODecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	}
 	return streamStatus && destOffset==rawSize;
 }
+
+static XPKDecompressor::Registry<ZENODecompressor> ZENORegistration;

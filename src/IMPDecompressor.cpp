@@ -46,6 +46,11 @@ bool IMPDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('IMPL');
 }
 
+std::unique_ptr<Decompressor> IMPDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+{
+	return std::make_unique<IMPDecompressor>(packedData);
+}
+
 std::unique_ptr<XPKDecompressor> IMPDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<IMPDecompressor>(hdr,recursionLevel,packedData,state);
@@ -313,4 +318,5 @@ bool IMPDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return decompress(rawData);
 }
 
-static XPKDecompressor::Registry<IMPDecompressor> IMPRegistration;
+Decompressor::Registry<IMPDecompressor> IMPDecompressor::_registration;
+XPKDecompressor::Registry<IMPDecompressor> IMPDecompressor::_XPKregistration;

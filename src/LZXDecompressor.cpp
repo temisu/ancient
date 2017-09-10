@@ -352,4 +352,4 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return ret;
 }
 
-static XPKDecompressor::Registry<LZXDecompressor> LZXRegistration;
+XPKDecompressor::Registry<LZXDecompressor> LZXDecompressor::_XPKregistration;

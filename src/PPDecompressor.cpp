@@ -23,6 +23,11 @@ bool PPDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('PWPK');
 }
 
+std::unique_ptr<Decompressor> PPDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+{
+	return std::make_unique<PPDecompressor>(packedData,exactSizeKnown);
+}
+
 std::unique_ptr<XPKDecompressor> PPDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<PPDecompressor>(hdr,recursionLevel,packedData,state);
@@ -248,4 +253,5 @@ bool PPDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return decompress(rawData);
 }
 
-static XPKDecompressor::Registry<PPDecompressor> PPRegistration;
+Decompressor::Registry<PPDecompressor> PPDecompressor::_registration;
+XPKDecompressor::Registry<PPDecompressor> PPDecompressor::_XPKregistration;

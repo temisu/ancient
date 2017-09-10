@@ -50,7 +50,7 @@ public:
 	public:
 		Registry()
 		{
-			registerDecompressor(T::detectHeaderXPK,T::create);
+			XPKDecompressor::registerDecompressor(T::detectHeaderXPK,T::create);
 		}
 
 		~Registry()

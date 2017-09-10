@@ -26,6 +26,8 @@ public:
 private:
 	const Buffer	&_packedData;
 	bool		_isValid=false;
+
+	static XPKDecompressor::Registry<HUFFDecompressor> _XPKregistration;
 };
 
 #endif

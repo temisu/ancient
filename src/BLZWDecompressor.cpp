@@ -183,4 +183,4 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<BLZWDecompressor> BLZWRegistration;
+XPKDecompressor::Registry<BLZWDecompressor> BLZWDecompressor::_XPKregistration;

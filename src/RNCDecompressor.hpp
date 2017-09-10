@@ -24,6 +24,8 @@ public:
 
 	static bool detectHeader(uint32_t hdr);
 
+	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown);
+
 private:
 	enum class Version
 	{
@@ -45,6 +47,8 @@ private:
 	uint16_t	_packedCRC=0;
 	uint8_t		_chunks=0;
 	Version		_ver;
+
+	static Decompressor::Registry<RNCDecompressor> _registration;
 };
 
 #endif

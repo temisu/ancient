@@ -157,4 +157,4 @@ bool LZW5Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<LZW5Decompressor> LZW5Registration;
+XPKDecompressor::Registry<LZW5Decompressor> LZW5Decompressor::_XPKregistration;

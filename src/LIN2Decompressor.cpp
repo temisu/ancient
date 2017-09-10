@@ -293,4 +293,4 @@ bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<LIN2Decompressor> LIN2Registration;
+XPKDecompressor::Registry<LIN2Decompressor> LIN2Decompressor::_XPKregistration;

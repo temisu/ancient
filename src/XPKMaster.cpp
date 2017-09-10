@@ -14,11 +14,18 @@ bool XPKMaster::detectHeader(uint32_t hdr)
 	return hdr==FourCC('XPKF');
 }
 
-std::vector<std::tuple<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> XPKMaster::_decompressors;
+std::unique_ptr<Decompressor> XPKMaster::create(const Buffer &packedData,bool exactSizeKnown)
+{
+	return std::make_unique<XPKMaster>(packedData);
+}
+
+std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> *XPKMaster::_XPKDecompressors=nullptr;
 
 void XPKMaster::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&))
 {
-	_decompressors.push_back(std::make_tuple(detect,create));
+	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> _list;
+	if (!_XPKDecompressors) _XPKDecompressors=&_list;
+	_XPKDecompressors->push_back(std::make_pair(detect,create));
 }
 
 XPKMaster::XPKMaster(const Buffer &packedData,uint32_t recursionLevel) :
@@ -50,9 +57,9 @@ XPKMaster::XPKMaster(const Buffer &packedData,uint32_t recursionLevel) :
 	}
 
 	if (_packedSize+8>packedData.size()) return;
-	for (auto &it : _decompressors)
+	for (auto &it : *_XPKDecompressors)
 	{
-		if (std::get<0>(it)(_type)) 
+		if (it.first(_type)) 
 		{
 			if (recursionLevel>=getMaxRecursionLevel()) return;
 			else {
@@ -217,9 +224,9 @@ std::unique_ptr<XPKDecompressor> XPKMaster::createDecompressor(uint32_t type,uin
 {
 	// since this method is used externally, better check recursion level
 	if (recursionLevel>=getMaxRecursionLevel()) return nullptr;
-	for (auto &it : _decompressors)
+	for (auto &it : *_XPKDecompressors)
 	{
-		if (std::get<0>(it)(type)) return std::get<1>(it)(type,recursionLevel,buffer,state);
+		if (it.first(type)) return it.second(type,recursionLevel,buffer,state);
 	}
 	return nullptr;
 }
@@ -269,3 +276,5 @@ bool XPKMaster::forEachChunk(F func) const
 	}
 	return isLast;
 }
+
+Decompressor::Registry<XPKMaster> XPKMaster::_registration;

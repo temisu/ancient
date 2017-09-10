@@ -118,4 +118,4 @@ bool SLZ3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<SLZ3Decompressor> SLZ3Registration;
+XPKDecompressor::Registry<SLZ3Decompressor> SLZ3Decompressor::_XPKregistration;

@@ -28,6 +28,8 @@ private:
 
 	bool		_isValid=false;
 	uint16_t	_mode=0;
+
+	static XPKDecompressor::Registry<SDHCDecompressor> _XPKregistration;
 };
 
 #endif

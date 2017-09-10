@@ -143,4 +143,4 @@ bool SDHCDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return true;
 }
 
-static XPKDecompressor::Registry<SDHCDecompressor> SDHCRegistration;
+XPKDecompressor::Registry<SDHCDecompressor> SDHCDecompressor::_XPKregistration;

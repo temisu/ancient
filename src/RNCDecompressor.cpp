@@ -39,6 +39,11 @@ bool RNCDecompressor::detectHeader(uint32_t hdr)
 	return hdr==FourCC('RNC\001') || hdr==FourCC('RNC\002');
 }
 
+std::unique_ptr<Decompressor> RNCDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+{
+	return std::make_unique<RNCDecompressor>(packedData);
+}
+
 RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
 	_packedData(packedData)
 {
@@ -624,3 +629,5 @@ bool RNCDecompressor::RNC2Decompress(Buffer &rawData)
 
 	return streamStatus && _rawSize==destOffset && _chunks==foundChunks;
 }
+
+Decompressor::Registry<RNCDecompressor> RNCDecompressor::_registration;

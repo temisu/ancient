@@ -38,6 +38,8 @@ public:
 
 	static bool detectHeader(uint32_t hdr);
 	static bool detectHeaderXPK(uint32_t hdr);
+
+	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown);
 	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
 
 private:
@@ -49,6 +51,9 @@ private:
 	uint8_t		_startShift=0;
 	uint8_t		_modeTable[4];
 	bool		_isXPK=false;
+
+	static Decompressor::Registry<PPDecompressor> _registration;
+	static XPKDecompressor::Registry<PPDecompressor> _XPKregistration;
 };
 
 

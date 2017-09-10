@@ -86,4 +86,4 @@ bool FRLEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<FRLEDecompressor> FRLERegistration;
+XPKDecompressor::Registry<FRLEDecompressor> FRLEDecompressor::_XPKregistration;

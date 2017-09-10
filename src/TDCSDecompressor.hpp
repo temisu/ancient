@@ -27,6 +27,8 @@ private:
 	const Buffer	&_packedData;
 
 	bool		_isValid=false;
+
+	static XPKDecompressor::Registry<TDCSDecompressor> _XPKregistration;
 };
 
 #endif

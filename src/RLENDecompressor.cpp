@@ -81,4 +81,4 @@ bool RLENDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<RLENDecompressor> RLENRegistration;
+XPKDecompressor::Registry<RLENDecompressor> RLENDecompressor::_XPKregistration;

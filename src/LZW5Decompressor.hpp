@@ -27,6 +27,8 @@ private:
 	const Buffer	&_packedData;
 
 	bool		_isValid=false;
+
+	static XPKDecompressor::Registry<LZW5Decompressor> _XPKregistration;
 };
 
 #endif

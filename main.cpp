@@ -138,7 +138,7 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		auto packed{readFile(argv[2])};
-		auto decompressor{CreateDecompressor(*packed,true)};
+		auto decompressor{Decompressor::create(*packed,true)};
 		if (!decompressor)
 		{
 			fprintf(stderr,"Unknown compression format in file %s\n",argv[2]);
@@ -158,7 +158,7 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		auto packed{readFile(argv[2])};
-		auto decompressor{CreateDecompressor(*packed,true)};
+		auto decompressor{Decompressor::create(*packed,true)};
 		if (!decompressor)
 		{
 			fprintf(stderr,"Unknown compression format in file %s\n",argv[2]);
@@ -236,7 +236,7 @@ int main(int argc,char **argv)
 						for (size_t i=0;i<packed->size();)
 						{
 							if (!scanBuffer.adjust(i,packed->size()-i)) break;
-							auto decompressor{CreateDecompressor(scanBuffer,false)};
+							auto decompressor{Decompressor::create(scanBuffer,false)};
 							if (decompressor && decompressor->isValid() && decompressor->verifyPacked())
 							{
 								std::unique_ptr<Buffer> raw=std::make_unique<VectorBuffer>();
@@ -252,7 +252,7 @@ int main(int argc,char **argv)
 								{
 									// final checks with the limited buffer and fresh decompressor
 									ConstSubBuffer finalBuffer(*packed,i,decompressor->getPackedSize());
-									auto decompressor2{CreateDecompressor(finalBuffer,true)};
+									auto decompressor2{Decompressor::create(finalBuffer,true)};
 									if (decompressor2 && decompressor2->isValid() && decompressor2->verifyPacked() && decompressor2->decompress(*raw) && decompressor2->verifyRaw(*raw))
 									{
 										std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";

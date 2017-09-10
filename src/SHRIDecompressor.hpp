@@ -45,6 +45,8 @@ private:
 	size_t					_rawSize=0;
 
 	std::unique_ptr<XPKDecompressor::State>	&_state;	// reference!!!
+
+	static XPKDecompressor::Registry<SHRIDecompressor> _XPKregistration;
 };
 
 #endif

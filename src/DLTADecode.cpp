@@ -71,4 +71,4 @@ bool DLTADecode::decompress(Buffer &rawData,const Buffer &previousData)
 	return decode(rawData,_packedData,0,_packedData.size());
 }
 
-static XPKDecompressor::Registry<DLTADecode> DLTARegistration;
+XPKDecompressor::Registry<DLTADecode> DLTADecode::_XPKregistration;

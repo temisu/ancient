@@ -154,4 +154,4 @@ bool RDCNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<RDCNDecompressor> RDCNRegistration;
+XPKDecompressor::Registry<RDCNDecompressor> RDCNDecompressor::_XPKregistration;

@@ -28,6 +28,8 @@ private:
 
 	bool		_isValid=false;
 	bool		_isDUKE=false;
+
+	static XPKDecompressor::Registry<NUKEDecompressor> _XPKregistration;
 };
 
 #endif

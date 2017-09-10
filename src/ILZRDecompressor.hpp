@@ -28,6 +28,8 @@ private:
 
 	bool		_isValid=false;
 	size_t		_rawSize=0;
+
+	static XPKDecompressor::Registry<ILZRDecompressor> _XPKregistration;
 };
 
 #endif

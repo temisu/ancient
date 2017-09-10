@@ -24,6 +24,11 @@ bool CRMDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('CRM2') || hdr==FourCC('CRMS');
 }
 
+std::unique_ptr<Decompressor> CRMDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+{
+	return std::make_unique<CRMDecompressor>(packedData);
+}
+
 std::unique_ptr<XPKDecompressor> CRMDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
 {
 	return std::make_unique<CRMDecompressor>(hdr,recursionLevel,packedData,state);
@@ -89,20 +94,15 @@ const std::string &CRMDecompressor::getName() const
 
 const std::string &CRMDecompressor::getSubName() const
 {
-	// the XPK-id is not used in decompressing process.
-	// This means we can have frankenstein configurations
-	// Least we can do is to report them...
+	// the XPK-id is not used in decompressing process,
+	// but there is a real id inside the stream
+	// This means we can have frankenstein configurations,
+	// although in practice we don't
 	if (!_isValid) return Decompressor::getName();
-	static std::string names[8]={
-		"XPK-CRM2: Crunch-Mania standard-mode",
-		"XPK-CRM2: Crunch-Mania standard-mode, sampled",
-		"XPK-CRM2: Crunch-Mania LZH-mode",			// good config 1
-		"XPK-CRM2: Crunch-Mania LZH-mode, sampled",
-		"XPK-CRMS: Crunch-Mania standard-mode",
-		"XPK-CRMS: Crunch-Mania standard-mode, sampled",
-		"XPK-CRMS: Crunch-Mania LZH-mode",
-		"XPK-CRMS: Crunch-Mania LZH-mode, sampled"};		// good config 2
-	return names[(_isXPKDelta?4:0)|(_isLZH?2:0)|(_isSampled?1:0)];
+	static std::string names[2]={
+		"XPK-CRM2: Crunch-Mania LZH-mode",
+		"XPK-CRMS: Crunch-Mania LZH-mode, sampled"};
+	return names[(_isXPKDelta?1:0)];
 }
 
 size_t CRMDecompressor::getPackedSize() const
@@ -331,4 +331,5 @@ bool CRMDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return decompress(rawData);
 }
 
-static XPKDecompressor::Registry<CRMDecompressor> CRMRegistration;
+Decompressor::Registry<CRMDecompressor> CRMDecompressor::_registration;
+XPKDecompressor::Registry<CRMDecompressor> CRMDecompressor::_XPKregistration;

@@ -110,4 +110,4 @@ bool ILZRDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==_rawSize;
 }
 
-static XPKDecompressor::Registry<ILZRDecompressor> ILZRRegistration;
+XPKDecompressor::Registry<ILZRDecompressor> ILZRDecompressor::_XPKregistration;

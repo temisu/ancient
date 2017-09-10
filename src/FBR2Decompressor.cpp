@@ -131,4 +131,4 @@ bool FBR2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<FBR2Decompressor> FBR2Registration;
+XPKDecompressor::Registry<FBR2Decompressor> FBR2Decompressor::_XPKregistration;

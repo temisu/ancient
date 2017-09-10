@@ -76,4 +76,4 @@ bool CYB2Decoder::decompress(Buffer &rawData,const Buffer &previousData)
 	return sub && sub->isValid() && sub->decompress(rawData,previousData);
 }
 
-static XPKDecompressor::Registry<CYB2Decoder> CYB2Registration;
+XPKDecompressor::Registry<CYB2Decoder> CYB2Decoder::_XPKregistration;

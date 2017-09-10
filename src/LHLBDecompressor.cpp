@@ -188,4 +188,4 @@ bool LHLBDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<LHLBDecompressor> LHLBRegistration;
+XPKDecompressor::Registry<LHLBDecompressor> LHLBDecompressor::_XPKregistration;

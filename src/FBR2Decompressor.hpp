@@ -27,6 +27,8 @@ private:
 	const Buffer	&_packedData;
 
 	bool		_isValid=false;
+
+	static XPKDecompressor::Registry<FBR2Decompressor> _XPKregistration;
 };
 
 #endif

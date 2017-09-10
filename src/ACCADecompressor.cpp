@@ -165,4 +165,4 @@ bool ACCADecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<ACCADecompressor> ACCARegistration;
+XPKDecompressor::Registry<ACCADecompressor> ACCADecompressor::_XPKregistration;

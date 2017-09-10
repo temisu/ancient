@@ -378,4 +378,4 @@ bool SHRIDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return ret;
 }
 
-static XPKDecompressor::Registry<SHRIDecompressor> SHRIRegistration;
+XPKDecompressor::Registry<SHRIDecompressor> SHRIDecompressor::_XPKregistration;

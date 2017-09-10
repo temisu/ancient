@@ -207,4 +207,4 @@ bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && !destOffset;
 }
 
-static XPKDecompressor::Registry<RAKEDecompressor> RAKERegistration;
+XPKDecompressor::Registry<RAKEDecompressor> RAKEDecompressor::_XPKregistration;

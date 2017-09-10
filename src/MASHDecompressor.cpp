@@ -183,4 +183,4 @@ bool MASHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<MASHDecompressor> MASHRegistration;
+XPKDecompressor::Registry<MASHDecompressor> MASHDecompressor::_XPKregistration;

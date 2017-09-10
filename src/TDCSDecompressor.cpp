@@ -147,4 +147,4 @@ bool TDCSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<TDCSDecompressor> TDCSRegistration;
+XPKDecompressor::Registry<TDCSDecompressor> TDCSDecompressor::_XPKregistration;

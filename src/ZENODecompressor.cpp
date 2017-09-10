@@ -187,4 +187,4 @@ bool ZENODecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<ZENODecompressor> ZENORegistration;
+XPKDecompressor::Registry<ZENODecompressor> ZENODecompressor::_XPKregistration;

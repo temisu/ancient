@@ -28,6 +28,8 @@ private:
 
 	bool		_isValid=false;
 	uint32_t	_rawSize=0;
+
+	static XPKDecompressor::Registry<SQSHDecompressor> _XPKregistration;
 };
 
 #endif

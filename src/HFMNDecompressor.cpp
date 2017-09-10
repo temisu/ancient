@@ -137,4 +137,4 @@ bool HFMNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==_rawSize;
 }
 
-static XPKDecompressor::Registry<HFMNDecompressor> HFMNRegistration;
+XPKDecompressor::Registry<HFMNDecompressor> HFMNDecompressor::_XPKregistration;

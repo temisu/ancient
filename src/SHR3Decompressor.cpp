@@ -364,4 +364,4 @@ bool SHR3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return ret;
 }
 
-static XPKDecompressor::Registry<SHR3Decompressor> SHR3Registration;
+XPKDecompressor::Registry<SHR3Decompressor> SHR3Decompressor::_XPKregistration;

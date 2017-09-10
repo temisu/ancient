@@ -26,11 +26,14 @@ public:
 
 	static bool detectHeader(uint32_t hdr);
 
+	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown);
+
 	// Can be used to create directly decoder for chunk (needed by CYB2)
 	static std::unique_ptr<XPKDecompressor> createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state);
 
 private:
 	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&));
+	static constexpr uint32_t getMaxRecursionLevel() noexcept { return 4; }
 
 	template <typename F>
 	bool forEachChunk(F func) const;
@@ -45,9 +48,9 @@ private:
 	bool		_longHeaders=false;
 	uint32_t	_recursionLevel=0;
 
-	static std::vector<std::tuple<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> _decompressors;
+	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> *_XPKDecompressors;
 
-	static constexpr uint32_t getMaxRecursionLevel() noexcept { return 4; }
+	static Decompressor::Registry<XPKMaster> _registration;
 };
 
 #endif

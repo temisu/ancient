@@ -2,13 +2,7 @@
 
 #include "Decompressor.hpp"
 
-#include "CRMDecompressor.hpp"
-#include "DEFLATEDecompressor.hpp"
-#include "IMPDecompressor.hpp"
-#include "PPDecompressor.hpp"
-#include "RNCDecompressor.hpp"
-#include "TPWMDecompressor.hpp"
-#include "XPKMaster.hpp"
+std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool)>> *Decompressor::_decompressors=nullptr;
 
 Decompressor::~Decompressor()
 {
@@ -21,25 +15,20 @@ const std::string &Decompressor::getName() const
 	return name;
 }
 
-std::unique_ptr<Decompressor> CreateDecompressor(const Buffer &packedData,bool exactSizeKnown)
+std::unique_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool exactSizeKnown)
 {
 	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return std::unique_ptr<Decompressor>();
-
-	if (CRMDecompressor::detectHeader(hdr))
-		return std::make_unique<CRMDecompressor>(packedData);
-	if (DEFLATEDecompressor::detectHeader(hdr))
-		return std::make_unique<DEFLATEDecompressor>(packedData,exactSizeKnown);
-	if (IMPDecompressor::detectHeader(hdr))
-		return std::make_unique<IMPDecompressor>(packedData);
-	if (PPDecompressor::detectHeader(hdr))
-		return std::make_unique<PPDecompressor>(packedData,exactSizeKnown);
-	if (RNCDecompressor::detectHeader(hdr))
-		return std::make_unique<RNCDecompressor>(packedData);
-	if (TPWMDecompressor::detectHeader(hdr))
-		return std::make_unique<TPWMDecompressor>(packedData);
-	if (XPKMaster::detectHeader(hdr))
-		return std::make_unique<XPKMaster>(packedData);
-
+	if (!packedData.readBE(0,hdr)) return nullptr;
+	for (auto &it : *_decompressors)
+	{
+		if (it.first(hdr)) return it.second(packedData,exactSizeKnown);
+	}
 	return nullptr;
+}
+
+void Decompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool))
+{
+	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool)>> _list;
+	if (!_decompressors) _decompressors=&_list;
+	_decompressors->push_back(std::make_pair(detect,create));
 }

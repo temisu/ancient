@@ -144,4 +144,4 @@ bool SMPLDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<SMPLDecompressor> SMPLRegistration;
+XPKDecompressor::Registry<SMPLDecompressor> SMPLDecompressor::_XPKregistration;

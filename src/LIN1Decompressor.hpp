@@ -28,6 +28,8 @@ private:
 
 	bool		_isValid=false;
 	uint32_t	_ver=0;
+
+	static XPKDecompressor::Registry<LIN1Decompressor> _XPKregistration;
 };
 
 #endif

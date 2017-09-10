@@ -30,6 +30,8 @@ private:
 
 	size_t		_headerSize;
 	size_t		_rawSize;
+
+	static XPKDecompressor::Registry<HFMNDecompressor> _XPKregistration;
 };
 
 #endif

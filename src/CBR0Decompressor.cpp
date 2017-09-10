@@ -80,4 +80,4 @@ bool CBR0Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<CBR0Decompressor> CBR0Registration;
+XPKDecompressor::Registry<CBR0Decompressor> CBR0Decompressor::_XPKregistration;

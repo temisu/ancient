@@ -7,6 +7,11 @@ bool TPWMDecompressor::detectHeader(uint32_t hdr)
 	return hdr==FourCC('TPWM');
 }
 
+std::unique_ptr<Decompressor> TPWMDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+{
+	return std::make_unique<TPWMDecompressor>(packedData);
+}
+
 TPWMDecompressor::TPWMDecompressor(const Buffer &packedData) :
 	_packedData(packedData)
 {
@@ -137,3 +142,5 @@ bool TPWMDecompressor::decompress(Buffer &rawData)
 	if (ret) _decompressedPackedSize=bufOffset;
 	return ret;
 }
+
+Decompressor::Registry<TPWMDecompressor> TPWMDecompressor::_registration;

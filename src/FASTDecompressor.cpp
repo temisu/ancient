@@ -132,4 +132,4 @@ bool FASTDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==rawSize;
 }
 
-static XPKDecompressor::Registry<FASTDecompressor> FASTRegistration;
+XPKDecompressor::Registry<FASTDecompressor> FASTDecompressor::_XPKregistration;

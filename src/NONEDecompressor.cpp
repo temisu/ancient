@@ -57,4 +57,4 @@ bool NONEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return true;
 }
 
-static XPKDecompressor::Registry<NONEDecompressor> NONERegistration;
+XPKDecompressor::Registry<NONEDecompressor> NONEDecompressor::_XPKregistration;

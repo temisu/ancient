@@ -43,12 +43,36 @@ public:
 	// the functions are there to protect against "accidental" large files when parsing headers
 	// a.k.a. 16M should be enough for everybody (sizes do not have to accurate i.e.
 	// compressors can exclude header content for simplification)
+	// This entirely ok for the context of "old computers" and their files,
+	// for other usages these need to be tuned up
 	static constexpr size_t getMaxPackedSize() noexcept { return 0x100'0000U; }
 	static constexpr size_t getMaxRawSize() noexcept { return 0x100'0000U; }
 	// This is for limiting memory usage of the algorithms. Again not a hard limit but rule of the thumb
 	static constexpr size_t getMaxMemorySize() noexcept { return 0x10'0000U; }
+
+	template<class T>
+	class Registry
+	{
+	public:
+		Registry()
+		{
+			Decompressor::registerDecompressor(T::detectHeader,T::create);
+		}
+
+		~Registry()
+		{
+			// TODO: no cleanup yet
+		}
+	};
+
+	// Main entrypoint
+	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown);
+
+private:
+	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool));
+
+	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool)>> *_decompressors;
 };
 
-std::unique_ptr<Decompressor> CreateDecompressor(const Buffer &packedData,bool exactSizeKnown);
 
 #endif

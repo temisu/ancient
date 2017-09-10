@@ -24,12 +24,16 @@ public:
 
 	static bool detectHeader(uint32_t hdr);
 
+	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown);
+
 private:
 	const Buffer	&_packedData;
 
 	bool		_isValid=false;
 	uint32_t	_rawSize=0;
 	size_t		_decompressedPackedSize=0;
+
+	static Decompressor::Registry<TPWMDecompressor> _registration;
 };
 
 #endif

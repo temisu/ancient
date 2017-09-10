@@ -28,6 +28,8 @@ private:
 
 	bool		_isValid=false;
 	uint32_t	_blockHeader;
+
+	static XPKDecompressor::Registry<CYB2Decoder> _XPKregistration;
 };
 
 #endif

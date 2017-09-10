@@ -269,4 +269,4 @@ bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return streamStatus && destOffset==_rawSize;
 }
 
-static XPKDecompressor::Registry<SQSHDecompressor> SQSHRegistration;
+XPKDecompressor::Registry<SQSHDecompressor> SQSHDecompressor::_XPKregistration;

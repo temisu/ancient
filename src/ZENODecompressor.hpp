@@ -29,6 +29,8 @@ private:
 	bool		_isValid=false;
 	uint32_t	_maxBits=0;
 	size_t		_startOffset=0;
+
+	static XPKDecompressor::Registry<ZENODecompressor> _XPKregistration;
 };
 
 #endif

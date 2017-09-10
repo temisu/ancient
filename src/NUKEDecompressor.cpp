@@ -236,4 +236,4 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	return ret;
 }
 
-static XPKDecompressor::Registry<NUKEDecompressor> NUKERegistration;
+XPKDecompressor::Registry<NUKEDecompressor> NUKEDecompressor::_XPKregistration;

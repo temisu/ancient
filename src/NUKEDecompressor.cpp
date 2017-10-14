@@ -5,23 +5,22 @@
 #include "NUKEDecompressor.hpp"
 #include "DLTADecode.hpp"
 
-bool NUKEDecompressor::detectHeaderXPK(uint32_t hdr)
+bool NUKEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('NUKE') || hdr==FourCC('DUKE');
 }
 
-std::unique_ptr<XPKDecompressor> NUKEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> NUKEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<NUKEDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<NUKEDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-NUKEDecompressor::NUKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+NUKEDecompressor::NUKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 	if (hdr==FourCC('DUKE')) _isDUKE=true;
-	_isValid=true;
 }
 
 NUKEDecompressor::~NUKEDecompressor()
@@ -29,37 +28,16 @@ NUKEDecompressor::~NUKEDecompressor()
 	// nothing needed
 }
 
-bool NUKEDecompressor::isValid() const
+const std::string &NUKEDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool NUKEDecompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool NUKEDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &NUKEDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string nameN="XPK-NUKE: LZ77-compressor";
 	static std::string nameD="XPK-DUKE: LZ77-compressor with delta encoding";
 	return (_isDUKE)?nameD:nameN;
 }
 
-bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void NUKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 
@@ -79,14 +57,9 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBits1Length)
 		{
-			if (bufOffset+1>=bufOffsetReverse)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset+1>=bufOffsetReverse) throw Decompressor::DecompressionError();
 			bufBits1Content=uint16_t(bufPtr[bufOffset++])<<8;
 			bufBits1Content|=uint16_t(bufPtr[bufOffset++]);
 			bufBits1Length=16;
@@ -99,14 +72,9 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto read2Bits=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBits2Length)
 		{
-			if (bufOffset+1>=bufOffsetReverse)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset+1>=bufOffsetReverse) throw Decompressor::DecompressionError();
 			bufBits2Content=uint16_t(bufPtr[bufOffset++])<<8;
 			bufBits2Content|=uint16_t(bufPtr[bufOffset++]);
 			bufBits2Length=16;
@@ -119,14 +87,9 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto read4Bits=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBits4Length)
 		{
-			if (bufOffset+3>=bufOffsetReverse)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset+3>=bufOffsetReverse) throw Decompressor::DecompressionError();
 			bufBits4Content=uint32_t(bufPtr[bufOffset++])<<24;
 			bufBits4Content|=uint32_t(bufPtr[bufOffset++])<<16;
 			bufBits4Content|=uint32_t(bufPtr[bufOffset++])<<8;
@@ -141,14 +104,9 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		if (!streamStatus) return 0;
 		if (bufBitsXLength<count)
 		{
-			if (bufOffset+1>=bufOffsetReverse)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset+1>=bufOffsetReverse) throw Decompressor::DecompressionError();
 			bufBitsXContent<<=16;
 			bufBitsXContent|=uint16_t(bufPtr[bufOffset++])<<8;
 			bufBitsXContent|=uint16_t(bufPtr[bufOffset++]);
@@ -161,11 +119,7 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffsetReverse<=bufOffset)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffsetReverse<=bufOffset) throw Decompressor::DecompressionError();
 		return bufPtr[--bufOffsetReverse];
 	};
 
@@ -173,7 +127,7 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t destOffset=0;
 	size_t rawSize=rawData.size();
 
-	while (streamStatus)
+	for (;;)
 	{
 		if (!readBit())
 		{
@@ -189,12 +143,8 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 						else count+=3;
 				} while (!tmp);
 			}
-			if (destOffset+count>rawSize)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++) dest[destOffset++]=readByte();
-			}
+			if (destOffset+count>rawSize) throw Decompressor::DecompressionError();
+			for (uint32_t i=0;i<count;i++) dest[destOffset++]=readByte();
 		}
 		if (destOffset==rawSize) break;
 		uint32_t distanceIndex=read4Bits();
@@ -222,18 +172,13 @@ bool NUKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 				} while (!tmp);
 			} else count=3+4-count;
 		}
-		if (!streamStatus || !distance || size_t(distance)>destOffset || destOffset+count>rawSize)
-		{
-			streamStatus=false;
-		} else {
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
-		}
+		if (!distance || size_t(distance)>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+		for (uint32_t i=0;i<count;i++,destOffset++)
+			dest[destOffset]=dest[destOffset-distance];
 	}
-	bool ret=(streamStatus && destOffset==rawSize);
-	if (ret && _isDUKE)
+	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
+	if (_isDUKE)
 		DLTADecode::decode(rawData,rawData,0,rawSize);
-	return ret;
 }
 
 XPKDecompressor::Registry<NUKEDecompressor> NUKEDecompressor::_XPKregistration;

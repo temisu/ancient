@@ -3,62 +3,41 @@
 #include "SQSHDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr)
+bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('SQSH');
 }
 
-std::unique_ptr<XPKDecompressor> SQSHDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> SQSHDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<SQSHDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<SQSHDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-SQSHDecompressor::SQSHDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+SQSHDecompressor::SQSHDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	if (packedData.size()<3) return;
-	uint16_t tmp;
-	if (!packedData.readBE(0,tmp)) return;
-	_rawSize=uint32_t(tmp);
-	if (!_rawSize) return;
-	if (_rawSize>Decompressor::getMaxRawSize()) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr) || packedData.size()<3) throw Decompressor::InvalidFormatError();
+	_rawSize=packedData.readBE16(0);
+	if (!_rawSize) throw Decompressor::InvalidFormatError();
 }
 
 SQSHDecompressor::~SQSHDecompressor()
 {
+	// nothing needed
 }
 
-bool SQSHDecompressor::isValid() const
+const std::string &SQSHDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool SQSHDecompressor::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool SQSHDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &SQSHDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-SQSH: Compressor for sampled sounds";
 	return name;
 }
 	
-bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void SQSHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid || rawData.size()!=_rawSize) return false;
+	if (rawData.size()!=_rawSize) throw Decompressor::DecompressionError();
 
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=2;
@@ -69,11 +48,7 @@ bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	{
 		while (bufBitsLength<bits)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=(bufBitsContent<<8)|bufPtr[bufOffset++];
 			bufBitsLength+=8;
 		}
@@ -130,7 +105,7 @@ bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	uint32_t accum1=0,accum2=0,prevBits=0;
 
-	while (streamStatus && destOffset!=_rawSize)
+	while (destOffset!=_rawSize)
 	{
 		uint8_t bits=0;
 		uint32_t count=0;
@@ -165,17 +140,9 @@ bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 			auto handleTable=[&](uint32_t newBits)
 			{
-				if (prevBits<2 || !newBits)
-				{
-					streamStatus=false;
-					return;
-				}
+				if (prevBits<2 || !newBits) throw Decompressor::DecompressionError();
 				bits=bitLengthTable[prevBits-2][newBits-1];
-				if (!bits)
-				{
-					streamStatus=false;
-					return;
-				}
+				if (!bits) throw Decompressor::DecompressionError();
 				handleCondCase();
 			};
 
@@ -211,8 +178,7 @@ bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 				break;
 
 				default:
-				streamStatus=false;
-				break;
+				throw Decompressor::DecompressionError();
 			}
 		} else {
 			if (readBit())
@@ -240,24 +206,17 @@ bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			uint32_t distance=readBits(distanceBits[distanceIndex])+distanceAdditions[distanceIndex];
 			if (destOffset+count>_rawSize)
 				count=uint32_t(_rawSize-destOffset);
-			if (!streamStatus || distance>destOffset)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[destOffset-distance];
-			}
+			if (distance>destOffset) throw Decompressor::DecompressionError();
+			for (uint32_t i=0;i<count;i++,destOffset++)
+				dest[destOffset]=dest[destOffset-distance];
 			currentSample=dest[destOffset-1];
 		} else {
 			if (destOffset+count>_rawSize)
 				count=uint32_t(_rawSize-destOffset);
-			if (streamStatus)
+			for (uint32_t i=0;i<count;i++)
 			{
-				for (uint32_t i=0;i<count;i++)
-				{
-					currentSample-=readSignedBits(bits);
-					dest[destOffset++]=currentSample;
-				}
+				currentSample-=readSignedBits(bits);
+				dest[destOffset++]=currentSample;
 			}
 			if (accum1!=31) accum1++;
 			prevBits=bits;
@@ -265,8 +224,6 @@ bool SQSHDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 		accum2-=accum2>>3;
 	}
-
-	return streamStatus && destOffset==_rawSize;
 }
 
 XPKDecompressor::Registry<SQSHDecompressor> SQSHDecompressor::_XPKregistration;

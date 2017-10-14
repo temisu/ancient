@@ -2,23 +2,21 @@
 
 #include "LZBSDecompressor.hpp"
 
-bool LZBSDecompressor::detectHeaderXPK(uint32_t hdr)
+bool LZBSDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('LZBS');
 }
 
-std::unique_ptr<XPKDecompressor> LZBSDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> LZBSDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<LZBSDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<LZBSDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-LZBSDecompressor::LZBSDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+LZBSDecompressor::LZBSDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	if (_packedData.size()<1) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr) || _packedData.size()<1) throw Decompressor::InvalidFormatError();
 }
 
 LZBSDecompressor::~LZBSDecompressor()
@@ -26,36 +24,15 @@ LZBSDecompressor::~LZBSDecompressor()
 	// nothing needed
 }
 
-bool LZBSDecompressor::isValid() const
+const std::string &LZBSDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool LZBSDecompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool LZBSDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &LZBSDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-LZBS: LZBS CyberYAFA compressor";
 	return name;
 }
 
-bool LZBSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void LZBSDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=1;
@@ -69,11 +46,7 @@ bool LZBSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		{
 			if (!bufBitsLength)
 			{
-				if (bufOffset>=packedSize)
-				{
-					streamStatus=false;
-					return 0;
-				}
+				if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 				bufBitsContent=bufPtr[bufOffset++];
 				bufBitsLength=8;
 			}
@@ -89,7 +62,7 @@ bool LZBSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t rawSize=rawData.size();
 
 	uint32_t bits=0,maxBits=uint32_t(bufPtr[0]);
-	while (streamStatus && destOffset!=rawSize)
+	while (destOffset!=rawSize)
 	{
 		if (!readBits(1))
 		{
@@ -99,29 +72,19 @@ bool LZBSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			if (count==2)
 			{
 				count=readBits(12);
-				if (!count || destOffset+count>rawSize)
-				{
-					streamStatus=false;
-				} else {
-					for (uint32_t i=0;i<count;i++)
-						dest[destOffset++]=readBits(8);
-				}
+				if (!count || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+				for (uint32_t i=0;i<count;i++)
+					dest[destOffset++]=readBits(8);
 			} else {
 				while (destOffset>=(1U<<bits) && bits<maxBits) bits++;
 				uint32_t distance=readBits(bits);
 
-				if (!distance || distance>destOffset || destOffset+count>rawSize)
-				{
-					streamStatus=false;
-				} else {
-					for (uint32_t i=0;i<count;i++,destOffset++)
-						dest[destOffset]=dest[destOffset-distance];
-				}
+				if (!distance || distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+				for (uint32_t i=0;i<count;i++,destOffset++)
+					dest[destOffset]=dest[destOffset-distance];
 			}
 		}
 	}
-
-	return streamStatus && destOffset==rawSize;
 }
 
 XPKDecompressor::Registry<LZBSDecompressor> LZBSDecompressor::_XPKregistration;

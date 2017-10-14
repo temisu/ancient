@@ -11,7 +11,7 @@ private:
 	class SHR3State : public XPKDecompressor::State
 	{
 	public:
-		SHR3State();
+		SHR3State() noexcept;
 		virtual ~SHR3State();
 
 		uint32_t vlen=0;
@@ -21,25 +21,20 @@ private:
 	};
 
 public:
-	SHR3Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	SHR3Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
 
 	virtual ~SHR3Decompressor();
 
-	virtual bool isValid() const override final;
-	virtual bool verifyPacked() const override final;
-	virtual bool verifyRaw(const Buffer &rawData) const override final;
+	virtual const std::string &getSubName() const noexcept override final;
 
-	virtual const std::string &getSubName() const override final;
+	virtual void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) override final;
 
-	virtual bool decompress(Buffer &rawData,const Buffer &previousData) override final;
-
-	static bool detectHeaderXPK(uint32_t hdr);
-	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	static bool detectHeaderXPK(uint32_t hdr) noexcept;
+	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
 
 private:
 	const Buffer				&_packedData;
 
-	bool					_isValid=false;
 	uint32_t				_ver=0;
 
 	std::unique_ptr<XPKDecompressor::State>	&_state;	// reference!!!

@@ -1,23 +1,23 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef IMPDECOMPRESSOR_HPP
-#define IMPDECOMPRESSOR_HPP
+#ifndef BZIP2DECOMPRESSOR_HPP
+#define BZIP2DECOMPRESSOR_HPP
 
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
-class IMPDecompressor : public Decompressor, public XPKDecompressor
+class BZIP2Decompressor : public Decompressor, public XPKDecompressor
 {
 public:
-	IMPDecompressor(const Buffer &packedData,bool verify);
-	IMPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
-	virtual ~IMPDecompressor();
+	BZIP2Decompressor(const Buffer &packedData,bool exactSizeKnown,bool verify);
+	BZIP2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
+	virtual ~BZIP2Decompressor();
+
+	virtual size_t getRawSize() const noexcept override final;
+	virtual size_t getPackedSize() const noexcept override final;
 
 	virtual const std::string &getName() const noexcept override final;
 	virtual const std::string &getSubName() const noexcept override final;
-
-	virtual size_t getPackedSize() const noexcept override final;
-	virtual size_t getRawSize() const noexcept override final;
 
 	virtual void decompressImpl(Buffer &rawData,bool verify) override final;
 	virtual void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) override final;
@@ -29,14 +29,14 @@ public:
 	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
 
 private:
-	const Buffer	&_packedData;
+	const Buffer		&_packedData;
 
-	uint32_t	_rawSize=0;
-	uint32_t	_endOffset=0;
-	bool		_isXPK=false;
+	size_t			_blockSize=0;
+	size_t			_packedSize=0;
+	size_t			_rawSize=0;
 
-	static Decompressor::Registry<IMPDecompressor> _registration;
-	static XPKDecompressor::Registry<IMPDecompressor> _XPKregistration;
+	static Decompressor::Registry<BZIP2Decompressor> _registration;
+	static XPKDecompressor::Registry<BZIP2Decompressor> _XPKregistration;
 };
 
 #endif

@@ -9,64 +9,106 @@
 #include "XPKMaster.hpp"
 #include "XPKDecompressor.hpp"
 
-bool XPKMaster::detectHeader(uint32_t hdr)
+bool XPKMaster::detectHeader(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('XPKF');
 }
 
-std::unique_ptr<Decompressor> XPKMaster::create(const Buffer &packedData,bool exactSizeKnown)
+std::unique_ptr<Decompressor> XPKMaster::create(const Buffer &packedData,bool verify,bool exactSizeKnown)
 {
-	return std::make_unique<XPKMaster>(packedData);
+	return std::make_unique<XPKMaster>(packedData,verify,0);
 }
 
-std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> *XPKMaster::_XPKDecompressors=nullptr;
+std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool)>> *XPKMaster::_XPKDecompressors=nullptr;
 
-void XPKMaster::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&))
+void XPKMaster::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool))
 {
-	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&)>> _list;
+	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool)>> _list;
 	if (!_XPKDecompressors) _XPKDecompressors=&_list;
 	_XPKDecompressors->push_back(std::make_pair(detect,create));
 }
 
-XPKMaster::XPKMaster(const Buffer &packedData,uint32_t recursionLevel) :
+
+XPKMaster::XPKMaster(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 	_packedData(packedData)
 {
-	if (packedData.size()<44) return;
-	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return;
-	if (!detectHeader(hdr)) return;
+	if (packedData.size()<44) throw Decompressor::InvalidFormatError();
+	uint32_t hdr=packedData.readBE32(0);
+	if (!detectHeader(hdr)) throw Decompressor::InvalidFormatError();
 
-	if (!packedData.readBE(4,_packedSize)) return;
-	if (!packedData.readBE(8,_type)) return;
-	if (!packedData.readBE(12,_rawSize)) return;
+	_packedSize=packedData.readBE32(4);
+	_type=packedData.readBE32(8);
+	_rawSize=packedData.readBE32(12);
 
-	if (!_rawSize || !_packedSize) return;
-	if (_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) return;
+	if (!_rawSize || !_packedSize) throw Decompressor::InvalidFormatError();
+	if (_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) throw Decompressor::InvalidFormatError();
 
-	uint8_t flags;
-	if (!packedData.read(32,flags)) return;
+	uint8_t flags=packedData.read8(32);
 	_longHeaders=(flags&1)?true:false;
-	if (flags&2) return;	// needs password. we do not support that
-	if (flags&4)		// extra header
+	if (flags&2) throw Decompressor::InvalidFormatError();	// needs password. we do not support that
+	if (flags&4)						// extra header
 	{
-		uint16_t extraLen;
-		if (!packedData.readBE(36,extraLen)) return;
-		_headerSize=38+extraLen;
+		_headerSize=38+uint32_t(packedData.readBE16(36));
 	} else {
 		_headerSize=36;
 	}
 
-	if (_packedSize+8>packedData.size()) return;
+	if (_packedSize+8>packedData.size()) throw Decompressor::InvalidFormatError();
+
+	bool found=false;
 	for (auto &it : *_XPKDecompressors)
 	{
 		if (it.first(_type)) 
 		{
-			if (recursionLevel>=getMaxRecursionLevel()) return;
+			if (recursionLevel>=getMaxRecursionLevel()) throw Decompressor::InvalidFormatError();
 			else {
-				_isValid=true;
-				return;
+				found=true;
+				break;
 			}
 		}
+	}
+	if (!found) throw Decompressor::InvalidFormatError();
+
+	auto headerChecksum=[](const Buffer &buffer,size_t offset,size_t len)->bool
+	{
+		if (!len || offset+len>buffer.size()) return false;
+		const uint8_t *ptr=buffer.data()+offset;
+		uint8_t tmp=0;
+		for (size_t i=0;i<len;i++)
+			tmp^=ptr[i];
+		return !tmp;
+	};
+
+	// this implementation assumes align padding is zeros
+	auto chunkChecksum=[](const Buffer &buffer,size_t offset,size_t len,uint16_t checkValue)->bool
+	{
+		if (!len || offset+len>buffer.size()) return false;
+		const uint8_t *ptr=buffer.data()+offset;
+		uint8_t tmp[2]={0,0};
+		for (size_t i=0;i<len;i++)
+			tmp[i&1]^=ptr[i];
+		return tmp[0]==(checkValue>>8) && tmp[1]==(checkValue&0xff);
+	};
+
+
+	if (verify)
+	{
+		if (!headerChecksum(_packedData,0,36)) throw Decompressor::VerificationError();
+
+		std::unique_ptr<XPKDecompressor::State> state;
+		forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
+		{
+			if (!headerChecksum(header,0,header.size())) throw Decompressor::VerificationError();
+
+			uint16_t hdrCheck=header.readBE16(2);
+			if (chunk.size() && !chunkChecksum(chunk,0,chunk.size(),hdrCheck)) throw Decompressor::VerificationError();
+
+			if (chunkType==1)
+			{
+				auto sub=createDecompressor(_type,_recursionLevel,chunk,state,true);
+			} else if (chunkType!=0 && chunkType!=15) throw Decompressor::InvalidFormatError();
+			return true;
+		});
 	}
 }
 
@@ -75,119 +117,49 @@ XPKMaster::~XPKMaster()
 	// nothing needed
 }
 
-bool XPKMaster::isValid() const
+const std::string &XPKMaster::getName() const noexcept
 {
-	return _isValid;
-}
-
-static bool headerChecksum(const Buffer &buffer,size_t offset,size_t len)
-{
-	if (!len || offset+len>buffer.size()) return false;
-	const uint8_t *ptr=buffer.data()+offset;
-	uint8_t tmp=0;
-	for (size_t i=0;i<len;i++)
-		tmp^=ptr[i];
-	return !tmp;
-}
-
-// this implementation assumes align padding is zeros
-static bool chunkChecksum(const Buffer &buffer,size_t offset,size_t len,uint16_t checkValue)
-{
-	if (!len || offset+len>buffer.size()) return false;
-	const uint8_t *ptr=buffer.data()+offset;
-	uint8_t tmp[2]={0,0};
-	for (size_t i=0;i<len;i++)
-		tmp[i&1]^=ptr[i];
-	return tmp[0]==(checkValue>>8) && tmp[1]==(checkValue&0xff);
-}
-
-bool XPKMaster::verifyPacked() const
-{
-	if (!_isValid) return false;
-
-	if (!headerChecksum(_packedData,0,36)) return false;
-
-	std::unique_ptr<XPKDecompressor::State> state;
-	return forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
-	{
-		if (!headerChecksum(header,0,header.size())) return false;
-
-		uint16_t hdrCheck;
-		if (!header.readBE(2,hdrCheck)) return false;
-		if (chunk.size() && !chunkChecksum(chunk,0,chunk.size(),hdrCheck)) return false;
-
-		if (chunkType==1)
-		{
-			auto sub=createDecompressor(_type,_recursionLevel,chunk,state);
-			if (!sub || !sub->isValid() || !sub->verifyPacked()) return false;
-		} else if (chunkType!=0 && chunkType!=15) return false;
-		return true;
-	});
-}
-
-// This is as good as verification of the sub-compressor...
-bool XPKMaster::verifyRaw(const Buffer &rawData) const
-{
-	if (!_isValid || rawData.size()<_rawSize) return false;
-
-	if (::memcmp(_packedData.data()+16,rawData.data(),std::min(_rawSize,16U))) return false;
-
-	uint32_t destOffset=0;
-	std::unique_ptr<XPKDecompressor::State> state;
-	if (!forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
-	{
-		if (destOffset+rawChunkSize>rawData.size()) return false;
-		if (!rawChunkSize) return true;
-
-		ConstSubBuffer VerifyBuffer(rawData,destOffset,rawChunkSize);
-		if (chunkType==1)
-		{
-			auto sub=createDecompressor(_type,_recursionLevel,chunk,state);
-			if (!sub || !sub->isValid() || !sub->verifyRaw(VerifyBuffer)) return false;
-		} else if (chunkType!=0 && chunkType!=15) return false;
-
-		destOffset+=rawChunkSize;
-		return true;
-	})) return false;
-
-	return destOffset==_rawSize;
-}
-
-const std::string &XPKMaster::getName() const
-{
-	if (!_isValid) return Decompressor::getName();
 	std::unique_ptr<XPKDecompressor> sub;
 	std::unique_ptr<XPKDecompressor::State> state;
-	forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
+	try
 	{
-		sub=createDecompressor(_type,_recursionLevel,chunk,state);
-		return false;
-	});
-	if (sub) return sub->getSubName();
-		else return Decompressor::getName();
+		forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
+		{
+			try
+			{
+				sub=createDecompressor(_type,_recursionLevel,chunk,state,false);
+			} catch (const Error&) {
+				// should not happen since the code is already tried out,
+				// however, lets handle the case gracefully
+			}
+			return false;
+		});
+	} catch (const Buffer::Error&) {
+		// ditto
+	}
+	static std::string invName="<invalid>";
+	return (sub)?sub->getSubName():invName;
 }
 
-size_t XPKMaster::getPackedSize() const
+size_t XPKMaster::getPackedSize() const noexcept
 {
-	if (!_isValid) return 0;
 	return _packedSize+8;
 }
 
-size_t XPKMaster::getRawSize() const
+size_t XPKMaster::getRawSize() const noexcept
 {
-	if (!_isValid) return 0;
 	return _rawSize;
 }
 
-bool XPKMaster::decompress(Buffer &rawData)
+void XPKMaster::decompressImpl(Buffer &rawData,bool verify)
 {
-	if (!_isValid || rawData.size()<_rawSize) return false;
+	if (rawData.size()<_rawSize) throw Decompressor::DecompressionError();
 
 	uint32_t destOffset=0;
 	std::unique_ptr<XPKDecompressor::State> state;
-	if (!forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
+	forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
-		if (destOffset+rawChunkSize>rawData.size()) return false;
+		if (destOffset+rawChunkSize>rawData.size()) throw Decompressor::DecompressionError();
 		if (!rawChunkSize) return true;
 
 		ConstSubBuffer previousBuffer(rawData,0,destOffset);
@@ -195,14 +167,20 @@ bool XPKMaster::decompress(Buffer &rawData)
 		switch (chunkType)
 		{
 			case 0:
-			if (rawChunkSize!=chunk.size()) return false;
+			if (rawChunkSize!=chunk.size()) throw Decompressor::DecompressionError();;
 			::memcpy(DestBuffer.data(),chunk.data(),rawChunkSize);
 			break;
 
 			case 1:
 			{
-				auto sub=createDecompressor(_type,_recursionLevel,chunk,state);
-				if (!sub || !sub->isValid() || !sub->decompress(DestBuffer,previousBuffer)) return false;
+				try
+				{
+					auto sub=createDecompressor(_type,_recursionLevel,chunk,state,false);
+					sub->decompressImpl(DestBuffer,previousBuffer,verify);
+				} catch (const InvalidFormatError&) {
+					// we should throw a correct error
+					throw DecompressionError();
+				}
 			}
 			break;
 
@@ -215,41 +193,43 @@ bool XPKMaster::decompress(Buffer &rawData)
 
 		destOffset+=rawChunkSize;
 		return true;
-	})) return false;
+	});
 
-	return destOffset==_rawSize;
+	if (destOffset!=_rawSize) throw Decompressor::DecompressionError();
+
+	if (verify)
+	{
+		if (::memcmp(_packedData.data()+16,rawData.data(),std::min(_rawSize,16U))) throw Decompressor::DecompressionError();
+	}
 }
 
-std::unique_ptr<XPKDecompressor> XPKMaster::createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> XPKMaster::createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
 	// since this method is used externally, better check recursion level
-	if (recursionLevel>=getMaxRecursionLevel()) return nullptr;
+	if (recursionLevel>=getMaxRecursionLevel()) throw Decompressor::InvalidFormatError();
 	for (auto &it : *_XPKDecompressors)
 	{
-		if (it.first(type)) return it.second(type,recursionLevel,buffer,state);
+		if (it.first(type)) return it.second(type,recursionLevel,buffer,state,verify);
 	}
-	return nullptr;
+	throw Decompressor::InvalidFormatError();
 }
 
 template <typename F>
-bool XPKMaster::forEachChunk(F func) const
+void XPKMaster::forEachChunk(F func) const
 {
 	uint32_t currentOffset=0,rawSize,packedSize;
 	bool isLast=false;
 
 	while (currentOffset<_packedSize+8 && !isLast)
 	{
-		auto readDualValue=[&](uint32_t offsetShort,uint32_t offsetLong,uint32_t &value)->bool
+		auto readDualValue=[&](uint32_t offsetShort,uint32_t offsetLong,uint32_t &value)
 		{
 			if (_longHeaders)
 			{
-				if (!_packedData.readBE(currentOffset+offsetLong,value)) return false;
+				value=_packedData.readBE32(currentOffset+offsetLong);
 			} else {
-				uint16_t tmp;
-				if (!_packedData.readBE(currentOffset+offsetShort,tmp)) return false;
-				value=uint32_t(tmp);
+				value=uint32_t(_packedData.readBE16(currentOffset+offsetShort));
 			}
-			return true;
 		};
 
 		uint32_t chunkHeaderLen=_longHeaders?12:8;
@@ -259,22 +239,20 @@ bool XPKMaster::forEachChunk(F func) const
 			currentOffset=_headerSize;
 		} else {
 			uint32_t tmp;
-			if (!readDualValue(4,4,tmp)) return false;
+			readDualValue(4,4,tmp);
 			currentOffset+=chunkHeaderLen+((tmp+3)&~3U);
 		}
-		if (!readDualValue(4,4,packedSize)) return false;
-		if (!readDualValue(6,8,rawSize)) return false;
+		readDualValue(4,4,packedSize);
+		readDualValue(6,8,rawSize);
 		
 		ConstSubBuffer hdr(_packedData,currentOffset,chunkHeaderLen);
 		ConstSubBuffer chunk(_packedData,currentOffset+chunkHeaderLen,packedSize);
 
-		uint8_t type;
-		if (!_packedData.read(currentOffset,type)) return false;
-		if (!func(hdr,chunk,rawSize,type)) return false;
+		uint8_t type=_packedData.read8(currentOffset);
+		if (!func(hdr,chunk,rawSize,type)) return;
 		
 		if (type==15) isLast=true;
 	}
-	return isLast;
 }
 
 Decompressor::Registry<XPKMaster> XPKMaster::_registration;

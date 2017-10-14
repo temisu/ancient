@@ -4,22 +4,21 @@
 
 #include "NONEDecompressor.hpp"
 
-bool NONEDecompressor::detectHeaderXPK(uint32_t hdr)
+bool NONEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('NONE');
 }
 
-std::unique_ptr<XPKDecompressor> NONEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> NONEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<NONEDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<NONEDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-NONEDecompressor::NONEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+NONEDecompressor::NONEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
 
 NONEDecompressor::~NONEDecompressor()
@@ -27,34 +26,17 @@ NONEDecompressor::~NONEDecompressor()
 	// nothing needed
 }
 
-bool NONEDecompressor::isValid() const
+const std::string &NONEDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool NONEDecompressor::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool NONEDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &NONEDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-NONE: Null compressor";
 	return name;
 }
 
-bool NONEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void NONEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid || rawData.size()<_packedData.size()) return false;
+	if (rawData.size()!=_packedData.size()) throw Decompressor::DecompressionError();
 
 	::memcpy(rawData.data(),_packedData.data(),_packedData.size());
-	return true;
 }
 
 XPKDecompressor::Registry<NONEDecompressor> NONEDecompressor::_XPKregistration;

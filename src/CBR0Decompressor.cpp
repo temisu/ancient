@@ -2,22 +2,21 @@
 
 #include "CBR0Decompressor.hpp"
 
-bool CBR0Decompressor::detectHeaderXPK(uint32_t hdr)
+bool CBR0Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('CBR0');
 }
 
-std::unique_ptr<XPKDecompressor> CBR0Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> CBR0Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<CBR0Decompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<CBR0Decompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-CBR0Decompressor::CBR0Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+CBR0Decompressor::CBR0Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
 
 CBR0Decompressor::~CBR0Decompressor()
@@ -25,32 +24,14 @@ CBR0Decompressor::~CBR0Decompressor()
 	// nothing needed
 }
 
-bool CBR0Decompressor::isValid() const
+const std::string &CBR0Decompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool CBR0Decompressor::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool CBR0Decompressor::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &CBR0Decompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-CBR0: RLE-compressor";
 	return name;
 }
 
-bool CBR0Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void CBR0Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool veridy)
 {
-	if (!_isValid) return false;
-
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=0;
 	size_t packedSize=_packedData.size();
@@ -77,7 +58,7 @@ bool CBR0Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		}
 	}
 
-	return destOffset==rawSize;
+	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<CBR0Decompressor> CBR0Decompressor::_XPKregistration;

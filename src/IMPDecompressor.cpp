@@ -3,7 +3,7 @@
 #include "IMPDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-static bool readIMPHeader(uint32_t hdr,uint32_t &addition)
+static bool readIMPHeader(uint32_t hdr,uint32_t &addition) noexcept
 {
 	switch (hdr)
 	{
@@ -35,57 +35,64 @@ static bool readIMPHeader(uint32_t hdr,uint32_t &addition)
 	}
 }
 
-bool IMPDecompressor::detectHeader(uint32_t hdr)
+bool IMPDecompressor::detectHeader(uint32_t hdr) noexcept
 {
 	uint32_t dummy;
 	return readIMPHeader(hdr,dummy);
 }
 
-bool IMPDecompressor::detectHeaderXPK(uint32_t hdr)
+bool IMPDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('IMPL');
 }
 
-std::unique_ptr<Decompressor> IMPDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+std::unique_ptr<Decompressor> IMPDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
 {
-	return std::make_unique<IMPDecompressor>(packedData);
+	return std::make_unique<IMPDecompressor>(packedData,verify);
 }
 
-std::unique_ptr<XPKDecompressor> IMPDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> IMPDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<IMPDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<IMPDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-IMPDecompressor::IMPDecompressor(const Buffer &packedData) :
+IMPDecompressor::IMPDecompressor(const Buffer &packedData,bool verify) :
 	_packedData(packedData)
 {
-	if (packedData.size()<0x32) return;
-	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return;
-	if (!readIMPHeader(hdr,_checksumAddition)) return;
+	uint32_t hdr=packedData.readBE32(0);
+	uint32_t checksumAddition;
+	if (!readIMPHeader(hdr,checksumAddition) || packedData.size()<0x32) throw InvalidFormatError();
 
-	if (!packedData.readBE(4,_rawSize)) return;
-	if (!packedData.readBE(8,_endOffset)) return;
-	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x32<packedData.size()) return;
-	if (!_rawSize || !_endOffset) return;
-	if (_rawSize>getMaxRawSize() || _endOffset>getMaxPackedSize()) return;
-	if (!packedData.readBE(_endOffset+0x2e,_checksum)) return;
-	_isValid=true;
+	_rawSize=packedData.readBE32(4);
+	_endOffset=packedData.readBE32(8);
+	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x32<packedData.size() ||
+		!_rawSize || !_endOffset ||
+		_rawSize>getMaxRawSize() || _endOffset>getMaxPackedSize()) throw InvalidFormatError();
+	uint32_t checksum=packedData.readBE32(_endOffset+0x2e);
+	if (verify && checksumAddition)
+	{
+		// size is divisible by 2
+		uint32_t sum=checksumAddition;
+		for (uint32_t i=0;i<_endOffset+0x2e;i+=2)
+		{
+			// TODO: slow, optimize
+			uint16_t tmp=_packedData.readBE16(i);
+			sum+=uint32_t(tmp);
+		}
+		if (checksum!=sum) throw InvalidFormatError();
+	}
 }
 
-IMPDecompressor::IMPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+IMPDecompressor::IMPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	if (packedData.size()<0x2e) return;
-	_checksumAddition=0;
+	if (!detectHeaderXPK(hdr) || packedData.size()<0x2e) throw InvalidFormatError();
 
-	if (!packedData.readBE(4,_rawSize)) return;
-	if (!packedData.readBE(8,_endOffset)) return;
-	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x2e<packedData.size()) return;
+	_rawSize=packedData.readBE32(4);
+	_endOffset=packedData.readBE32(8);
+	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x2e<packedData.size()) throw InvalidFormatError();
 	_isXPK=true;
-	_isValid=true;
 }
 
 IMPDecompressor::~IMPDecompressor()
@@ -93,73 +100,39 @@ IMPDecompressor::~IMPDecompressor()
 	// nothing needed
 }
 
-bool IMPDecompressor::isValid() const
+const std::string &IMPDecompressor::getName() const noexcept
 {
-	return _isValid;
-}
-
-bool IMPDecompressor::verifyPacked() const
-{
-	if (!_isXPK && _checksumAddition)
-	{
-		// size is divisible by 2
-		uint32_t sum=_checksumAddition;
-		for (uint32_t i=0;i<_endOffset+0x2e;i+=2)
-		{
-			uint16_t tmp;
-			if (!_packedData.readBE(i,tmp)) return false;
-			sum+=uint32_t(tmp);
-		}
-		return _checksum==sum;
-	} else return true;
-}
-
-bool IMPDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// no CRC
-	return _isValid;
-}
-
-const std::string &IMPDecompressor::getName() const
-{
-	if (!_isValid) return Decompressor::getName();
-	static std::string name="IMP!: File Imploder";
+	static std::string name="IMP: File Imploder";
 	return name;
 }
 
-const std::string &IMPDecompressor::getSubName() const
+const std::string &IMPDecompressor::getSubName() const noexcept
 {
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-IMPL: File Imploder";
 	return name;
 }
 
-size_t IMPDecompressor::getPackedSize() const
+size_t IMPDecompressor::getPackedSize() const noexcept
 {
-	if (!_isValid) return 0;
 	return _endOffset+0x32;
 }
 
-size_t IMPDecompressor::getRawSize() const
+size_t IMPDecompressor::getRawSize() const noexcept
 {
-	if (!_isValid) return 0;
 	return _rawSize;
 }
 
-bool IMPDecompressor::decompress(Buffer &rawData)
+void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	if (!_isValid || rawData.size()<_rawSize) return false;
+	if (rawData.size()<_rawSize) throw DecompressionError();
 
-	uint8_t markerByte;
-	if (!_packedData.read(_endOffset+16,markerByte)) return false;
+	uint8_t markerByte=_packedData.read8(_endOffset+16);
 
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=_endOffset;
 	if (!(markerByte&0x80)) bufOffset--;
 
-	uint8_t bufBitsContent;
-	if (!_packedData.read(_endOffset+17,bufBitsContent)) return false;
+	uint8_t bufBitsContent=_packedData.read8(_endOffset+17);
 	uint8_t bufBitsLength=7;
 	// the anchor-bit does not seem always to be at the correct place
 	for (uint32_t i=0;i<7;i++)
@@ -186,14 +159,9 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (!bufOffset)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (!bufOffset) throw DecompressionError();
 			bufBitsContent=bufPtr[sourceOffset(--bufOffset)];
 			bufBitsLength=8;
 		}
@@ -212,11 +180,7 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || !bufOffset)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (!bufOffset) throw DecompressionError();
 		return bufPtr[sourceOffset(--bufOffset)];
 	};
 	
@@ -224,10 +188,10 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 	// tables
 	uint16_t distanceValues[2][4];
 	for (uint32_t i=0;i<8;i++)
-		if (!_packedData.readBE(_endOffset+18+i*2,distanceValues[i>>2][i&3])) return false;
+		distanceValues[i>>2][i&3]=_packedData.readBE16(_endOffset+18+i*2);
 	uint8_t distanceBits[3][4];
 	for (uint32_t i=0;i<12;i++)
-		if (!_packedData.read(_endOffset+34+i,distanceBits[i>>2][i&3])) return false;
+		distanceBits[i>>2][i&3]=_packedData.read8(_endOffset+34+i);
 
 	// length, distance & literal counts are all intertwined
 	HuffmanDecoder<uint8_t,0xffU,5> lldDecoder
@@ -252,18 +216,12 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 	uint8_t *dest=rawData.data();
 	size_t destOffset=_rawSize;
 
-	uint32_t litLength;
-	if (!_packedData.readBE(_endOffset+12,litLength)) return false;
+	uint32_t litLength=_packedData.readBE32(_endOffset+12);
 
-	while (streamStatus)
+	for (;;)
 	{
-		if (destOffset<litLength)
-		{
-			streamStatus=false;
-			break;
-		} else {
-			for (uint32_t i=0;i<litLength;i++) dest[--destOffset]=readByte();
-		}
+		if (destOffset<litLength) throw DecompressionError();
+		for (uint32_t i=0;i<litLength;i++) dest[--destOffset]=readByte();
 
 		if (!destOffset) break;
 
@@ -276,12 +234,8 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 			count+=readBits(3);
 		} else if (count==7) {
 			count=readByte();
-			// why this is error?
-			if (!count)
-			{
-				streamStatus=false;
-				break;
-			}
+			// why this is error? (Well, it just is)
+			if (!count) throw DecompressionError();
 		}
 
 		static const uint8_t literalLengths[4]={6,10,10,18};
@@ -300,22 +254,16 @@ bool IMPDecompressor::decompress(Buffer &rawData)
 		uint32_t i2=lldDecoder2.decode(readBit);
 		uint32_t distance=1+((i2)?distanceValues[i2-1][selector]:0)+readBits(distanceBits[i2][selector]);
 
-		if (destOffset<count || destOffset+distance>_rawSize)
-		{
-			streamStatus=false;
-		} else {
-			distance+=destOffset;
-			for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
-		}
+		if (destOffset<count || destOffset+distance>_rawSize) throw DecompressionError();
+		distance+=destOffset;
+		for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
 	}
-
-	return streamStatus && !destOffset;
 }
 
-bool IMPDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void IMPDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (_rawSize!=rawData.size()) return false;
-	return decompress(rawData);
+	if (_rawSize!=rawData.size()) throw DecompressionError();
+	return decompressImpl(rawData,verify);
 }
 
 Decompressor::Registry<IMPDecompressor> IMPDecompressor::_registration;

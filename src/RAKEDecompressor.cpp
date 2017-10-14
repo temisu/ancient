@@ -3,30 +3,26 @@
 #include "RAKEDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-bool RAKEDecompressor::detectHeaderXPK(uint32_t hdr)
+bool RAKEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return (hdr==FourCC('FRHT') || hdr==FourCC('RAKE'));
 }
 
-std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<RAKEDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<RAKEDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-RAKEDecompressor::RAKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+RAKEDecompressor::RAKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
+	if (!detectHeaderXPK(hdr) || packedData.size()<4)
+		throw Decompressor::InvalidFormatError();
 	if (hdr==FourCC('RAKE')) _isRAKE=true;
-	if (packedData.size()<4) return;
 
-	uint16_t tmp;
-	if (!packedData.readBE(2,tmp)) return;
-	_midStreamOffset=tmp;
-	if (_midStreamOffset>=packedData.size()) return;
-
-	_isValid=true;
+	_midStreamOffset=packedData.readBE16(2);
+	if (_midStreamOffset>=packedData.size()) throw Decompressor::InvalidFormatError();
 }
 
 RAKEDecompressor::~RAKEDecompressor()
@@ -34,37 +30,16 @@ RAKEDecompressor::~RAKEDecompressor()
 	// nothing needed
 }
 
-bool RAKEDecompressor::isValid() const
+const std::string &RAKEDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool RAKEDecompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool RAKEDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &RAKEDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string nameFRHT="XPK-FRHT: LZ77-compressor";
 	static std::string nameRAKE="XPK-RAKE: LZ77-compressor";
 	return (_isRAKE)?nameRAKE:nameFRHT;
 }
 
-bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void RAKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 
@@ -76,24 +51,16 @@ bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	uint32_t bufBitsContent=0;
 	uint8_t bufBitsLength=0;
 
-	auto fillBuffer=[&]()->bool {
-		if (bufOffset+4>packedSize) return false;
+	auto fillBuffer=[&]()
+	{
+		if (bufOffset+4>packedSize) throw Decompressor::DecompressionError();
 		for (uint32_t i=0;i<4;i++) bufBitsContent=uint32_t(bufPtr[bufOffset++])|(bufBitsContent<<8);
 		bufBitsLength=32;
-		return true;
 	};
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
-		if (!bufBitsLength)
-		{
-			if (!fillBuffer())
-			{
-				streamStatus=false;
-				return 0;
-			}
-		}
+		if (!bufBitsLength) fillBuffer();
 		uint8_t ret=bufBitsContent>>31;
 		bufBitsContent<<=1;
 		bufBitsLength--;
@@ -108,7 +75,7 @@ bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	};
 
 	uint16_t tmp=(uint16_t(bufPtr[0])<<8)|uint16_t(bufPtr[1]);
-        if (tmp>32) return false;
+        if (tmp>32) throw Decompressor::DecompressionError();
         fillBuffer();
         bufBitsLength-=tmp;
 
@@ -117,11 +84,7 @@ bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufByteOffset<=4)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufByteOffset<=4) throw Decompressor::DecompressionError();
 		return bufPtr[--bufByteOffset];
 	};
 
@@ -172,14 +135,13 @@ bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		hufCode+=1<<(32-it[0]);
 	}
 
-	while (streamStatus && destOffset)
+	while (destOffset)
 	{
 		if (!readBit())
 		{
 			dest[--destOffset]=readByte();
 		} else {
 			uint32_t count=lengthDecoder.decode(readBit);
-			if (count==0x100) streamStatus=false;
 			count+=2;
 
 			uint32_t distance;
@@ -194,17 +156,11 @@ bool RAKEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 					distance=((readBits(6)<<8)|uint32_t(readByte()))+0x901;
 				}
 			}
-			if (!streamStatus || destOffset<count || destOffset+distance>rawSize)
-			{
-				streamStatus=false;
-			} else {
-				distance+=destOffset;
-				for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
-			}
+			if (destOffset<count || destOffset+distance>rawSize) throw Decompressor::DecompressionError();
+			distance+=destOffset;
+			for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
 		}
 	}
-
-	return streamStatus && !destOffset;
 }
 
 XPKDecompressor::Registry<RAKEDecompressor> RAKEDecompressor::_XPKregistration;

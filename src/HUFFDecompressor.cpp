@@ -3,31 +3,28 @@
 #include "HUFFDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-bool HUFFDecompressor::detectHeaderXPK(uint32_t hdr)
+bool HUFFDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('HUFF');
 }
 
-std::unique_ptr<XPKDecompressor> HUFFDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> HUFFDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<HUFFDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<HUFFDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-HUFFDecompressor::HUFFDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+HUFFDecompressor::HUFFDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	if (packedData.size()<6) return;
+	if (!detectHeaderXPK(hdr) || packedData.size()<6)
+		throw Decompressor::InvalidFormatError();
 	// version: only 0 is defined
-	uint16_t ver;
-	if (!packedData.readBE(0,ver)) return;
-	if (ver) return;
+	uint16_t ver=packedData.readBE16(0);
+	if (ver) throw Decompressor::InvalidFormatError();
 	// password: we do not support it...
-	uint32_t pwd;
-	if (!packedData.readBE(2,pwd)) return;
-	if (pwd!=0xabadcafe) return;
-	_isValid=true;
+	uint32_t pwd=packedData.readBE32(2);
+	if (pwd!=0xabadcafe) throw Decompressor::InvalidFormatError();
 }
 
 HUFFDecompressor::~HUFFDecompressor()
@@ -35,34 +32,15 @@ HUFFDecompressor::~HUFFDecompressor()
 	// nothing needed
 }
 
-bool HUFFDecompressor::isValid() const
+const std::string &HUFFDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool HUFFDecompressor::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool HUFFDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &HUFFDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-HUFF: Huffman compressor";
 	return name;
 }
 
-bool HUFFDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void HUFFDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t packedSize=_packedData.size();
 	size_t bufOffset=6;
@@ -72,14 +50,9 @@ bool HUFFDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=bufPtr[bufOffset++];
 			bufBitsLength=8;
 		}
@@ -91,11 +64,7 @@ bool HUFFDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset>=packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
@@ -104,15 +73,11 @@ bool HUFFDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t rawSize=rawData.size();
 
 	HuffmanDecoder<uint32_t,256,0> decoder;
-	for (uint32_t i=0;i<256&&streamStatus;i++)
+	for (uint32_t i=0;i<256;i++)
 	{
 		uint8_t codeBits=readByte()+1;
 		if (!codeBits) continue;
-		if (codeBits>32)
-		{
-			streamStatus=false;
-			break;
-		}
+		if (codeBits>32) throw Decompressor::DecompressionError();
 		uint32_t code=0;
 		int32_t shift=-codeBits;
 		for (uint32_t j=0;j<codeBits;j+=8)
@@ -123,20 +88,9 @@ bool HUFFDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		code=(code>>shift)&((1<<codeBits)-1);
 		decoder.insert(HuffmanCode<uint32_t>{codeBits,code,i});
 	}
-	if (streamStatus) streamStatus=decoder.isValid();
 
-	while (streamStatus && destOffset<rawSize)
-	{
-		uint32_t ch=decoder.decode(readBit);
-		if (ch==256)
-		{
-			streamStatus=false;
-		} else {
-			dest[destOffset++]=ch;
-		}
-	}
-
-	return streamStatus && destOffset==rawSize;
+	while (destOffset!=rawSize)
+		dest[destOffset++]=decoder.decode(readBit);
 }
 
 XPKDecompressor::Registry<HUFFDecompressor> HUFFDecompressor::_XPKregistration;

@@ -2,22 +2,21 @@
 
 #include "FBR2Decompressor.hpp"
 
-bool FBR2Decompressor::detectHeaderXPK(uint32_t hdr)
+bool FBR2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('FBR2');
 }
 
-std::unique_ptr<XPKDecompressor> FBR2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> FBR2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<FBR2Decompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<FBR2Decompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-FBR2Decompressor::FBR2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+FBR2Decompressor::FBR2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();;
 }
 
 FBR2Decompressor::~FBR2Decompressor()
@@ -25,47 +24,22 @@ FBR2Decompressor::~FBR2Decompressor()
 	// nothing needed
 }
 
-bool FBR2Decompressor::isValid() const
+const std::string &FBR2Decompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool FBR2Decompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool FBR2Decompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &FBR2Decompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-FBR2: FBR2 CyberYAFA compressor";
 	return name;
 }
 
-bool FBR2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void FBR2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=0;
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset>=packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
@@ -74,7 +48,7 @@ bool FBR2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t rawSize=rawData.size();
 
 	uint8_t mode=readByte();	
-	while (streamStatus && destOffset!=rawSize)
+	while (destOffset!=rawSize)
 	{
 		bool doCopy=false;
 		uint32_t count=0;
@@ -112,23 +86,18 @@ bool FBR2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			break;
 
 			default:
-			streamStatus=false;
-			break;
+			throw Decompressor::DecompressionError();
 		}
 
 		count++;
-		if (!streamStatus || destOffset+count>rawSize)
-		{
-			streamStatus=false;
-		} else if (doCopy) {
+		if (destOffset+count>rawSize) throw Decompressor::DecompressionError();
+		if (doCopy) {
 			for (uint32_t i=0;i<count;i++) dest[destOffset++]=readByte();
 		} else {
 			uint8_t repeatChar=readByte();
 			for (uint32_t i=0;i<count;i++) dest[destOffset++]=repeatChar;
 		}
 	}
-
-	return streamStatus && destOffset==rawSize;
 }
 
 XPKDecompressor::Registry<FBR2Decompressor> FBR2Decompressor::_XPKregistration;

@@ -2,22 +2,21 @@
 
 #include "RLENDecompressor.hpp"
 
-bool RLENDecompressor::detectHeaderXPK(uint32_t hdr)
+bool RLENDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('RLEN');
 }
 
-std::unique_ptr<XPKDecompressor> RLENDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> RLENDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<RLENDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<RLENDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-RLENDecompressor::RLENDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+RLENDecompressor::RLENDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
 
 RLENDecompressor::~RLENDecompressor()
@@ -25,32 +24,14 @@ RLENDecompressor::~RLENDecompressor()
 	// nothing needed
 }
 
-bool RLENDecompressor::isValid() const
+const std::string &RLENDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool RLENDecompressor::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool RLENDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &RLENDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-RLEN: RLE-compressor";
 	return name;
 }
 
-bool RLENDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void RLENDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=0;
 	size_t packedSize=_packedData.size();
@@ -59,26 +40,24 @@ bool RLENDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t destOffset=0;
 	size_t rawSize=rawData.size();
 
-	while (destOffset<rawSize)
+	while (destOffset!=rawSize)
 	{
-		if (bufOffset==packedSize) break;
+		if (bufOffset==packedSize) throw Decompressor::DecompressionError();
 		uint32_t count=uint32_t(bufPtr[bufOffset++]);
 		if (count<128)
 		{
-			if (!count) break;	// lets have this as error...
-			if (bufOffset+count>packedSize || destOffset+count>rawSize) break;
+			if (!count) throw Decompressor::DecompressionError();	// lets have this as error...
+			if (bufOffset+count>packedSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
 			for (uint32_t i=0;i<count;i++) dest[destOffset++]=bufPtr[bufOffset++];
 		} else {
 			// I can see from different implementations that count=0x80 is buggy...
 			// lets try to have it more or less correctly here
 			count=256-count;
-			if (bufOffset==packedSize || destOffset+count>rawSize) break;
+			if (bufOffset==packedSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
 			uint8_t ch=bufPtr[bufOffset++];
 			for (uint32_t i=0;i<count;i++) dest[destOffset++]=ch;
 		}
 	}
-
-	return destOffset==rawSize;
 }
 
 XPKDecompressor::Registry<RLENDecompressor> RLENDecompressor::_XPKregistration;

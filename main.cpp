@@ -22,11 +22,11 @@ public:
 
 	virtual ~VectorBuffer() override final;
 
-	virtual const uint8_t *data() const override final;
+	virtual const uint8_t *data() const noexcept override final;
 	virtual uint8_t *data() override final;
-	virtual size_t size() const override final;
+	virtual size_t size() const noexcept override final;
 
-	virtual bool isResizable() const override final;
+	virtual bool isResizable() const noexcept override final;
 	virtual void resize(size_t newSize) override final;
 
 private:
@@ -43,7 +43,7 @@ VectorBuffer::~VectorBuffer()
 	// nothing needed
 }
 
-const uint8_t *VectorBuffer::data() const
+const uint8_t *VectorBuffer::data() const noexcept
 {
 	return _data.data();
 }
@@ -53,12 +53,12 @@ uint8_t *VectorBuffer::data()
 	return _data.data();
 }
 
-size_t VectorBuffer::size() const
+size_t VectorBuffer::size() const noexcept
 {
 	return _data.size();
 }
 
-bool VectorBuffer::isResizable() const
+bool VectorBuffer::isResizable() const noexcept
 {
 	return true;
 }
@@ -138,15 +138,13 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		auto packed{readFile(argv[2])};
-		auto decompressor{Decompressor::create(*packed,true)};
-		if (!decompressor)
+		std::unique_ptr<Decompressor> decompressor;
+		try
 		{
-			fprintf(stderr,"Unknown compression format in file %s\n",argv[2]);
-			return -1;
-		}
-		if (!decompressor->isValid())
+			decompressor=Decompressor::create(*packed,false,true);
+		} catch (const Decompressor::InvalidFormatError&)
 		{
-			fprintf(stderr,"File %s is not valid or is corrupted\n",argv[2]);
+			fprintf(stderr,"Unknown or invalid compression format in file %s\n",argv[2]);
 			return -1;
 		}
 		printf("Compression of %s is %s\n",argv[2],decompressor->getName().c_str());
@@ -158,34 +156,36 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		auto packed{readFile(argv[2])};
-		auto decompressor{Decompressor::create(*packed,true)};
-		if (!decompressor)
+		std::unique_ptr<Decompressor> decompressor;
+		try
 		{
-			fprintf(stderr,"Unknown compression format in file %s\n",argv[2]);
+			decompressor=Decompressor::create(*packed,true,true);
+		} catch (const Decompressor::InvalidFormatError&)
+		{
+			fprintf(stderr,"Unknown or invalid compression format in file %s\n",argv[2]);
+			return -1;
+		} catch (const Decompressor::VerificationError&)
+		{
+			fprintf(stderr,"Verify (packed) failed for %s\n",argv[2]);
 			return -1;
 		}
-		if (!decompressor->isValid())
-		{
-			fprintf(stderr,"File %s is not valid or is corrupted\n",argv[2]);
-			return -1;
-		}
-		if (!decompressor->verifyPacked())
-		{
-			fprintf(stderr,"File %s has errors in packed stream\n",argv[2]);
-			return -1;
-		}
+
 		std::unique_ptr<Buffer> raw=std::make_unique<VectorBuffer>();
-		raw->resize(decompressor->getRawSize());
-		if (!decompressor->decompress(*raw))
+		raw->resize((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
+		try
+		{
+			decompressor->decompress(*raw,true);
+		} catch (const Decompressor::DecompressionError&)
 		{
 			fprintf(stderr,"Decompression failed for %s\n",argv[2]);
 			return -1;
-		}
-		if (!decompressor->verifyRaw(*raw))
+		} catch (const Decompressor::VerificationError&)
 		{
-			fprintf(stderr,"Verify failed for %s\n",argv[2]);
+			fprintf(stderr,"Verify (raw) failed for %s\n",argv[2]);
 			return -1;
 		}
+		raw->resize(decompressor->getRawSize());
+
 		if (cmd=="decompress")
 		{
 			writeFile(argv[3],*raw);
@@ -207,7 +207,8 @@ int main(int argc,char **argv)
 			}
 			return 0;
 		}
-	} else if (cmd=="scan") {
+	}
+	 else if (cmd=="scan") {
 		if (argc!=4)
 		{
 			usage();
@@ -235,33 +236,36 @@ int main(int argc,char **argv)
 						ConstSubBuffer scanBuffer(*packed,0,packed->size());
 						for (size_t i=0;i<packed->size();)
 						{
-							if (!scanBuffer.adjust(i,packed->size()-i)) break;
-							auto decompressor{Decompressor::create(scanBuffer,false)};
-							if (decompressor && decompressor->isValid() && decompressor->verifyPacked())
+							scanBuffer.adjust(i,packed->size()-i);
+							// We will detect first, before trying the format for real
+							if (!Decompressor::detect(scanBuffer))
 							{
+								i++;
+								continue;
+							}
+							try
+							{
+								auto decompressor{Decompressor::create(scanBuffer,false,true)};
 								std::unique_ptr<Buffer> raw=std::make_unique<VectorBuffer>();
 								raw->resize((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
-								bool success=true;
+								// for formats that do not encode packed size.
+								// we will get it from decompressor
 								if (!decompressor->getPackedSize())
-								{
-									// for formats that do not encode packed size.
-									// we will get it from decompressor
-									success=decompressor->decompress(*raw);
-								}
-								if (success && decompressor->getPackedSize())
+									decompressor->decompress(*raw,true);
+								if (decompressor->getPackedSize())
 								{
 									// final checks with the limited buffer and fresh decompressor
 									ConstSubBuffer finalBuffer(*packed,i,decompressor->getPackedSize());
-									auto decompressor2{Decompressor::create(finalBuffer,true)};
-									if (decompressor2 && decompressor2->isValid() && decompressor2->verifyPacked() && decompressor2->decompress(*raw) && decompressor2->verifyRaw(*raw))
-									{
-										std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";
-										printf("Found compressed stream at %zu, size %zu in file %s with type '%s', storing it into %s\n",i,decompressor2->getPackedSize(),name.c_str(),decompressor2->getName().c_str(),outputName.c_str());
-										writeFile(outputName,finalBuffer);
-										i+=finalBuffer.size();
-										continue;
-									}
+									auto decompressor2{Decompressor::create(finalBuffer,true,true)};
+									decompressor2->decompress(*raw,true);
+									std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";
+									printf("Found compressed stream at %zu, size %zu in file %s with type '%s', storing it into %s\n",i,decompressor2->getPackedSize(),name.c_str(),decompressor2->getName().c_str(),outputName.c_str());
+									writeFile(outputName,finalBuffer);
+									i+=finalBuffer.size();
+									continue;
 								}
+							} catch (const Decompressor::Error&) {
+								// full steam ahead (with next offset)
 							}
 							i++;
 						}

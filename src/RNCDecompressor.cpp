@@ -5,7 +5,7 @@
 #include "RNCDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-static bool RNCCRC(const Buffer &buffer,size_t offset,size_t len,uint16_t &retValue)
+static uint16_t RNCCRC(const Buffer &buffer,size_t offset,size_t len)
 {
 	// bit reversed 16bit CRC with 0x8005 polynomial
 	static const uint16_t CRCTable[256]={
@@ -26,34 +26,34 @@ static bool RNCCRC(const Buffer &buffer,size_t offset,size_t len,uint16_t &retVa
 		0x8801,0x48c0,0x4980,0x8941,0x4b00,0x8bc1,0x8a81,0x4a40,0x4e00,0x8ec1,0x8f81,0x4f40,0x8d01,0x4dc0,0x4c80,0x8c41,
 		0x4400,0x84c1,0x8581,0x4540,0x8701,0x47c0,0x4680,0x8641,0x8201,0x42c0,0x4380,0x8341,0x4100,0x81c1,0x8081,0x4040};
 
-	if (!len || offset+len>buffer.size()) return false;
+	if (!len || offset+len>buffer.size()) throw Buffer::OutOfBoundsError();
 	const uint8_t *ptr=buffer.data()+offset;
-	retValue=0;
+	uint16_t ret=0;
 	for (size_t i=0;i<len;i++)
-		retValue=(retValue>>8)^CRCTable[(retValue&0xff)^ptr[i]];
-	return true;
+		ret=(ret>>8)^CRCTable[(ret&0xff)^ptr[i]];
+	return ret;
 }
 
-bool RNCDecompressor::detectHeader(uint32_t hdr)
+bool RNCDecompressor::detectHeader(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('RNC\001') || hdr==FourCC('RNC\002');
 }
 
-std::unique_ptr<Decompressor> RNCDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+std::unique_ptr<Decompressor> RNCDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
 {
-	return std::make_unique<RNCDecompressor>(packedData);
+	return std::make_unique<RNCDecompressor>(packedData,verify);
 }
 
-RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
+RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 	_packedData(packedData)
 {
-	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return;
-	if (!packedData.readBE(4,_rawSize)) return;
-	if (!packedData.readBE(8,_packedSize)) return;
-	if (!_rawSize || !_packedSize) return;
-	if (_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) return;
+	uint32_t hdr=packedData.readBE32(0);
+	_rawSize=packedData.readBE32(4);
+	_packedSize=packedData.readBE32(8);
+	if (!_rawSize || !_packedSize ||
+		_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) throw InvalidFormatError();
 
+	bool verified=false;
 	if (hdr==FourCC('RNC\001'))
 	{
 		// now detect between old and new version
@@ -61,46 +61,50 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData) :
 		// to tell them apart. It is easier to prove that it is not something by finding
 		// specific invalid bitstream content.
 
-		// if we can't access the old-stream we are nothing (since old stream is smaller the new stream by header 12 vs. 18)
-		uint8_t oldStreamStart,newStreamStart;
-		uint16_t hdrCrc,crc;
-		if (!packedData.read(_packedSize+11,oldStreamStart)) return;
-
 		// well, this is silly though but lets assume someone has made old format RNC1 with total size less than 19
-		if (!packedData.read(18,newStreamStart))
+		if (packedData.size()<19)
+		{
 			_ver=Version::RNC1Old;
+		} else {
+			uint8_t newStreamStart=packedData.read8(18);
+			uint8_t oldStreamStart=packedData.read8(_packedSize+11);
 
-		// Check that stream starts with a literal(s)
-		else if (!(oldStreamStart&0x80))
-			_ver=Version::RNC1New;
+			// Check that stream starts with a literal(s)
+			if (!(oldStreamStart&0x80))
+				_ver=Version::RNC1New;
 
-		// New stream have two bits in start as a filler on new stream. Those are always 0
-		// (although this is not strictly mandated)
-		// +
-		// Even though it is possible to make new RNC1 stream which starts with zero literal table size,
-		// it is extremely unlikely
-		else if ((newStreamStart&3) || !(newStreamStart&0x7c))
-			_ver=Version::RNC1Old;
+			// New stream have two bits in start as a filler on new stream. Those are always 0
+			// (although this is not strictly mandated)
+			// +
+			// Even though it is possible to make new RNC1 stream which starts with zero literal table size,
+			// it is extremely unlikely
+			else if ((newStreamStart&3) || !(newStreamStart&0x7c))
+				_ver=Version::RNC1Old;
 
-		// now the last resort: check CRC.
-		else if (!packedData.readBE(14,hdrCrc)) return;
-		else if (RNCCRC(_packedData,18,_packedSize,crc) && crc==hdrCrc)
-			_ver=Version::RNC1New;
-		else
-			_ver=Version::RNC1Old;
+			// now the last resort: check CRC.
+			else if (_packedData.size()>=_packedSize+18 && RNCCRC(_packedData,18,_packedSize)==packedData.readBE16(14))
+			{
+				_ver=Version::RNC1New;
+				verified=true;
+			} else _ver=Version::RNC1Old;
+		}
 	} else if (hdr==FourCC('RNC\002')) {
 		_ver=Version::RNC2;
-	} else return;
+	} else throw InvalidFormatError();
+
+	size_t hdrSize=(_ver==Version::RNC1Old)?12:18;
+	if (_packedSize+hdrSize>packedData.size()) throw InvalidFormatError();
 
 	if (_ver!=Version::RNC1Old)
 	{
-		if (!packedData.readBE(12,_rawCRC)) return;
-		if (!packedData.readBE(14,_packedCRC)) return;
-		if (!packedData.read(17,_chunks)) return;
+		_rawCRC=packedData.readBE16(12);
+		_chunks=packedData.read8(17);
+		if (verify && !verified)
+		{
+			if (RNCCRC(_packedData,18,_packedSize)!=packedData.readBE16(14))
+				throw VerificationError();
+		}
 	}
-
-	size_t hdrSize=(_ver==Version::RNC1Old)?12:18;
-	if (_packedSize+hdrSize<=packedData.size()) _isValid=true;
 }
 
 RNCDecompressor::~RNCDecompressor()
@@ -108,34 +112,8 @@ RNCDecompressor::~RNCDecompressor()
 	// nothing needed
 }
 
-bool RNCDecompressor::isValid() const
+const std::string &RNCDecompressor::getName() const noexcept
 {
-	return _isValid;
-}
-
-bool RNCDecompressor::verifyPacked() const
-{
-	if (!_isValid) return false;
-	if (_ver!=Version::RNC1Old)
-	{
-		uint16_t crc;
-		return RNCCRC(_packedData,18,_packedSize,crc) && crc==_packedCRC;
-	} else return true;
-}
-
-bool RNCDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	if (!_isValid || rawData.size()<_rawSize) return false;
-	if (_ver!=Version::RNC1Old)
-	{
-		uint16_t crc;
-		return RNCCRC(rawData,0,_rawSize,crc) && crc==_rawCRC;
-	} else return true;
-}
-
-const std::string &RNCDecompressor::getName() const
-{
-	if (!_isValid) return Decompressor::getName();
 	static std::string names[3]={
 		"RNC1: Rob Northen RNC1 Compressor (old)",
 		"RNC1: Rob Northen RNC1 Compressor ",
@@ -143,48 +121,45 @@ const std::string &RNCDecompressor::getName() const
 	return names[static_cast<uint32_t>(_ver)];
 }
 
-size_t RNCDecompressor::getPackedSize() const
+size_t RNCDecompressor::getPackedSize() const noexcept
 {
-	if (!_isValid) return 0;
 	if (_ver==Version::RNC1Old) return _packedSize+12;
 		else return _packedSize+18;
 }
 
-size_t RNCDecompressor::getRawSize() const
+size_t RNCDecompressor::getRawSize() const noexcept
 {
-	if (!_isValid) return 0;
 	return _rawSize;
 }
 
-bool RNCDecompressor::decompress(Buffer &rawData)
+void RNCDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	if (!_isValid || rawData.size()<_rawSize) return false;
+	if (rawData.size()<_rawSize) throw DecompressionError();
 
 	switch (_ver)
 	{
 		case Version::RNC1Old:
-		return RNC1DecompressOld(rawData);
+		return RNC1DecompressOld(rawData,verify);
 
 		case Version::RNC1New:
-		return RNC1DecompressNew(rawData);
+		return RNC1DecompressNew(rawData,verify);
 
 		case Version::RNC2:
-		return RNC2Decompress(rawData);
+		return RNC2Decompress(rawData,verify);
 
 		default:
-		return false;
+		throw DecompressionError();
 	}
 }
 
-bool RNCDecompressor::RNC1DecompressOld(Buffer &rawData)
+void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 {
 	// Stream reading
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=_packedSize+12;
 
 	// make sure the anchor-bit is not taken in as a data bit
-	if (bufOffset==12) return false;
+	if (bufOffset==12) throw DecompressionError();
 	uint8_t bufBitsContent=bufPtr[--bufOffset];
 	uint8_t bufBitsLength=7;
 	// the anchor-bit does not seem always to be at the correct place
@@ -194,14 +169,9 @@ bool RNCDecompressor::RNC1DecompressOld(Buffer &rawData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset<=12)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset<=12) throw DecompressionError();
 			bufBitsContent=bufPtr[--bufOffset];
 			bufBitsLength=8;
 		}
@@ -220,11 +190,7 @@ bool RNCDecompressor::RNC1DecompressOld(Buffer &rawData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset<=12)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset<=12) throw DecompressionError();
 		return bufPtr[--bufOffset];
 	};
 
@@ -254,7 +220,7 @@ bool RNCDecompressor::RNC1DecompressOld(Buffer &rawData)
 	uint8_t *dest=rawData.data();
 	size_t destOffset=_rawSize;
 
-	while (streamStatus)
+	for (;;)
 	{
 		uint32_t litLength=litDecoder.decode(readBit);
 
@@ -273,13 +239,8 @@ bool RNCDecompressor::RNC1DecompressOld(Buffer &rawData)
 			}
 		}
 		
-		if (!streamStatus || destOffset<litLength)
-		{
-			streamStatus=false;
-			break;
-		} else {
-			for (uint32_t i=0;i<litLength;i++) dest[--destOffset]=readByte();
-		}
+		if (destOffset<litLength) throw DecompressionError();
+		for (uint32_t i=0;i<litLength;i++) dest[--destOffset]=readByte();
 	
 		// the only way to successfully end the loop!
 		if (!destOffset) break;
@@ -309,21 +270,15 @@ bool RNCDecompressor::RNC1DecompressOld(Buffer &rawData)
 		}
 
 		uint32_t distOffset=(distance)?distance+count-1:1;
-		if (destOffset<count || destOffset+distOffset>_rawSize)
-		{
-			streamStatus=false;
-		} else {
-			distOffset+=destOffset;
-			for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distOffset];
-		}
+		if (destOffset<count || destOffset+distOffset>_rawSize) throw DecompressionError();
+		distOffset+=destOffset;
+		for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distOffset];
 	}
-	return streamStatus && !destOffset;
 }
 
-bool RNCDecompressor::RNC1DecompressNew(Buffer &rawData)
+void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 {
 	// Stream reading
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data()+18;
 	size_t bufOffset=0;
 	uint32_t bufBitsContent=0;
@@ -333,15 +288,11 @@ bool RNCDecompressor::RNC1DecompressNew(Buffer &rawData)
 	{
 		uint32_t ret=0;
 		uint8_t retBits=0;
-		while (streamStatus && retBits!=bits)
+		while (retBits!=bits)
 		{
 			if (!bufBitsLength)
 			{
-				if (bufOffset>=_packedSize)
-				{
-					streamStatus=false;
-					return 0;
-				}
+				if (bufOffset>=_packedSize) throw DecompressionError();
 				bufBitsContent=bufPtr[bufOffset++];
 				bufBitsLength=8;
 				if (bufOffset<_packedSize)
@@ -361,16 +312,12 @@ bool RNCDecompressor::RNC1DecompressNew(Buffer &rawData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset>=_packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=_packedSize) throw DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
 
-	typedef HuffmanDecoder<int32_t,-1,0> RNC1HuffmanDecoder;
+	typedef HuffmanDecoder<uint32_t,0x100U,0> RNC1HuffmanDecoder;
 
 	// helpers
 	auto readHuffmanTable=[&](RNC1HuffmanDecoder &dec)
@@ -380,7 +327,7 @@ bool RNCDecompressor::RNC1DecompressNew(Buffer &rawData)
 		if (!length) return;
 		uint32_t maxDepth=0;
 		uint32_t lengthTable[length];
-		for (uint32_t i=0;i<length&&streamStatus;i++)
+		for (uint32_t i=0;i<length;i++)
 		{
 			lengthTable[i]=readBits(4);
 			if (lengthTable[i]>maxDepth) maxDepth=lengthTable[i];
@@ -393,18 +340,17 @@ bool RNCDecompressor::RNC1DecompressNew(Buffer &rawData)
 			{
 				if (depth==lengthTable[i])
 				{
-					dec.insert(HuffmanCode<int32_t>{depth,code>>(maxDepth-depth),int32_t(i)});
+					dec.insert(HuffmanCode<uint32_t>{depth,code>>(maxDepth-depth),i});
 					code+=1<<(maxDepth-depth);
 				}
 			}
 		}
-		if (streamStatus) streamStatus=dec.isValid();
 	};
 
 	auto huffmanDecode=[&](const RNC1HuffmanDecoder &dec)->int32_t
 	{
 		// this is kind of non-specced
-		int32_t ret=dec.decode([&]()->uint32_t{return readBits(1);});
+		uint32_t ret=dec.decode([&]()->uint32_t{return readBits(1);});
 		if (ret>=2)
 			ret=(1<<(ret-1))|readBits(ret-1);
 		return ret;
@@ -413,20 +359,15 @@ bool RNCDecompressor::RNC1DecompressNew(Buffer &rawData)
 	uint8_t *dest=rawData.data();
 	size_t destOffset=0;
 
-	auto processLiterals=[&](const RNC1HuffmanDecoder &dec)->void
+	auto processLiterals=[&](const RNC1HuffmanDecoder &dec)
 	{
-		if (!streamStatus) return;
-		int32_t litLength=huffmanDecode(dec);
-		if (litLength<0 || destOffset+litLength>_rawSize)
-		{
-			streamStatus=false;
-		} else {
-			for (int32_t i=0;i<litLength;i++) dest[destOffset++]=readByte();
-		}
+		uint32_t litLength=huffmanDecode(dec);
+		if (destOffset+litLength>_rawSize) throw DecompressionError();
+		for (uint32_t i=0;i<litLength;i++) dest[destOffset++]=readByte();
 	};
 
 	readBits(2);
-	for (uint8_t chunks=0;chunks<_chunks&&streamStatus;chunks++)
+	for (uint8_t chunks=0;chunks<_chunks;chunks++)
 	{
 		RNC1HuffmanDecoder litDecoder,distanceDecoder,lengthDecoder;
 		readHuffmanTable(litDecoder);
@@ -434,31 +375,27 @@ bool RNCDecompressor::RNC1DecompressNew(Buffer &rawData)
 		readHuffmanTable(lengthDecoder);
 		uint32_t count=readBits(16);
 
-		for (uint32_t sub=1;sub<count&&streamStatus;sub++)
+		for (uint32_t sub=1;sub<count;sub++)
 		{
 			processLiterals(litDecoder);
-			int32_t distance=huffmanDecode(distanceDecoder);
-			int32_t count=huffmanDecode(lengthDecoder);
-			if (!streamStatus || distance==-1 || count==-1 || size_t(distance+1)>destOffset || destOffset+count+2>_rawSize)
-			{
-				streamStatus=false;
-			} else {
-				distance++;
-				count+=2;
-				for (int32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[destOffset-distance];
-			}
+			uint32_t distance=huffmanDecode(distanceDecoder);
+			uint32_t count=huffmanDecode(lengthDecoder);
+			if (size_t(distance+1)>destOffset || destOffset+count+2>_rawSize) throw DecompressionError();
+			distance++;
+			count+=2;
+			for (uint32_t i=0;i<count;i++,destOffset++)
+				dest[destOffset]=dest[destOffset-distance];
 		}
 		processLiterals(litDecoder);
 	}
 
-	return streamStatus && _rawSize==destOffset;
+	if (_rawSize!=destOffset) throw DecompressionError();
+	if (verify && RNCCRC(rawData,0,_rawSize)!=_rawCRC) throw VerificationError();
 }
 
-bool RNCDecompressor::RNC2Decompress(Buffer &rawData)
+void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 {
 	// Stream reading
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data()+18;
 	size_t bufOffset=0;
 	uint8_t bufBitsContent=0;
@@ -466,14 +403,9 @@ bool RNCDecompressor::RNC2Decompress(Buffer &rawData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset>=_packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=_packedSize) throw DecompressionError();
 			bufBitsContent=bufPtr[bufOffset++];
 			bufBitsLength=8;
 		}
@@ -485,11 +417,7 @@ bool RNCDecompressor::RNC2Decompress(Buffer &rawData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset>=_packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=_packedSize) throw DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
@@ -553,37 +481,33 @@ bool RNCDecompressor::RNC2Decompress(Buffer &rawData)
 	auto readDistance=[&]()->uint32_t
 	{
 		int8_t distMult=distanceDecoder.decode(readBit);
-		if (distMult<0) streamStatus=false;
+		if (distMult<0) throw DecompressionError();
 		uint8_t distByte=readByte();
 		return (uint32_t(distByte)|(uint32_t(distMult)<<8))+1;
 	};
 	
 	auto moveBytes=[&](uint32_t distance,uint32_t count)->void
 	{
-		if (!count || distance>destOffset || destOffset+count>_rawSize)
-		{
-			streamStatus=false;
-		} else {
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
-		}
+		if (!count || distance>destOffset || destOffset+count>_rawSize) throw DecompressionError();
+		for (uint32_t i=0;i<count;i++,destOffset++)
+			dest[destOffset]=dest[destOffset-distance];
 	};
 
 	readBit();
 	readBit();
 	uint8_t foundChunks=0;
 	bool done=false;
-	while (streamStatus && !done && foundChunks<_chunks)
+	while (!done && foundChunks<_chunks)
 	{
 		Cmd cmd=cmdDecoder.decode(readBit);
 		switch (cmd) {
 			case Cmd::INV:
-			streamStatus=false;
+			throw DecompressionError();
 			break;
 
 			case Cmd::LIT:
-			if (destOffset<_rawSize) dest[destOffset++]=readByte();
-				else streamStatus=false;
+			if (destOffset>=_rawSize) throw DecompressionError();
+			dest[destOffset++]=readByte();
 			break;
 
 			case Cmd::MOV:
@@ -596,10 +520,9 @@ bool RNCDecompressor::RNC2Decompress(Buffer &rawData)
 					for (uint32_t i=0;i<4;i++)
 						rep=(rep<<1)|readBit();
 					rep=(rep+3)*4;
-					if (destOffset+rep>_rawSize) streamStatus=false;
-					if (streamStatus)
-						for (uint32_t i=0;i<rep;i++,destOffset++)
-							dest[destOffset]=readByte();
+					if (destOffset+rep>_rawSize) throw DecompressionError();
+					for (uint32_t i=0;i<rep;i++,destOffset++)
+						dest[destOffset]=readByte();
 				}
 			}
 			break;
@@ -627,7 +550,8 @@ bool RNCDecompressor::RNC2Decompress(Buffer &rawData)
 		}
 	}
 
-	return streamStatus && _rawSize==destOffset && _chunks==foundChunks;
+	if (_rawSize!=destOffset || _chunks!=foundChunks) throw DecompressionError();
+	if (verify && RNCCRC(rawData,0,_rawSize)!=_rawCRC) throw VerificationError();
 }
 
 Decompressor::Registry<RNCDecompressor> RNCDecompressor::_registration;

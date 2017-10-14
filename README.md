@@ -14,15 +14,35 @@ This code should compile cleanly on any C++14 capable compiler, and it is tested
 Currently there are no plans to add password protected file support nor any kind of decryption capability. (apart from some very basic password bypassing in some formats that can be done easily)
 
 Decompression algorithms provided:
-* CrunchMania by Thomas Schwarz: supports both new and old stream formats. Also supports decoding the delta encoding i.e. "sampled mode"
-* File Imploder (and most of its clones)
+* CrunchMania by Thomas Schwarz: supports both new (version 2) and old stream formats:
+  * CrM!: Crunch-Mania standard-mode
+  * Crm!: Crunch-Mania standard-mode, sampled
+  * CrM2: Crunch-Mania LZH-mode
+  * Crm2: Crunch-Mania LZH-mode, sampled
+* File Imploder (and most of its clones), specifically with following headers:
+  * IMP!
+  * ATN!
+  * BDPI
+  * CHFI
+  * Dupa (verification missing)
+  * EDAM (verification missing)
+  * FLT! (verification missing)
+  * M.H. (verification missing)
+  * PARA (verification missing)
+  * RDC9 (verification missing)
 * PowerPacker
-* Rob Northen compressors. supports all 3 modes.
+  * PP 1.1 (verification missing)
+  * PP 2.0
+* Rob Northen compressors. supports all 3 known formats:
+  * RNC1: Both old and formats utilizing the same header. heuristics for detecting the current one
+  * RNC2: RNC version 2 stream
 * Turbo Packer by Wolfgang Mayerle.
-* Standard gzip (only ancient in context of XPK though)
+* Standard gzip (only ancient in context of XPK)
+* Standard bzip2, both normal and randomized (only ancient in context of XPK)
 * Supports opening XPK-encapsulated files. XPK decompressors supported are:
   * ACCA: Andre's Code Compression Algorithm
   * BLZW: LZW-compressor
+  * BZP2: Bzip2 backend for XPK
   * CBR0: RLE compressor
   * CRM2: CrunchMania backend for XPK
   * CRMS: CrunchMania backend for XPK, sampled
@@ -73,7 +93,7 @@ Special thanks go to Cholok for providing me references to many of the XPK-compr
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
 
 Currently planned future additions:
-* Completing XPK: ARTM, BZP2, DCMB, DMCU (maybe), LZCB, PPMQ, SASC, SHSC
+* Completing XPK: ARTM, DCMB, DMCU (maybe), LZCB, PPMQ, SASC, SHSC
 * Support for MMCMP, StoneCracker
 * Disk images support for DMS, Warp and DiskSqueeze
 

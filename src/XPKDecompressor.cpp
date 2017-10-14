@@ -19,13 +19,7 @@ XPKDecompressor::~XPKDecompressor()
 	// nothing needed
 }
 
-const std::string &XPKDecompressor::getSubName() const
-{
-	static std::string name="<invalid>";
-	return name;
-}
-
-void XPKDecompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&))
+void XPKDecompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool))
 {
 	XPKMaster::registerDecompressor(detect,create);
 }

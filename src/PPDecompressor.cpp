@@ -13,61 +13,57 @@ PPDecompressor::PPState::~PPState()
 	// nothing needed
 }
 
-bool PPDecompressor::detectHeader(uint32_t hdr)
+bool PPDecompressor::detectHeader(uint32_t hdr) noexcept
 {
 	return (hdr==FourCC('PP11') || hdr==FourCC('PP20'));
 }
 
-bool PPDecompressor::detectHeaderXPK(uint32_t hdr)
+bool PPDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('PWPK');
 }
 
-std::unique_ptr<Decompressor> PPDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+std::unique_ptr<Decompressor> PPDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
 {
-	return std::make_unique<PPDecompressor>(packedData,exactSizeKnown);
+	return std::make_unique<PPDecompressor>(packedData,exactSizeKnown,verify);
 }
 
-std::unique_ptr<XPKDecompressor> PPDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> PPDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<PPDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<PPDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-PPDecompressor::PPDecompressor(const Buffer &packedData,bool exactSizeKnown) :
+PPDecompressor::PPDecompressor(const Buffer &packedData,bool exactSizeKnown,bool verify) :
 	_packedData(packedData)
 {
-	if (!exactSizeKnown) return;		// no scanning supports
-	if (packedData.size()<0x10) return;
+	if (!exactSizeKnown || packedData.size()<0x10)
+		throw InvalidFormatError();		// no scanning support
 	_dataStart=_packedData.size()-4;
 
-	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return;
-	if (!detectHeader(hdr)) return;
-	uint32_t mode;
-	if (!packedData.readBE(4,mode)) return;
-	if (mode!=0x9090909 && mode!=0x90a0a0a && mode!=0x90a0b0b && mode!=0x90a0c0c && mode!=0x90a0c0d) return;
+	uint32_t hdr=packedData.readBE32(0);
+	if (!detectHeader(hdr)) throw InvalidFormatError(); 
+	uint32_t mode=packedData.readBE32(4);
+	if (mode!=0x9090909 && mode!=0x90a0a0a && mode!=0x90a0b0b && mode!=0x90a0c0c && mode!=0x90a0c0d) throw InvalidFormatError();
 	for (uint32_t i=0;i<4;i++)
 	{
 		_modeTable[i]=mode>>24;
 		mode<<=8;
 	}
 
-	uint32_t tmp;
-	if (!packedData.readBE(_dataStart,tmp)) return;
+	uint32_t tmp=packedData.readBE32(_dataStart);
 
 	_rawSize=tmp>>8;
 	_startShift=tmp&0xff;
-	if (!_rawSize || _startShift>=0x20) return;
-	if (_rawSize>getMaxRawSize()) return;
-	_isValid=true;
+	if (!_rawSize || _startShift>=0x20 ||
+		_rawSize>getMaxRawSize()) throw InvalidFormatError();
 }
 
-PPDecompressor::PPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+PPDecompressor::PPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	if (packedData.size()<0x10) return;
+	if (!detectHeaderXPK(hdr) || packedData.size()<0x10)
+		throw InvalidFormatError(); 
 	_dataStart=_packedData.size()-4;
 
 	uint32_t mode;
@@ -75,8 +71,8 @@ PPDecompressor::PPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer
 	{
 		mode=static_cast<PPState*>(state.get())->_cachedMode;
 	} else {
-		if (!packedData.readBE(_dataStart,mode)) return;
-		if (mode>4) return;
+		mode=packedData.readBE32(_dataStart);
+		if (mode>4) throw InvalidFormatError();
 		state.reset(new PPState(mode));
 		_dataStart-=4;
 	}
@@ -89,16 +85,14 @@ PPDecompressor::PPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer
 		mode<<=8;
 	}
 
-	uint32_t tmp;
-	if (!packedData.readBE(_dataStart,tmp)) return;
+	uint32_t tmp=packedData.readBE32(_dataStart);
 
 	_rawSize=tmp>>8;
 	_startShift=tmp&0xff;
-	if (!_rawSize || _startShift>=0x20) return;
-	if (_rawSize>getMaxRawSize()) return;
+	if (!_rawSize || _startShift>=0x20 ||
+		_rawSize>getMaxRawSize()) throw InvalidFormatError(); 
 
 	_isXPK=true;
-	_isValid=true;
 }
 
 PPDecompressor::~PPDecompressor()
@@ -106,54 +100,33 @@ PPDecompressor::~PPDecompressor()
 	// nothing needed
 }
 
-bool PPDecompressor::isValid() const
+const std::string &PPDecompressor::getName() const noexcept
 {
-	return _isValid;
-}
-
-bool PPDecompressor::verifyPacked() const
-{
-	// nothing ...
-	return _isValid;
-}
-
-bool PPDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// no CRC
-	return _isValid;
-}
-
-const std::string &PPDecompressor::getName() const
-{
-	if (!_isValid) return Decompressor::getName();
 	static std::string name="PP: PowerPacker";
 	return name;
 }
 
-const std::string &PPDecompressor::getSubName() const
+const std::string &PPDecompressor::getSubName() const noexcept
 {
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-PWPK: PowerPacker";
 	return name;
 }
 
-size_t PPDecompressor::getPackedSize() const
+size_t PPDecompressor::getPackedSize() const noexcept
 {
 	return 0;
 }
 
-size_t PPDecompressor::getRawSize() const
+size_t PPDecompressor::getRawSize() const noexcept
 {
-	if (!_isValid) return 0;
 	return _rawSize;
 }
 
-bool PPDecompressor::decompress(Buffer &rawData)
+void PPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	if (!_isValid || rawData.size()<_rawSize) return false;
+	if (rawData.size()<_rawSize) throw DecompressionError();
 
 	// Stream reading
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=_dataStart;
 
@@ -161,27 +134,18 @@ bool PPDecompressor::decompress(Buffer &rawData)
 	uint8_t bufBitsLength=0;
 	size_t minBufOffset=_isXPK?0:8;
 
-	auto fillBuffer=[&]()->bool {
-		if (bufOffset+3<=minBufOffset) return false;
+	auto fillBuffer=[&]() {
+		if (bufOffset+3<=minBufOffset) throw DecompressionError();
 		for (uint32_t i=0;i<4;i++) bufBitsContent=(uint32_t(bufPtr[--bufOffset])<<24)|(bufBitsContent>>8);
 		bufBitsLength=32;
-		return true;
 	};
-	if (!fillBuffer()) return false;
+	fillBuffer();
 	bufBitsContent>>=_startShift;
 	bufBitsLength-=_startShift;
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
-		if (!bufBitsLength)
-		{
-			if (!fillBuffer())
-			{
-				streamStatus=false;
-				return 0;
-			}
-		}
+		if (!bufBitsLength) fillBuffer();
 		uint8_t ret=bufBitsContent&1;
 		bufBitsContent>>=1;
 		bufBitsLength--;
@@ -198,24 +162,20 @@ bool PPDecompressor::decompress(Buffer &rawData)
 	uint8_t *dest=rawData.data();
 	size_t destOffset=_rawSize;
 
-	while (streamStatus)
+	for (;;)
 	{
 		if (!readBit())
 		{
 			uint32_t count=1;
 			// This does not make much sense I know. But it is what it is...
-			while (streamStatus)
+			for (;;)
 			{
 				uint32_t tmp=readBits(2);
 				count+=tmp;
 				if (tmp<3) break;
 			}
-			if (!streamStatus || destOffset<count)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++) dest[--destOffset]=readBits(8);
-			}
+			if (destOffset<count) throw DecompressionError();
+			for (uint32_t i=0;i<count;i++) dest[--destOffset]=readBits(8);
 		}
 		if (!destOffset) break;
 		uint32_t modeIndex=readBits(2);
@@ -225,7 +185,7 @@ bool PPDecompressor::decompress(Buffer &rawData)
 			distance=readBits(readBit()?_modeTable[modeIndex]:7)+1;
 			// ditto
 			count=5;
-			while (streamStatus)
+			for (;;)
 			{
 				uint32_t tmp=readBits(3);
 				count+=tmp;
@@ -235,22 +195,16 @@ bool PPDecompressor::decompress(Buffer &rawData)
 			count=modeIndex+2;
 			distance=readBits(_modeTable[modeIndex])+1;
 		}
-		if (destOffset<count || destOffset+distance>_rawSize)
-		{
-			streamStatus=false;
-		} else {
-			distance+=destOffset;
-			for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
-		}
+		if (destOffset<count || destOffset+distance>_rawSize) throw DecompressionError();
+		distance+=destOffset;
+		for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
 	}
-
-	return streamStatus && !destOffset;
 }
 
-bool PPDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void PPDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (_rawSize!=rawData.size()) return false;
-	return decompress(rawData);
+	if (_rawSize!=rawData.size()) throw DecompressionError();
+	decompressImpl(rawData,verify);
 }
 
 Decompressor::Registry<PPDecompressor> PPDecompressor::_registration;

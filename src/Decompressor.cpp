@@ -2,33 +2,56 @@
 
 #include "Decompressor.hpp"
 
-std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool)>> *Decompressor::_decompressors=nullptr;
+std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> *Decompressor::_decompressors=nullptr;
 
 Decompressor::~Decompressor()
 {
 	// nothing needed
 }
 
-const std::string &Decompressor::getName() const
+std::unique_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
 {
-	static std::string name="<invalid>";
-	return name;
-}
-
-std::unique_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool exactSizeKnown)
-{
-	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return nullptr;
-	for (auto &it : *_decompressors)
+	try
 	{
-		if (it.first(hdr)) return it.second(packedData,exactSizeKnown);
+		uint32_t hdr=packedData.readBE32(0);
+		for (auto &it : *_decompressors)
+		{
+			if (it.first(hdr)) return it.second(packedData,exactSizeKnown,verify);
+		}
+		throw InvalidFormatError();
+	} catch (const Buffer::Error&) {
+		throw InvalidFormatError();
 	}
-	return nullptr;
 }
 
-void Decompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool))
+bool Decompressor::detect(const Buffer &packedData) noexcept
 {
-	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool)>> _list;
+	try
+	{
+		uint32_t hdr=packedData.readBE32(0);
+		for (auto &it : *_decompressors)
+			if (it.first(hdr)) return true;
+		return false;
+	} catch (const Buffer::Error&) {
+		return false;
+	}
+}
+
+void Decompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool,bool))
+{
+	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> _list;
 	if (!_decompressors) _decompressors=&_list;
 	_decompressors->push_back(std::make_pair(detect,create));
+}
+
+void Decompressor::decompress(Buffer &rawData,bool verify)
+{
+	// Simplifying the implementation of sub-decompressors. Just let the buffer-exception pass here,
+	// and thet will get translated into Decompressor exceptions
+	try
+	{
+		decompressImpl(rawData,verify);
+	} catch (const Buffer::Error&) {
+		throw DecompressionError();
+	}
 }

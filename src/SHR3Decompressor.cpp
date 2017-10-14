@@ -2,7 +2,7 @@
 
 #include "SHR3Decompressor.hpp"
 
-SHR3Decompressor::SHR3State::SHR3State()
+SHR3Decompressor::SHR3State::SHR3State() noexcept
 {
 	for (uint32_t i=0;i<999;i++) ar[i]=0;
 }
@@ -12,35 +12,30 @@ SHR3Decompressor::SHR3State::~SHR3State()
 	// nothing needed
 }
 
-bool SHR3Decompressor::detectHeaderXPK(uint32_t hdr)
+bool SHR3Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('SHR3');
 }
 
-std::unique_ptr<XPKDecompressor> SHR3Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> SHR3Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<SHR3Decompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<SHR3Decompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-SHR3Decompressor::SHR3Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+SHR3Decompressor::SHR3Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData),
 	_state(state)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	if (_packedData.size()<6) return;
-	uint8_t tmp;
-	if (!_packedData.read(0,tmp)) return;
-	if (!tmp || tmp>2) return;
-	_ver=tmp;
+	if (!detectHeaderXPK(hdr) || _packedData.size()<6) throw Decompressor::InvalidFormatError();
+	_ver=_packedData.read8(0);
+	if (!_ver || _ver>2) throw Decompressor::InvalidFormatError();
 
 	if (!_state)
 	{
-		if (_ver==2) return;
+		if (_ver==2) throw Decompressor::InvalidFormatError();
 		_state.reset(new SHR3State());
 	}
-
-	_isValid=true;
 }
 
 SHR3Decompressor::~SHR3Decompressor()
@@ -48,33 +43,15 @@ SHR3Decompressor::~SHR3Decompressor()
 	// nothing needed
 }
 
-bool SHR3Decompressor::isValid() const
+const std::string &SHR3Decompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool SHR3Decompressor::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool SHR3Decompressor::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &SHR3Decompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-SHR3: LZ-compressor with arithmetic encoding";
 	return name;
 }
 
-bool SHR3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
-	bool streamStatus=true;
+	// stream reading
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=1;
 	size_t packedSize=_packedData.size();
@@ -122,11 +99,7 @@ bool SHR3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto scale=[&](uint32_t b,uint32_t mult)->uint32_t
 	{
-		if (!b)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (!b) throw Decompressor::DecompressionError();
 		uint32_t tmp=(0x10000U/b);
 		uint32_t tmp2=((0x10000U%b)<<16)/b;
 		return ((mult&0xffffU)*tmp>>16)+((mult>>16)*tmp2>>16)+(mult>>16)*tmp;
@@ -192,11 +165,7 @@ bool SHR3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	{
 		while (shift<0x100'0000)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			stream=(stream<<8)|uint32_t(bufPtr[bufOffset++]);
 			shift<<=8;
 		}
@@ -204,11 +173,7 @@ bool SHR3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto getSymbol=[&]()->uint32_t
 	{
-		if (!(shift>>16))
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (!(shift>>16)) throw Decompressor::DecompressionError();
 		uint32_t vvalue=(stream/(shift>>16))&0xffff;
 		uint32_t threshold=(ar[1]*vvalue)>>16;
 		uint32_t arIndex=1;
@@ -282,11 +247,11 @@ bool SHR3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		shift=state->shift;
 		for (uint32_t i=0;i<999;i++) ar[i]=state->ar[i];
 	}
-	if (bufOffset+4>packedSize) return false;
-	if (!_packedData.readBE(bufOffset,stream)) return false;
+	if (bufOffset+4>packedSize) throw Decompressor::DecompressionError();
+	stream=_packedData.readBE32(bufOffset);
 	bufOffset+=4;
 
-	while (streamStatus && destOffset<rawSize)
+	while (destOffset!=rawSize)
 	{
 		while (vlen>=vnext) upgrade();
 		uint32_t code=getSymbol();
@@ -341,27 +306,17 @@ bool SHR3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 				distance=getCode(16);
 			}
 			vlen+=count;
-			if (!count || !distance || distance>destOffset+prevSize || destOffset+count>rawSize)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=(destOffset>=distance)?dest[destOffset-distance]:prev[prevSize+destOffset-distance];
-			}
+			if (!count || !distance || distance>destOffset+prevSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+			for (uint32_t i=0;i<count;i++,destOffset++)
+				dest[destOffset]=(destOffset>=distance)?dest[destOffset-distance]:prev[prevSize+destOffset-distance];
 		}
 	}
 
-	bool ret=(streamStatus && destOffset==rawSize);
-
-	if (ret)
-	{
-		SHR3State *state=static_cast<SHR3State*>(_state.get());
-		state->vlen=vlen;
-		state->vnext=vnext;
-		state->shift=shift;
-		for (uint32_t i=0;i<999;i++) state->ar[i]=ar[i];
-	}
-	return ret;
+	SHR3State *state=static_cast<SHR3State*>(_state.get());
+	state->vlen=vlen;
+	state->vnext=vnext;
+	state->shift=shift;
+	for (uint32_t i=0;i<999;i++) state->ar[i]=ar[i];
 }
 
 XPKDecompressor::Registry<SHR3Decompressor> SHR3Decompressor::_XPKregistration;

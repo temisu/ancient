@@ -3,28 +3,23 @@
 #include "SMPLDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-bool SMPLDecompressor::detectHeaderXPK(uint32_t hdr)
+bool SMPLDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('SMPL');
 }
 
-std::unique_ptr<XPKDecompressor> SMPLDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> SMPLDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<SMPLDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<SMPLDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-SMPLDecompressor::SMPLDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+SMPLDecompressor::SMPLDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	if (packedData.size()<2) return;
+	if (!detectHeaderXPK(hdr) || packedData.size()<2) throw Decompressor::InvalidFormatError();
 
-	uint16_t tmp;
-	if (!packedData.readBE(0,tmp)) return;
-	if (tmp!=1) return;
-
-	_isValid=true;
+	if (packedData.readBE16(0)!=1) throw Decompressor::InvalidFormatError();
 }
 
 SMPLDecompressor::~SMPLDecompressor()
@@ -32,36 +27,15 @@ SMPLDecompressor::~SMPLDecompressor()
 	// nothing needed
 }
 
-bool SMPLDecompressor::isValid() const
+const std::string &SMPLDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool SMPLDecompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool SMPLDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &SMPLDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-SMPL: Huffman compressor with delta encoding";
 	return name;
 }
 
-bool SMPLDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void SMPLDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 
@@ -71,14 +45,9 @@ bool SMPLDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=bufPtr[bufOffset++];
 			bufBitsLength=8;
 		}
@@ -87,7 +56,6 @@ bool SMPLDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		if (!streamStatus) return 0;
 		uint32_t ret=0;
 
 		while (bufBitsLength<count)
@@ -96,11 +64,7 @@ bool SMPLDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			count-=bufBitsLength;
 			bufBitsLength=0;
 
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=bufPtr[bufOffset++];
 			bufBitsLength=8;
 		}
@@ -118,7 +82,7 @@ bool SMPLDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	HuffmanDecoder<uint32_t,0x100,0> decoder;
 
-	for (uint32_t i=0;i<256&&streamStatus;i++)
+	for (uint32_t i=0;i<256;i++)
 	{
 		uint32_t codeLength=readBits(4);
 		if (!codeLength) continue;
@@ -126,22 +90,14 @@ bool SMPLDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		uint32_t code=readBits(codeLength);
 		decoder.insert(HuffmanCode<uint32_t>{codeLength,code,i});
 	}
-	if (streamStatus) streamStatus=decoder.isValid();
 
 	uint8_t accum=0;
-	while (streamStatus && destOffset!=rawSize)
+	while (destOffset!=rawSize)
 	{
 		uint32_t code=decoder.decode(readBit);
-		if (code==0x0100)
-		{
-			streamStatus=false;
-			break;
-		}
 		accum+=code;
 		dest[destOffset++]=accum;
 	}
-
-	return streamStatus && destOffset==rawSize;
 }
 
 XPKDecompressor::Registry<SMPLDecompressor> SMPLDecompressor::_XPKregistration;

@@ -7,23 +7,20 @@ bool BLZWDecompressor::detectHeaderXPK(uint32_t hdr)
 	return hdr==FourCC('BLZW');
 }
 
-std::unique_ptr<XPKDecompressor> BLZWDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> BLZWDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<BLZWDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<BLZWDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-BLZWDecompressor::BLZWDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+BLZWDecompressor::BLZWDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	uint16_t tmp;
-	if (!_packedData.readBE(0,tmp) || tmp<9 || tmp>24) return;
-	_maxBits=tmp;
-	if (!_packedData.readBE(2,tmp)) return;
-	_stackLength=uint32_t(tmp)+5;
-	if ((5U<<_maxBits)+_stackLength>Decompressor::getMaxMemorySize()) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
+	_maxBits=_packedData.readBE16(0);
+	if (_maxBits<9 || _maxBits>24) throw Decompressor::InvalidFormatError();;
+	_stackLength=uint32_t(_packedData.readBE16(2))+5;
+	if ((5U<<_maxBits)+_stackLength>Decompressor::getMaxMemorySize()) throw Decompressor::InvalidFormatError();;
 }
 
 BLZWDecompressor::~BLZWDecompressor()
@@ -31,36 +28,15 @@ BLZWDecompressor::~BLZWDecompressor()
 	// nothing needed
 }
 
-bool BLZWDecompressor::isValid() const
+const std::string &BLZWDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool BLZWDecompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool BLZWDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &BLZWDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-BLZW: LZW-compressor";
 	return name;
 }
 
-bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void BLZWDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=4;
@@ -71,11 +47,7 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	{
 		while (bufBitsLength<bits)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=(bufBitsContent<<8)|bufPtr[bufOffset++];
 			bufBitsLength+=8;
 		}
@@ -98,11 +70,7 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto suffixLookup=[&](uint32_t code)->uint32_t
 	{
-		if (code>=freeIndex)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (code>=freeIndex) throw Decompressor::DecompressionError();
 		return (code<259)?code:suffix[code-259];
 	};
 
@@ -110,24 +78,16 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	{
 		uint32_t stackPos=0;
 		newCode=suffixLookup(code);
-		while (code>=259 && streamStatus)
+		while (code>=259)
 		{
-			if (stackPos+1>=_stackLength)
-			{
-				streamStatus=false;
-				return;
-			}
+			if (stackPos+1>=_stackLength) throw Decompressor::DecompressionError();
 			stack[stackPos++]=newCode;
 			code=prefix[code-259];
 			newCode=suffixLookup(code);
 		}
 		stack[stackPos++]=newCode;
-		if (!streamStatus || destOffset+stackPos>rawSize)
-		{
-			streamStatus=false;
-		} else {
-			while (stackPos) dest[destOffset++]=stack[--stackPos];
-		}
+		if (destOffset+stackPos>rawSize) throw Decompressor::DecompressionError();
+		while (stackPos) dest[destOffset++]=stack[--stackPos];
 	};
 
 	auto init=[&]()
@@ -139,7 +99,7 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	};
 
 	init();
-	while (streamStatus && destOffset!=rawSize)
+	while (destOffset!=rawSize)
 	{
 		uint32_t code=readBits(codeBits);
 		bool doExit=false;
@@ -162,12 +122,8 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			{
 				uint32_t tmp=newCode;
 				insert(prevCode);
-				if (!streamStatus || destOffset>=rawSize)
-				{
-					streamStatus=false;
-				} else {
-					dest[destOffset++]=tmp;
-				}
+				if (destOffset>=rawSize) throw Decompressor::DecompressionError();
+				dest[destOffset++]=tmp;
 			} else insert(code);
 			if (freeIndex<maxCode)
 			{
@@ -180,7 +136,7 @@ bool BLZWDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		}
 		if (doExit) break;
 	}
-	return streamStatus && destOffset==rawSize;
+	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<BLZWDecompressor> BLZWDecompressor::_XPKregistration;

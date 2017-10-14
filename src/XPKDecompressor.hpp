@@ -11,7 +11,6 @@
 #include <Buffer.hpp>
 #include "Decompressor.hpp"
 
-
 class XPKDecompressor
 {
 public:
@@ -33,16 +32,10 @@ public:
 	XPKDecompressor(uint32_t recursionLevel=0);
 	virtual ~XPKDecompressor();
 
-	// if the data-stream is constructed properly, return true
-	virtual bool isValid() const=0;
-	// check the packedData for errors: CRC or other checksum if available
-	virtual bool verifyPacked() const=0;
-	virtual bool verifyRaw(const Buffer &rawData) const=0;
-
-	virtual const std::string &getSubName() const;
+	virtual const std::string &getSubName() const noexcept=0;
 
 	// Actual decompression
-	virtual bool decompress(Buffer &rawData,const Buffer &previousData)=0;
+	virtual void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)=0;
 
 	template<class T>
 	class Registry
@@ -60,7 +53,7 @@ public:
 	};
 
 private:
-	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&));
+	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool));
 
 protected:
 	uint32_t	_recursionLevel;

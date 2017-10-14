@@ -8,24 +8,19 @@
 class LZXDecompressor : public XPKDecompressor
 {
 public:
-	LZXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	LZXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
 	virtual ~LZXDecompressor();
 
-	virtual bool isValid() const override final;
-	virtual bool verifyPacked() const override final;
-	virtual bool verifyRaw(const Buffer &rawData) const override final;
+	virtual const std::string &getSubName() const noexcept override final;
 
-	virtual const std::string &getSubName() const override final;
+	virtual void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) override final;
 
-	virtual bool decompress(Buffer &rawData,const Buffer &previousData) override final;
-
-	static bool detectHeaderXPK(uint32_t hdr);
-	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state);
+	static bool detectHeaderXPK(uint32_t hdr) noexcept;
+	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
 
 private:
 	const Buffer	&_packedData;
 
-	bool		_isValid=false;
 	bool		_isSampled=false;
 	bool		_isCompressed=false;
 	size_t		_packedSize=0;

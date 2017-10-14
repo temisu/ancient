@@ -6,64 +6,53 @@
 #include "LZXDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 #include "DLTADecode.hpp"
-#include <ArrayBuffer.hpp>
 #include <CRC32.hpp>
 
-bool LZXDecompressor::detectHeaderXPK(uint32_t hdr)
+bool LZXDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('ELZX') || hdr==FourCC('SLZX');
 }
 
-std::unique_ptr<XPKDecompressor> LZXDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> LZXDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<LZXDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<LZXDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-LZXDecompressor::LZXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+LZXDecompressor::LZXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 	if (hdr==FourCC('SLZX')) _isSampled=true;
 	// There is no good spec on the LZX header content -> lots of unknowns here
-	if (_packedData.size()<41) return;
-	{
-		// XPK LZX compression is embedded single file of LZX -> read first file. Ignore rest
-		uint32_t streamHdr;
-		// this will include flags, which need to be zero anyway
-		if (!_packedData.readBE(0,streamHdr) || streamHdr!=FourCC('LZX\0')) return;
-	}
-	// file header
-	{
-		uint32_t tmp;
-		if (!_packedData.readLE(12,tmp)) return;
-		_rawSize=tmp;
-		if (!_packedData.readLE(16,tmp)) return;
-		_packedSize=tmp;
-	}
-	if (!_packedData.readLE(32,_rawCRC)) return;
-	uint32_t headerCRC;
-	if (!_packedData.readLE(36,headerCRC)) return;
-	{
-		uint8_t tmp;
-		if (!_packedData.read(21,tmp)) return;
-		if (tmp && tmp!=2) return;
-		if (tmp==2) _isCompressed=true;
+	if (_packedData.size()<41) throw Decompressor::InvalidFormatError();
+	// XPK LZX compression is embedded single file of LZX -> read first file. Ignore rest
+	// this will include flags, which need to be zero anyway
+	uint32_t streamHdr=_packedData.readBE32(0);
+	if (streamHdr!=FourCC('LZX\0')) throw Decompressor::InvalidFormatError();
 
-		if (!_packedData.read(40,tmp)) return;
-		_packedOffset=41+size_t(tmp);
-		if (!_packedData.read(24,tmp)) return;
-		_packedOffset+=size_t(tmp);
-		_packedSize+=_packedOffset;
+	_rawSize=_packedData.readLE32(12);
+	_packedSize=_packedData.readLE32(16);
+
+	_rawCRC=_packedData.readLE32(32);
+	uint32_t headerCRC=_packedData.readLE32(36);
+
+	uint8_t tmp=_packedData.read8(21);
+	if (tmp && tmp!=2) throw Decompressor::InvalidFormatError();
+	if (tmp==2) _isCompressed=true;
+
+	_packedOffset=41+size_t(_packedData.read8(40));
+	_packedOffset+=size_t(_packedData.read8(24));
+	_packedSize+=_packedOffset;
+
+	if (_packedSize>_packedData.size()) throw Decompressor::InvalidFormatError();
+	if (verify)
+	{
+		uint32_t crc=CRC32(_packedData,10,26,0);
+		for (uint32_t i=0;i<4;i++) crc=CRC32Byte(0,crc);
+		crc=CRC32(_packedData,40,_packedOffset-40,crc);
+		if (crc!=headerCRC) throw Decompressor::VerificationError(); 
 	}
-	if (_packedSize>_packedData.size()) return;
-	uint32_t crc=0;
-	if (!CRC32(_packedData,10,26,crc)) return;
-	ArrayBuffer<4> emptyBuf;
-	for (uint32_t i=0;i<4;i++) emptyBuf[i]=0;
-	if (!CRC32(emptyBuf,0,4,crc)) return;
-	if (!CRC32(_packedData,40,_packedOffset-40,crc) || crc!=headerCRC) return;
-	_isValid=true;
 }
 
 LZXDecompressor::~LZXDecompressor()
@@ -71,60 +60,23 @@ LZXDecompressor::~LZXDecompressor()
 	// nothing needed
 }
 
-bool LZXDecompressor::isValid() const
+const std::string &LZXDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool LZXDecompressor::verifyPacked() const
-{
-	// header CRC already checked
-	return _isValid;
-}
-
-bool LZXDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	if (!_isValid || rawData.size()!=_rawSize) return false;
-	if (_isSampled)
-	{
-		// Correct place for CRC is just before delta decoding
-		// but that would mess the decompression flow.
-		// fortunately delta decoding is trivially reversible
-		uint32_t crc=0;
-		uint8_t ch=0;
-		const uint8_t *buffer=rawData.data();
-		for (size_t i=0;i<_rawSize;i++)
-		{
-			uint8_t tmp=buffer[i];
-			CRC32Byte(tmp-ch,crc);
-			ch=tmp;
-		}
-		return crc==_rawCRC;
-	} else {
-		uint32_t crc=0;
-		return CRC32(rawData,0,_rawSize,crc) && crc==_rawCRC;
-	}
-}
-
-const std::string &LZXDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string nameE="XPK-ELZX: LZX-compressor";
 	static std::string nameS="XPK-SLZX: LZX-compressor with delta encoding";
 	return (_isSampled)?nameS:nameE;
 }
 
-bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid || rawData.size()!=_rawSize) return false;
+	if (rawData.size()!=_rawSize) throw Decompressor::DecompressionError();
 	if (!_isCompressed)
 	{
-		if (_packedSize!=_rawSize) return false;
+		if (_packedSize!=_rawSize) throw Decompressor::DecompressionError();
 		::memcpy(rawData.data(),_packedData.data()+_packedOffset,_rawSize);
-		return true;
+		return;
 	}
 
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=_packedOffset;
 
@@ -137,11 +89,7 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		uint8_t ret=0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset+1>=_packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset+1>=_packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=uint32_t(bufPtr[bufOffset++])<<8;
 			bufBitsContent|=uint32_t(bufPtr[bufOffset++]);
 			bufBitsLength=16;
@@ -154,14 +102,9 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		if (!streamStatus) return 0;
 		while (bufBitsLength<count)
 		{
-			if (bufOffset+1>=_packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset+1>=_packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent|=uint32_t(bufPtr[bufOffset++])<<(bufBitsLength+8);
 			bufBitsContent|=uint32_t(bufPtr[bufOffset++])<<bufBitsLength;
 			bufBitsLength+=16;
@@ -175,7 +118,7 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	uint8_t *dest=rawData.data();
 	size_t destOffset=0;
 
-	typedef HuffmanDecoder<int32_t,-1,0> LZXDecoder;
+	typedef HuffmanDecoder<uint32_t,0x8000'0000U,0> LZXDecoder;
 
 	// possibly padded/reused later if multiple blocks
 	uint8_t literalTable[768];
@@ -183,7 +126,7 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	LZXDecoder literalDecoder;
 	uint32_t previousDistance=1;
 
-	while (streamStatus && destOffset!=_rawSize)
+	while (destOffset!=_rawSize)
 	{
 
 		auto createHuffmanTable=[&](LZXDecoder &dec,const uint8_t *bitLengths,uint32_t bitTableLength)
@@ -203,17 +146,15 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 				{
 					if (bitLengths[i]==depth)
 					{
-						dec.insert(HuffmanCode<int32_t>{depth,code>>(maxDepth-depth),int32_t(i)});
+						dec.insert(HuffmanCode<uint32_t>{depth,code>>(maxDepth-depth),i});
 						code+=1<<(maxDepth-depth);
 					}
 				}
 			}
-			if (streamStatus) streamStatus=dec.isValid();
 		};
 
 		uint32_t method=readBits(3);
-		if (method<1 || method>3)
-			streamStatus=false;
+		if (method<1 || method>3) throw Decompressor::DecompressionError();
 
 		LZXDecoder distanceDecoder;
 		if (method==3)
@@ -226,13 +167,12 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		size_t blockLength=readBits(8)<<16;
 		blockLength|=readBits(8)<<8;
 		blockLength|=readBits(8);
-		if (blockLength+destOffset>_rawSize)
-			streamStatus=false;
+		if (blockLength+destOffset>_rawSize) throw Decompressor::DecompressionError();
 
 		if (method!=1)
 		{
 			literalDecoder.reset();
-			for (uint32_t pos=0,block=0;block<2&&streamStatus;block++)
+			for (uint32_t pos=0,block=0;block<2;block++)
 			{
 				uint32_t adjust=(block)?0:1;
 				uint32_t maxPos=(block)?768:256;
@@ -242,9 +182,9 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 					for (uint32_t i=0;i<20;i++) lengthTable[i]=readBits(4);
 					createHuffmanTable(bitLengthDecoder,lengthTable,20);
 				}
-				while (streamStatus && pos<maxPos)
+				while (pos<maxPos)
 				{
-					int32_t symbol=bitLengthDecoder.decode(readBit);
+					uint32_t symbol=bitLengthDecoder.decode(readBit);
 
 					auto doRepeat=[&](uint32_t count,uint8_t value)
 					{
@@ -254,11 +194,7 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 					
 					auto symDecode=[&](int32_t value)->uint32_t
 					{
-						if (value<0)
-						{
-							streamStatus=false;
-							return 0;
-						}
+						if (value<0) throw Decompressor::DecompressionError();
 						return (literalTable[pos]+17-value)%17;
 					};
 
@@ -288,18 +224,11 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			createHuffmanTable(literalDecoder,literalTable,768);
 		}
 		
-		while (streamStatus && blockLength)
+		while (blockLength)
 		{
-			int32_t symbol=literalDecoder.decode(readBit);
-			if (symbol<0)
-			{
-				streamStatus=false;
-			} else if (symbol<256) {
-				if (destOffset>=_rawSize)
-				{
-					streamStatus=false;
-					break;
-				}
+			uint32_t symbol=literalDecoder.decode(readBit);
+			if (symbol<256) {
+				if (destOffset>=_rawSize) throw Decompressor::DecompressionError();
 				dest[destOffset++]=symbol;
 				blockLength--;
 			} else {
@@ -322,13 +251,8 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 				if (bits>=3 && method==3)
 				{
 					distance+=readBits(bits-3)<<3;
-					int32_t tmp=distanceDecoder.decode(readBit);
-					if (tmp<0)
-					{
-						streamStatus=false;
-					} else {
-						distance+=tmp;
-					}
+					uint32_t tmp=distanceDecoder.decode(readBit);
+					distance+=tmp;
 				} else {
 					distance+=readBits(bits);
 					if (!distance) distance=previousDistance;
@@ -336,20 +260,19 @@ bool LZXDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 				previousDistance=distance;
 
 				uint32_t count=ldAdditions[symbol>>5]+readBits(ldBits[symbol>>5])+3;
-				if (distance>destOffset || count>blockLength || destOffset+count>_rawSize)
-				{
-					streamStatus=false;
-				} else {
-					for (uint32_t i=0;i<count;i++,destOffset++,blockLength--)
-						dest[destOffset]=dest[destOffset-distance];
-				}
+				if (distance>destOffset || count>blockLength || destOffset+count>_rawSize) throw Decompressor::DecompressionError();
+				for (uint32_t i=0;i<count;i++,destOffset++,blockLength--)
+					dest[destOffset]=dest[destOffset-distance];
 			}
 		}
 	}
-	bool ret=(streamStatus && _rawSize==destOffset);
-	if (ret && _isSampled)
+	if (verify)
+	{
+		uint32_t crc=CRC32(rawData,0,_rawSize,0);
+		if (crc!=_rawCRC) throw Decompressor::VerificationError();
+	}
+	if (_isSampled)
 		DLTADecode::decode(rawData,rawData,0,_rawSize);
-	return ret;
 }
 
 XPKDecompressor::Registry<LZXDecompressor> LZXDecompressor::_XPKregistration;

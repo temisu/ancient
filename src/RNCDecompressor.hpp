@@ -8,23 +8,19 @@
 class RNCDecompressor : public Decompressor
 {
 public:
-	RNCDecompressor(const Buffer &packedData);
+	RNCDecompressor(const Buffer &packedData,bool verify);
 
 	virtual ~RNCDecompressor();
 
-	virtual bool isValid() const override final;
-	virtual bool verifyPacked() const override final;
-	virtual bool verifyRaw(const Buffer &rawData) const override final;
+	virtual const std::string &getName() const noexcept override final;
+	virtual size_t getPackedSize() const noexcept override final;
+	virtual size_t getRawSize() const noexcept override final;
 
-	virtual const std::string &getName() const override final;
-	virtual size_t getPackedSize() const override final;
-	virtual size_t getRawSize() const override final;
+	virtual void decompressImpl(Buffer &rawData,bool verify) override final;
 
-	virtual bool decompress(Buffer &rawData) override final;
+	static bool detectHeader(uint32_t hdr) noexcept;
 
-	static bool detectHeader(uint32_t hdr);
-
-	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown);
+	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
 
 private:
 	enum class Version
@@ -34,17 +30,15 @@ private:
 		RNC2
 	};
 
-	bool RNC1DecompressOld(Buffer &rawData);
-	bool RNC1DecompressNew(Buffer &rawData);
-	bool RNC2Decompress(Buffer &rawData);
+	void RNC1DecompressOld(Buffer &rawData,bool verify);
+	void RNC1DecompressNew(Buffer &rawData,bool verify);
+	void RNC2Decompress(Buffer &rawData,bool verify);
 
 	const Buffer	&_packedData;
 
-	bool		_isValid=false;
 	uint32_t	_rawSize=0;
 	uint32_t	_packedSize=0;
 	uint16_t	_rawCRC=0;
-	uint16_t	_packedCRC=0;
 	uint8_t		_chunks=0;
 	Version		_ver;
 

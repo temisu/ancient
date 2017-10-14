@@ -2,22 +2,21 @@
 
 #include "RDCNDecompressor.hpp"
 
-bool RDCNDecompressor::detectHeaderXPK(uint32_t hdr)
+bool RDCNDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('RDCN');
 }
 
-std::unique_ptr<XPKDecompressor> RDCNDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> RDCNDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<RDCNDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<RDCNDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-RDCNDecompressor::RDCNDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+RDCNDecompressor::RDCNDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
 
 RDCNDecompressor::~RDCNDecompressor()
@@ -25,36 +24,15 @@ RDCNDecompressor::~RDCNDecompressor()
 	// nothing needed
 }
 
-bool RDCNDecompressor::isValid() const
+const std::string &RDCNDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool RDCNDecompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool RDCNDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &RDCNDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-RDCN: Ross data compression";
 	return name;
 }
 
-bool RDCNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void RDCNDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=0;
@@ -63,14 +41,9 @@ bool RDCNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset+1>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset+1>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=uint16_t(bufPtr[bufOffset++])<<8;
 			bufBitsContent|=uint16_t(bufPtr[bufOffset++]);
 			bufBitsLength=16;
@@ -83,11 +56,7 @@ bool RDCNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset>=packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
@@ -95,7 +64,7 @@ bool RDCNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t destOffset=0;
 	size_t rawSize=rawData.size();
 
-	while (streamStatus && destOffset!=rawSize)
+	while (destOffset!=rawSize)
 	{
 		if (!readBit())
 		{
@@ -133,25 +102,15 @@ bool RDCNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			}
 			if (doRLE)
 			{
-				if (!streamStatus || destOffset+count>rawSize)
-				{
-					streamStatus=false;
-				} else {
-					for (uint32_t i=0;i<count;i++) dest[destOffset++]=repeatChar;
-				}
+				if (destOffset+count>rawSize) throw Decompressor::DecompressionError();
+				for (uint32_t i=0;i<count;i++) dest[destOffset++]=repeatChar;
 			} else {
-				if (distance>destOffset || destOffset+count>rawSize)
-				{
-					streamStatus=false;
-				} else {
-					for (uint32_t i=0;i<count;i++,destOffset++)
-						dest[destOffset]=dest[destOffset-distance];
-				}
+				if (distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+				for (uint32_t i=0;i<count;i++,destOffset++)
+					dest[destOffset]=dest[destOffset-distance];
 			}
 		}
 	}
-
-	return streamStatus && destOffset==rawSize;
 }
 
 XPKDecompressor::Registry<RDCNDecompressor> RDCNDecompressor::_XPKregistration;

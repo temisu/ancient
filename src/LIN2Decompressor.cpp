@@ -3,26 +3,26 @@
 #include "LIN2Decompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-bool LIN2Decompressor::detectHeaderXPK(uint32_t hdr)
+bool LIN2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('LIN2') || hdr==FourCC('LIN4');
 }
 
-std::unique_ptr<XPKDecompressor> LIN2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> LIN2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<LIN2Decompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<LIN2Decompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-LIN2Decompressor::LIN2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+LIN2Decompressor::LIN2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 	_ver=(hdr==FourCC('LIN2'))?2:4;
-	if (packedData.size()<10) return;
+	if (packedData.size()<10) throw Decompressor::InvalidFormatError();
 
-	uint32_t tmp;
-	if (!packedData.readBE(0,tmp) || tmp) return;	// password set
+	uint32_t tmp=packedData.readBE32(0);
+	if (tmp) throw Decompressor::InvalidFormatError();	// password set
 
 	// LIN4 is very similar to LIN2 - it only has 5 bit literals instead of 4 bit literals
 	// (and thus larger table at the end of the stream)
@@ -34,7 +34,7 @@ LIN2Decompressor::LIN2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	// end stream
 	// 1 byte, byte before 0xff
 	// 0x10 bytes/0x20 for table
-	if (_endStreamOffset<0x11+0xa) return;
+	if (_endStreamOffset<0x11+0xa) throw Decompressor::InvalidFormatError();
 	_endStreamOffset-=(_ver==2)?0x11:0x21;
 
 	size_t midStreamOffset=(_ver==2)?0x16:0x26;
@@ -43,11 +43,9 @@ LIN2Decompressor::LIN2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	// add 0x10/0x20 byte back to point after table
 	// add 6 bytes to point to correct place
 
-	if (!packedData.readBE(4,tmp)) return;
-	if (_endStreamOffset+midStreamOffset<tmp+10 || tmp<midStreamOffset) return;
+	tmp=packedData.readBE32(4);
+	if (_endStreamOffset+midStreamOffset<tmp+10 || tmp<midStreamOffset) throw Decompressor::InvalidFormatError();
 	_midStreamOffset=_endStreamOffset-tmp+midStreamOffset;
-
-	_isValid=true;
 }
 
 LIN2Decompressor::~LIN2Decompressor()
@@ -55,37 +53,16 @@ LIN2Decompressor::~LIN2Decompressor()
 	// nothing needed
 }
 
-bool LIN2Decompressor::isValid() const
+const std::string &LIN2Decompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool LIN2Decompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool LIN2Decompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &LIN2Decompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name2="XPK-LIN2: LIN2 LINO packer";
 	static std::string name4="XPK-LIN4: LIN4 LINO packer";
 	return (_ver==2)?name2:name4;
 }
 
-bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void LIN2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufBitsOffset=10;
 	uint32_t bufBitsContent=0;
@@ -101,14 +78,9 @@ bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBits=[&](uint8_t bits)->uint32_t
 	{
-		if (!streamStatus) return 0;
 		while (bufBitsLength<bits)
 		{
-			if (bufBitsOffset>=_midStreamOffset)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufBitsOffset>=_midStreamOffset) throw Decompressor::DecompressionError();
 			bufBitsContent<<=8;
 			bufBitsContent|=uint32_t(bufPtr[bufBitsOffset++]);
 			bufBitsLength+=8;
@@ -122,37 +94,27 @@ bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t buf4BitsOffset=_endStreamOffset;
 	bool buf4Incomplete=false;
 	{
-		uint8_t tmp;
-		if (!_packedData.read(9,tmp)) return false;
+		uint8_t tmp=_packedData.read8(9);
 		buf4Incomplete=!!tmp;
 		if (buf4Incomplete)
 		{
-			if (buf4BitsOffset<=bufBitOffset) return false;
+			if (buf4BitsOffset<=bufBitOffset) throw Decompressor::DecompressionError();
 			buf4BitsOffset--;
 		}
 	}
 
 	uint8_t bufBitContent=0;
 	uint8_t bufBitLength=0;
-	if (bufBitOffset+1>=buf4BitsOffset)
-	{
-		return false;
-	} else {
-		bufBitLength=8-bufPtr[bufBitOffset++];
-		if (bufBitLength>8) return false;
-		bufBitContent=bufPtr[bufBitOffset++];
-	}
+	if (bufBitOffset+1>=buf4BitsOffset) throw Decompressor::DecompressionError();
+	bufBitLength=8-bufPtr[bufBitOffset++];
+	if (bufBitLength>8) throw Decompressor::DecompressionError();
+	bufBitContent=bufPtr[bufBitOffset++];
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitLength)
 		{
-			if (!streamStatus || bufBitOffset>=buf4BitsOffset)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufBitOffset>=buf4BitsOffset) throw Decompressor::DecompressionError();
 			bufBitContent=bufPtr[bufBitOffset++];
 			bufBitLength=8;
 		}
@@ -172,21 +134,13 @@ bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 				buf4Incomplete=false;
 				return bufPtr[buf4BitsOffset]&0xf;
 			} else {
-				if (!streamStatus || buf4BitsOffset<=bufBitOffset)
-				{
-					streamStatus=false;
-					return 0;
-				}
+				if (buf4BitsOffset<=bufBitOffset) throw Decompressor::DecompressionError();
 				buf4Incomplete=true;
 				return bufPtr[--buf4BitsOffset]>>4;
 			}
 		} else {
 			// a byte
-			if (!streamStatus || buf4BitsOffset<=bufBitOffset)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (buf4BitsOffset<=bufBitOffset) throw Decompressor::DecompressionError();
 			if (buf4Incomplete)
 			{
 				uint8_t ret=bufPtr[buf4BitsOffset]&0xf;
@@ -240,7 +194,7 @@ bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	uint32_t minBits=1;
 
-	while (streamStatus && destOffset!=rawSize)
+	while (destOffset!=rawSize)
 	{
 		if (!readBits(1))
 		{
@@ -280,17 +234,13 @@ bool LIN2Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			if (destOffset+count>rawSize) count=uint32_t(rawSize-destOffset);
 			if (!count) break;
 
-			if (!streamStatus || distance>destOffset || destOffset+count>rawSize)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[destOffset-distance];
-			}
+			if (distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+			for (uint32_t i=0;i<count;i++,destOffset++)
+				dest[destOffset]=dest[destOffset-distance];
 		}
 	}
 
-	return streamStatus && destOffset==rawSize;
+	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<LIN2Decompressor> LIN2Decompressor::_XPKregistration;

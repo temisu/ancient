@@ -6,35 +6,52 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <exception>
+
 class Buffer
 {
 protected:
-	Buffer();
+	Buffer() noexcept;
 
 public:
+	class Error : public std::exception
+	{
+		// nothing needed
+	};
+
+	class OutOfBoundsError : public Error
+	{
+		// nothing needed
+	};
+
+	class InvalidOperationError : public Error
+	{
+		// nothing needed
+	};
+
 	Buffer(const Buffer&)=delete;
 	Buffer& operator=(const Buffer&)=delete;
 
 	virtual ~Buffer();
 
-	virtual const uint8_t *data() const=0;
+	virtual const uint8_t *data() const noexcept=0;
 	virtual uint8_t *data()=0;
-	virtual size_t size() const=0;
+	virtual size_t size() const noexcept=0;
 
-	virtual bool isResizable() const;
+	virtual bool isResizable() const noexcept;
 	virtual void resize(size_t newSize);
 
 	uint8_t &operator[](size_t i);
 	const uint8_t &operator[](size_t i) const;
 
-	bool readBE(size_t offset,uint32_t &retValue) const;
-	bool readBE(size_t offset,uint16_t &retValue) const;
+	uint32_t readBE32(size_t offset) const;
+	uint16_t readBE16(size_t offset) const;
 
-	bool readLE(size_t offset,uint64_t &retValue) const;
-	bool readLE(size_t offset,uint32_t &retValue) const;
-	bool readLE(size_t offset,uint16_t &retValue) const;
+	uint64_t readLE64(size_t offset) const;
+	uint32_t readLE32(size_t offset) const;
+	uint16_t readLE16(size_t offset) const;
 
-	bool read(size_t offset,uint8_t &retValue) const;
+	uint8_t read8(size_t offset) const;
 };
 
 #endif

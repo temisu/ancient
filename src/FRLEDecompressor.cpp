@@ -2,22 +2,21 @@
 
 #include "FRLEDecompressor.hpp"
 
-bool FRLEDecompressor::detectHeaderXPK(uint32_t hdr)
+bool FRLEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('FRLE');
 }
 
-std::unique_ptr<XPKDecompressor> FRLEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> FRLEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<FRLEDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<FRLEDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-FRLEDecompressor::FRLEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+FRLEDecompressor::FRLEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
 
 FRLEDecompressor::~FRLEDecompressor()
@@ -25,32 +24,14 @@ FRLEDecompressor::~FRLEDecompressor()
 	// nothing needed
 }
 
-bool FRLEDecompressor::isValid() const
+const std::string &FRLEDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool FRLEDecompressor::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool FRLEDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &FRLEDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-FRLE: RLE-compressor";
 	return name;
 }
 
-bool FRLEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void FRLEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=0;
 	size_t packedSize=_packedData.size();
@@ -59,9 +40,9 @@ bool FRLEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t destOffset=0;
 	size_t rawSize=rawData.size();
 
-	while (destOffset<rawSize)
+	while (destOffset!=rawSize)
 	{
-		if (bufOffset==packedSize) break;
+		if (bufOffset==packedSize) throw Decompressor::DecompressionError();
 
 		auto countMod=[](uint32_t count)->uint32_t
 		{
@@ -73,17 +54,15 @@ bool FRLEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 		if (count<128)
 		{
 			count=countMod(count);
-			if (bufOffset+count>packedSize || destOffset+count>rawSize) break;
+			if (bufOffset+count>packedSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
 			for (uint32_t i=0;i<count;i++) dest[destOffset++]=bufPtr[bufOffset++];
 		} else {
 			count=countMod(count)+1;
-			if (bufOffset==packedSize || destOffset+count>rawSize) break;
+			if (bufOffset==packedSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
 			uint8_t ch=bufPtr[bufOffset++];
 			for (uint32_t i=0;i<count;i++) dest[destOffset++]=ch;
 		}
 	}
-
-	return destOffset==rawSize;
 }
 
 XPKDecompressor::Registry<FRLEDecompressor> FRLEDecompressor::_XPKregistration;

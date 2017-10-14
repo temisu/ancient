@@ -2,28 +2,25 @@
 
 #include "TPWMDecompressor.hpp"
 
-bool TPWMDecompressor::detectHeader(uint32_t hdr)
+bool TPWMDecompressor::detectHeader(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('TPWM');
 }
 
-std::unique_ptr<Decompressor> TPWMDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+std::unique_ptr<Decompressor> TPWMDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
 {
-	return std::make_unique<TPWMDecompressor>(packedData);
+	return std::make_unique<TPWMDecompressor>(packedData,verify);
 }
 
-TPWMDecompressor::TPWMDecompressor(const Buffer &packedData) :
+TPWMDecompressor::TPWMDecompressor(const Buffer &packedData,bool verify) :
 	_packedData(packedData)
 {
-	if (packedData.size()<12) return;
-	uint32_t hdr;
-	if (!packedData.readBE(0,hdr)) return;
-	if (!detectHeader(hdr)) return;
+	uint32_t hdr=packedData.readBE32(0);
+	if (!detectHeader(hdr) || packedData.size()<12) throw InvalidFormatError();
 
-	if (!packedData.readBE(4,_rawSize)) return;
-	if (!_rawSize) return;
-	if (_rawSize>getMaxRawSize()) return;
-	_isValid=true;
+	_rawSize=packedData.readBE32(4);
+	if (!_rawSize || _rawSize>getMaxRawSize())
+		throw InvalidFormatError();
 }
 
 TPWMDecompressor::~TPWMDecompressor()
@@ -31,50 +28,29 @@ TPWMDecompressor::~TPWMDecompressor()
 	// nothing needed
 }
 
-bool TPWMDecompressor::isValid() const
+const std::string &TPWMDecompressor::getName() const noexcept
 {
-	return _isValid;
-}
-
-bool TPWMDecompressor::verifyPacked() const
-{
-	// no checksum whatsoever
-	return _isValid;
-}
-
-bool TPWMDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// no CRC
-	return _isValid;
-}
-
-const std::string &TPWMDecompressor::getName() const
-{
-	if (!_isValid) return Decompressor::getName();
 	static std::string name="TPWM: Turbo Packer";
 	return name;
 }
 
-size_t TPWMDecompressor::getPackedSize() const
+size_t TPWMDecompressor::getPackedSize() const noexcept
 {
 	// No packed size in the stream :(
 	// After decompression, we can tell how many bytes were actually used
-	if (!_isValid) return 0;
 	return _decompressedPackedSize;
 }
 
-size_t TPWMDecompressor::getRawSize() const
+size_t TPWMDecompressor::getRawSize() const noexcept
 {
-	if (!_isValid) return 0;
 	return _rawSize;
 }
 
-bool TPWMDecompressor::decompress(Buffer &rawData)
+void TPWMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	if (!_isValid || rawData.size()<_rawSize) return false;
+	if (rawData.size()<_rawSize) throw DecompressionError();
 
 	// Stream reading
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=8;
 	size_t packedSize=_packedData.size();
@@ -86,11 +62,7 @@ bool TPWMDecompressor::decompress(Buffer &rawData)
 		uint8_t ret=0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw DecompressionError();
 			bufBitsContent=bufPtr[bufOffset++];
 			bufBitsLength=8;
 		}
@@ -102,45 +74,34 @@ bool TPWMDecompressor::decompress(Buffer &rawData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset>=packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=packedSize) throw DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
 	uint8_t *dest=rawData.data();
 	size_t destOffset=0;
 
-	while (streamStatus)
+	while (destOffset!=_rawSize)
 	{
-		if (destOffset==_rawSize) break;
 		if (readBit())
 		{
 			uint8_t byte1=readByte();
 			uint8_t byte2=readByte();
 			uint32_t distance=(uint32_t(byte1&0xf0)<<4)|byte2;
 			uint32_t count=uint32_t(byte1&0xf)+3;
-			if (streamStatus && distance && distance<=destOffset)
+			if (!distance || distance>destOffset) throw DecompressionError();
+			for (uint32_t i=0;i<count;i++)
 			{
-				for (uint32_t i=0;i<count;i++)
-				{
-					dest[destOffset]=dest[destOffset-distance];
-					destOffset++;
-					if (destOffset==_rawSize) break;
-				}
-			} else {
-				streamStatus=false;
+				dest[destOffset]=dest[destOffset-distance];
+				destOffset++;
+				if (destOffset==_rawSize) break;
 			}
 		} else {
 			dest[destOffset++]=readByte();
 		}
 	}
 
-	bool ret=(streamStatus && destOffset==_rawSize);
-	if (ret) _decompressedPackedSize=bufOffset;
-	return ret;
+	_decompressedPackedSize=bufOffset;
 }
 
 Decompressor::Registry<TPWMDecompressor> TPWMDecompressor::_registration;

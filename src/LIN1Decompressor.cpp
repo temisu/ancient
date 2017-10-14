@@ -2,28 +2,26 @@
 
 #include "LIN1Decompressor.hpp"
 
-bool LIN1Decompressor::detectHeaderXPK(uint32_t hdr)
+bool LIN1Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('LIN1') || hdr==FourCC('LIN3');
 }
 
-std::unique_ptr<XPKDecompressor> LIN1Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> LIN1Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<LIN1Decompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<LIN1Decompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-LIN1Decompressor::LIN1Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+LIN1Decompressor::LIN1Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 	_ver=(hdr==FourCC('LIN1'))?1:3;
-	if (packedData.size()<5) return;
+	if (packedData.size()<5) throw Decompressor::InvalidFormatError();
 
-	uint32_t tmp;
-	if (!packedData.readBE(0,tmp) || tmp) return;	// password set
-
-	_isValid=true;
+	uint32_t tmp=packedData.readBE32(0);
+	if (tmp) throw Decompressor::InvalidFormatError();	// password set
 }
 
 LIN1Decompressor::~LIN1Decompressor()
@@ -31,37 +29,16 @@ LIN1Decompressor::~LIN1Decompressor()
 	// nothing needed
 }
 
-bool LIN1Decompressor::isValid() const
+const std::string &LIN1Decompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool LIN1Decompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool LIN1Decompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &LIN1Decompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name1="XPK-LIN1: LIN1 LINO packer";
 	static std::string name3="XPK-LIN3: LIN3 LINO packer";
 	return (_ver==1)?name1:name3;
 }
 
-bool LIN1Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void LIN1Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=5;
@@ -70,14 +47,9 @@ bool LIN1Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBits=[&](uint8_t bits)->uint8_t
 	{
-		if (!streamStatus) return 0;
 		while (bufBitsLength<bits)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent<<=8;
 			bufBitsContent|=uint32_t(bufPtr[bufOffset++]);
 			bufBitsLength+=8;
@@ -89,11 +61,7 @@ bool LIN1Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset>=packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
@@ -101,7 +69,7 @@ bool LIN1Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t destOffset=0;
 	size_t rawSize=rawData.size();
 
-	while (streamStatus && destOffset!=rawSize)
+	while (destOffset!=rawSize)
 	{
 		if (!readBits(1))
 		{
@@ -156,17 +124,13 @@ bool LIN1Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			if (destOffset+count>rawSize) count=uint32_t(rawSize-destOffset);
 			if (!count) break;
 
-			if (distance>destOffset)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[destOffset-distance];
-			}
+			if (distance>destOffset) throw Decompressor::DecompressionError();
+			for (uint32_t i=0;i<count;i++,destOffset++)
+				dest[destOffset]=dest[destOffset-distance];
 		}
 	}
 
-	return streamStatus && destOffset==rawSize;
+	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<LIN1Decompressor> LIN1Decompressor::_XPKregistration;

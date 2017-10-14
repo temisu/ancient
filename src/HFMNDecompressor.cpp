@@ -3,33 +3,30 @@
 #include "HFMNDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 
-bool HFMNDecompressor::detectHeaderXPK(uint32_t hdr)
+bool HFMNDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('HFMN');
 }
 
-std::unique_ptr<XPKDecompressor> HFMNDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> HFMNDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<HFMNDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<HFMNDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-HFMNDecompressor::HFMNDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+HFMNDecompressor::HFMNDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	if (packedData.size()<4) return;
-	uint16_t tmp;
-	if (!packedData.readBE(0,tmp)) return;
-	if (tmp&3) return;			// header is being written in 4 byte chunks
-	_headerSize=size_t(tmp&0x1ff);		// the top 7 bits are flags. No definition what they are and they are ignored in decoder...
-	if (_headerSize+4>packedData.size()) return;
-	if (!packedData.readBE(_headerSize+2,tmp)) return;
+	if (!detectHeaderXPK(hdr) || packedData.size()<4)
+		throw Decompressor::InvalidFormatError();
+	uint16_t tmp=packedData.readBE16(0);
+	if (tmp&3) throw Decompressor::InvalidFormatError();	// header is being written in 4 byte chunks
+	_headerSize=size_t(tmp&0x1ff);				// the top 7 bits are flags. No definition what they are and they are ignored in decoder...
+	if (_headerSize+4>packedData.size()) throw Decompressor::InvalidFormatError();
+	tmp=packedData.readBE16(_headerSize+2);
 	_rawSize=size_t(tmp);
-	if (!_rawSize) return;
-	if (_rawSize>Decompressor::getMaxRawSize()) return;
+	if (!_rawSize) throw Decompressor::InvalidFormatError();
 	_headerSize+=4;
-	_isValid=true;
 }
 
 HFMNDecompressor::~HFMNDecompressor()
@@ -37,34 +34,17 @@ HFMNDecompressor::~HFMNDecompressor()
 	// nothing needed
 }
 
-bool HFMNDecompressor::isValid() const
+const std::string &HFMNDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool HFMNDecompressor::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool HFMNDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &HFMNDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-HFMN: Huffman compressor";
 	return name;
 }
 
-bool HFMNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void HFMNDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid || rawData.size()!=_rawSize) return false;
+	if (rawData.size()!=_rawSize) throw Decompressor::DecompressionError();
 
 	// Stream reading
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t packedSize=_packedData.size();
 	size_t bufOffset=2;
@@ -74,14 +54,9 @@ bool HFMNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=bufPtr[bufOffset++];
 			bufBitsLength=8;
 		}
@@ -97,7 +72,7 @@ bool HFMNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	HuffmanDecoder<uint32_t,256,0> decoder;
 	uint32_t code=1;
 	uint32_t codeBits=1;
-	while (streamStatus)
+	for (;;)
 	{
 		if (!readBit())
 		{
@@ -116,25 +91,14 @@ bool HFMNDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			codeBits++;
 		}
 	}
-	if (bufOffset+2>_headerSize) streamStatus=false;
-	if (streamStatus) streamStatus=decoder.isValid();
+	if (bufOffset+2>_headerSize) throw Decompressor::DecompressionError();
 
 	bufOffset=_headerSize;
 	bufBitsContent=0;
 	bufBitsLength=0;
 
-	while (streamStatus && destOffset<_rawSize)
-	{
-		uint32_t ch=decoder.decode(readBit);
-		if (ch==256)
-		{
-			streamStatus=false;
-		} else {
-			dest[destOffset++]=ch;
-		}
-	}
-
-	return streamStatus && destOffset==_rawSize;
+	while (destOffset!=_rawSize)
+		dest[destOffset++]=decoder.decode(readBit);
 }
 
 XPKDecompressor::Registry<HFMNDecompressor> HFMNDecompressor::_XPKregistration;

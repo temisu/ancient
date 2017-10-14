@@ -2,22 +2,21 @@
 
 #include "SLZ3Decompressor.hpp"
 
-bool SLZ3Decompressor::detectHeaderXPK(uint32_t hdr)
+bool SLZ3Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('SLZ3');
 }
 
-std::unique_ptr<XPKDecompressor> SLZ3Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> SLZ3Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<SLZ3Decompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<SLZ3Decompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-SLZ3Decompressor::SLZ3Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+SLZ3Decompressor::SLZ3Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
 
 SLZ3Decompressor::~SLZ3Decompressor()
@@ -25,36 +24,15 @@ SLZ3Decompressor::~SLZ3Decompressor()
 	// nothing needed
 }
 
-bool SLZ3Decompressor::isValid() const
+const std::string &SLZ3Decompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool SLZ3Decompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool SLZ3Decompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &SLZ3Decompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-SLZ3: SLZ3 CyberYAFA compressor";
 	return name;
 }
 
-bool SLZ3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void SLZ3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=0;
@@ -63,14 +41,9 @@ bool SLZ3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readBit=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=uint16_t(bufPtr[bufOffset++]);
 			bufBitsLength=8;
 		}
@@ -82,11 +55,7 @@ bool SLZ3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (!streamStatus || bufOffset>=packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
@@ -94,7 +63,7 @@ bool SLZ3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t destOffset=0;
 	size_t rawSize=rawData.size();
 
-	while (streamStatus && destOffset!=rawSize)
+	while (destOffset!=rawSize)
 	{
 		if (!readBit())
 		{
@@ -105,17 +74,13 @@ bool SLZ3Decompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			uint32_t distance=uint32_t(tmp&0xf0)<<4;
 			distance|=uint32_t(readByte());
 			uint32_t count=uint32_t(tmp&0xf)+2;
-			if (!distance || distance>destOffset || destOffset+count>rawSize)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[destOffset-distance];
-			}
+			if (!distance || distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+			for (uint32_t i=0;i<count;i++,destOffset++)
+				dest[destOffset]=dest[destOffset-distance];
 		}
 	}
 
-	return streamStatus && destOffset==rawSize;
+	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<SLZ3Decompressor> SLZ3Decompressor::_XPKregistration;

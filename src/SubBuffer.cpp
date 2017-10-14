@@ -11,6 +11,5 @@ uint8_t *GenericSubBuffer<Buffer>::data()
 template <>
 uint8_t *GenericSubBuffer<const Buffer>::data()
 {
-	// nope
-	return nullptr;
+	throw InvalidOperationError();
 }

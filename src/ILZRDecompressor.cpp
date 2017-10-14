@@ -2,25 +2,24 @@
 
 #include "ILZRDecompressor.hpp"
 
-bool ILZRDecompressor::detectHeaderXPK(uint32_t hdr)
+bool ILZRDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('ILZR');
 }
 
-std::unique_ptr<XPKDecompressor> ILZRDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> ILZRDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<ILZRDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<ILZRDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-ILZRDecompressor::ILZRDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+ILZRDecompressor::ILZRDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	uint16_t tmp;
-	if (!_packedData.readBE(0,tmp) || !tmp) return;
-	_rawSize=tmp;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr) || packedData.size()<2)
+		throw Decompressor::InvalidFormatError();
+	_rawSize=_packedData.readBE16(0);
+	if (!_rawSize) throw Decompressor::InvalidFormatError();
 }
 
 ILZRDecompressor::~ILZRDecompressor()
@@ -28,37 +27,17 @@ ILZRDecompressor::~ILZRDecompressor()
 	// nothing needed
 }
 
-bool ILZRDecompressor::isValid() const
+const std::string &ILZRDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool ILZRDecompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool ILZRDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &ILZRDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-ILZR: Incremental Lempel-Ziv-Renau compressor";
 	return name;
 }
 
-bool ILZRDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void ILZRDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-	if (rawData.size()!=_rawSize) return false;
+	if (rawData.size()!=_rawSize) throw Decompressor::DecompressionError();
 
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=2;
@@ -69,11 +48,7 @@ bool ILZRDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	{
 		while (bufBitsLength<bits)
 		{
-			if (bufOffset>=packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 			bufBitsContent=(bufBitsContent<<8)|bufPtr[bufOffset++];
 			bufBitsLength+=8;
 		}
@@ -87,7 +62,7 @@ bool ILZRDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t destOffset=0;
 
 	uint32_t bits=8;
-	while (streamStatus && destOffset!=_rawSize)
+	while (destOffset!=_rawSize)
 	{
 		if (readBits(1))
 		{
@@ -97,17 +72,11 @@ bool ILZRDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			uint32_t position=readBits(bits);
 			uint32_t count=readBits(4)+3;
 
-			if (position>=destOffset || destOffset+count>_rawSize)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[position+i];
-			}
+			if (position>=destOffset || destOffset+count>_rawSize) throw Decompressor::DecompressionError();
+			for (uint32_t i=0;i<count;i++,destOffset++)
+				dest[destOffset]=dest[position+i];
 		}
 	}
-
-	return streamStatus && destOffset==_rawSize;
 }
 
 XPKDecompressor::Registry<ILZRDecompressor> ILZRDecompressor::_XPKregistration;

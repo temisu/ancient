@@ -7,9 +7,9 @@
 #include "HuffmanDecoder.hpp"
 #include <CRC32.hpp>
 
-static bool Adler32(const Buffer &buffer,size_t offset,size_t len,uint32_t &retValue)
+static uint32_t Adler32(const Buffer &buffer,size_t offset,size_t len)
 {
-	if (!len || offset+len>buffer.size()) return false;
+	if (!len || offset+len>buffer.size()) throw Buffer::OutOfBoundsError();
 	const uint8_t *ptr=buffer.data()+offset;
 
 	uint32_t s1=1,s2=0;
@@ -20,85 +20,27 @@ static bool Adler32(const Buffer &buffer,size_t offset,size_t len,uint32_t &retV
 		s2+=s1;
 		if (s2>=65521) s2-=65521;
 	}
-	retValue=(s2<<16)|s1;
-	return true;
+	return (s2<<16)|s1;
 }
 
-bool DEFLATEDecompressor::detectHeader(uint32_t hdr)
+bool DEFLATEDecompressor::detectHeader(uint32_t hdr) noexcept
 {
 	return ((hdr>>16)==0x1f8b);
 }
 
-bool DEFLATEDecompressor::detectHeaderXPK(uint32_t hdr)
+bool DEFLATEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return (hdr==FourCC('GZIP'));
 }
 
-std::unique_ptr<Decompressor> DEFLATEDecompressor::create(const Buffer &packedData,bool exactSizeKnown)
+std::unique_ptr<Decompressor> DEFLATEDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
 {
-	return std::make_unique<DEFLATEDecompressor>(packedData,exactSizeKnown);
+	return std::make_unique<DEFLATEDecompressor>(packedData,exactSizeKnown,verify);
 }
 
-std::unique_ptr<XPKDecompressor> DEFLATEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> DEFLATEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<DEFLATEDecompressor>(hdr,recursionLevel,packedData,state);
-}
-
-bool DEFLATEDecompressor::detectGZIP()
-{
-	if (_packedData.size()<18) return false;
-	uint32_t hdr;
-	if (!_packedData.readBE(0,hdr)) return false;
-	if (!detectHeader(hdr)) return false;
-
-	uint8_t cm;
-	if (!_packedData.read(2,cm)) return false;
-	if (cm!=8) return false;
-
-	uint8_t flags;
-	if (!_packedData.read(3,flags)) return false;
-	if (flags&0xe0) return false;
-	
-	uint32_t currentOffset=10;
-
-	if (flags&4)
-	{
-		uint16_t xlen;
-		if (!_packedData.readLE(currentOffset,xlen)) return false;
-		currentOffset+=uint32_t(xlen)+2;
-	}
-	
-	auto skipString=[&]()->bool
-	{
-		uint8_t ch;
-		do {
-			if (!_packedData.read(currentOffset,ch)) return false;
-			currentOffset++;
-		} while (ch);
-		return true;
-	};
-	
-	if (flags&8)
-		if (!skipString()) return false; // FNAME
-	if (flags&16)
-		if (!skipString()) return false; // FCOMMENT
-
-	if (flags&2) currentOffset+=2; // FHCRC
-	_packedOffset=currentOffset;
-
-	if (currentOffset+8>_packedData.size()) return false;
-	_packedSize=_packedData.size()-8;
-
-	if (_exactSizeKnown)
-	{
-		if (!_packedData.readLE(_packedData.size()-8,_rawCRC)) return false;
-		uint32_t tmp;
-		if (!_packedData.readLE(_packedData.size()-4,tmp)) return false;
-		_rawSize=tmp;
-	}
-
-	_type=Type::GZIP;
-	return true;
+	return std::make_unique<DEFLATEDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
 bool DEFLATEDecompressor::detectZLib()
@@ -107,22 +49,17 @@ bool DEFLATEDecompressor::detectZLib()
 
 	// no knowledge about rawSize, before decompression
 	// packedSize told by decompressor
-	_packedSize=uint32_t(_packedData.size())-4;
+	_packedSize=uint32_t(_packedData.size());
 	_packedOffset=2;
 
-	// really it is adler32, but we can use the same name
-	if (!_packedData.readBE(_packedSize,_rawCRC)) return false;
-
-	uint8_t cm;
-	if (!_packedData.read(0,cm)) return false;
+	uint8_t cm=_packedData.read8(0);
 	if ((cm&0xf)!=8) return false;
 	if ((cm&0xf0)>0x70) return false;
 
-	uint8_t flags;
-	if (!_packedData.read(1,flags)) return false;
+	uint8_t flags=_packedData.read8(1);
 	if (flags&0x20)
 	{
-		if (_packedSize<4) return false;
+		if (_packedSize<8) return false;
 		_packedOffset+=4;
 	}
 
@@ -132,14 +69,56 @@ bool DEFLATEDecompressor::detectZLib()
 	return true;
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,bool exactSizeKnown) :
+DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,bool exactSizeKnown,bool verify) :
 	_packedData(packedData),
 	_exactSizeKnown(exactSizeKnown)
 {
-	_isValid=detectGZIP();
+	if (_packedData.size()<18) throw InvalidFormatError();
+	uint32_t hdr=_packedData.readBE32(0);
+	if (!detectHeader(hdr)) throw InvalidFormatError();
+
+	uint8_t cm=_packedData.read8(2);
+	if (cm!=8) throw InvalidFormatError();;
+
+	uint8_t flags=_packedData.read8(3);
+	if (flags&0xe0) throw InvalidFormatError();;
+	
+	uint32_t currentOffset=10;
+
+	if (flags&4)
+	{
+		uint16_t xlen=_packedData.readLE16(currentOffset);
+		currentOffset+=uint32_t(xlen)+2;
+	}
+	
+	auto skipString=[&]()
+	{
+		uint8_t ch;
+		do {
+			ch=_packedData.read8(currentOffset);
+			currentOffset++;
+		} while (ch);
+	};
+	
+	if (flags&8) skipString();		// FNAME
+	if (flags&16) skipString();		// FCOMMENT
+
+	if (flags&2) currentOffset+=2;		// FHCRC, not using that since it is only for header
+	_packedOffset=currentOffset;
+
+	if (currentOffset+8>_packedData.size()) throw InvalidFormatError();
+
+	if (_exactSizeKnown)
+	{
+		_packedSize=_packedData.size();
+		_rawSize=_packedData.readLE32(_packedData.size()-4);
+		if (!_rawSize) throw InvalidFormatError();
+	}
+
+	_type=Type::GZIP;
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
@@ -149,25 +128,23 @@ DEFLATEDecompressor::DEFLATEDecompressor(uint32_t hdr,uint32_t recursionLevel,co
 		_packedOffset=0;
 		_type=Type::Raw;
 	}
-	_isValid=true;
 }
 
-DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize,bool isZlib) :
+DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize,bool isZlib,bool verify) :
 	_packedData(packedData)
 {
 	_packedSize=packedSize;
-	if (_packedSize>_packedData.size()) return;
+	if (_packedSize>_packedData.size()) throw InvalidFormatError();
 	if (isZlib)
 	{
 		// if it is not real zlib-stream fail.
-		if (!detectZLib()) return;
+		if (!detectZLib()) throw InvalidFormatError();
 	} else {
 		// raw stream
 		_packedOffset=0;
 		_rawSize=rawSize;
 		_type=Type::Raw;
 	}
-	_isValid=true;
 }
 
 DEFLATEDecompressor::~DEFLATEDecompressor()
@@ -175,33 +152,9 @@ DEFLATEDecompressor::~DEFLATEDecompressor()
 	// nothing needed
 }
 
-bool DEFLATEDecompressor::isValid() const
-{
-	return _isValid;
-}
 
-bool DEFLATEDecompressor::verifyPacked() const
+const std::string &DEFLATEDecompressor::getName() const noexcept
 {
-	// only hdr could have CRC, but in practice this is not really used
-	return _isValid;
-}
-
-bool DEFLATEDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	if (_type==Type::GZIP && _exactSizeKnown)
-	{
-		if (rawData.size()<_rawSize) return false;
-		uint32_t crc=0;
-		return CRC32(rawData,0,_rawSize,crc) && crc==_rawCRC;
-	} else if (_type==Type::ZLib) {
-		uint32_t adler;
-		return Adler32(rawData,0,rawData.size(),adler) && adler==_rawCRC;
-	} else return true;
-}
-
-const std::string &DEFLATEDecompressor::getName() const
-{
-	if (!_isValid) return Decompressor::getName();
 	static std::string names[3]={
 		"gzip: Deflate",
 		"zlib: Deflate",
@@ -209,41 +162,30 @@ const std::string &DEFLATEDecompressor::getName() const
 	return names[static_cast<uint32_t>(_type)];
 }
 
-const std::string &DEFLATEDecompressor::getSubName() const
+const std::string &DEFLATEDecompressor::getSubName() const noexcept
 {
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-GZIP: Deflate";
 	return name;
 }
 
-size_t DEFLATEDecompressor::getPackedSize() const
+size_t DEFLATEDecompressor::getPackedSize() const noexcept
 {
 	// no way to know before decompressing
-	if (!_isValid) return 0;
-	if (_type==Type::GZIP)
-	{
-		return _packedSize+8;
-	} else if (_type==Type::ZLib) {
-		return _packedSize+2;
-	} else  return _packedSize;
+	return _packedSize;
 }
 
 
-size_t DEFLATEDecompressor::getRawSize() const
+size_t DEFLATEDecompressor::getRawSize() const noexcept
 {
 	// same thing, decompression needed first
-	if (!_isValid) return 0;
 	return _rawSize;
 }
 
-bool DEFLATEDecompressor::decompress(Buffer &rawData)
+void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	size_t rawSize=_rawSize;
-	if (rawSize<rawData.size()) rawSize=rawData.size();
+	size_t packedSize=_packedSize?_packedSize:_packedData.size();
+	size_t rawSize=_rawSize?_rawSize:rawData.size();
 
-	if (!_isValid || rawData.size()<rawSize) return false;
-
-	bool streamStatus=true;
 	const uint8_t *bufPtr=_packedData.data();
 	size_t bufOffset=_packedOffset;
 
@@ -256,11 +198,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 		uint8_t ret=0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset>=_packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw DecompressionError();
 			bufBitsContent=bufPtr[bufOffset++];
 			bufBitsLength=8;
 		}
@@ -272,14 +210,9 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		if (!streamStatus) return 0;
 		while (bufBitsLength<count)
 		{
-			if (bufOffset>=_packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset>=packedSize) throw DecompressionError();
 			bufBitsContent|=uint32_t(bufPtr[bufOffset++])<<bufBitsLength;
 			bufBitsLength+=8;
 		}
@@ -300,19 +233,14 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 		{
 			bufBitsLength=0;
 			bufBitsContent=0;
-			uint16_t len,nlen;
-			if (!_packedData.readLE(bufOffset,len)) streamStatus=false;
-			if (!_packedData.readLE(bufOffset+2,nlen)) streamStatus=false;
+			uint16_t len=_packedData.readLE16(bufOffset);
+			uint16_t nlen=_packedData.readLE16(bufOffset+2);
 			bufOffset+=4;
-			if (len!=uint16_t(~nlen)) streamStatus=false;
-			if (!streamStatus || bufOffset+len>_packedSize || destOffset+len>rawSize)
-			{
-				streamStatus=false;
-			} else {
-				::memcpy(&dest[destOffset],&bufPtr[bufOffset],len);
-				bufOffset+=len;
-				destOffset+=len;
-			}
+			if (len!=(nlen^0xffffU)) throw DecompressionError();
+			if (bufOffset+len>packedSize || destOffset+len>rawSize) throw DecompressionError();
+			::memcpy(&dest[destOffset],&bufPtr[bufOffset],len);
+			bufOffset+=len;
+			destOffset+=len;
 		} else if (blockType==1 || blockType==2) {
 			typedef HuffmanDecoder<int32_t,-1,0> DEFLATEDecoder;
 			DEFLATEDecoder llDecoder;
@@ -328,12 +256,8 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 				for (uint32_t i=0;i<30;i++) distanceDecoder.insert(HuffmanCode<int32_t>{5,i,int32_t(i)});
 			} else {
 				uint32_t hlit=readBits(5)+257;
-				// lets just error here, it is simpler
-				if (hlit>=287)
-				{
-					streamStatus=false;
-					break;
-				}
+				// lets just error here, it is simpler (possibly deflate64 stream)
+				if (hlit>=287) throw DecompressionError();
 				uint32_t hdist=readBits(5)+1;
 				uint32_t hclen=readBits(4)+4;
 
@@ -345,33 +269,8 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 					14, 1,15};
 				for (uint32_t i=0;i<hclen;i++) lengthTable[lengthTableOrder[i]]=readBits(3);
 
-				auto createHuffmanTable=[&](DEFLATEDecoder &dec,const uint8_t *bitLengths,uint32_t bitTableLength)
-				{
-					uint8_t minDepth=16,maxDepth=0;
-					for (uint32_t i=0;i<bitTableLength;i++)
-					{
-						if (bitLengths[i] && bitLengths[i]<minDepth) minDepth=bitLengths[i];
-						if (bitLengths[i]>maxDepth) maxDepth=bitLengths[i];
-					}
-					if (!maxDepth) return;
-
-					uint32_t code=0;
-					for (uint32_t depth=minDepth;depth<=maxDepth;depth++)
-					{
-						for (uint32_t i=0;i<bitTableLength;i++)
-						{
-							if (bitLengths[i]==depth)
-							{
-								dec.insert(HuffmanCode<int32_t>{depth,code>>(maxDepth-depth),int32_t(i)});
-								code+=1<<(maxDepth-depth);
-							}
-						}
-					}
-					if (streamStatus) streamStatus=dec.isValid();
-				};
-
 				DEFLATEDecoder bitLengthDecoder;
-				createHuffmanTable(bitLengthDecoder,lengthTable,19); // 19 and not hclen due to reordering
+				CreateOrderlyHuffmanTable(bitLengthDecoder,lengthTable,19); // 19 and not hclen due to reordering
 
 				// can the previous code flow from ll to distance table?
 				// specification does not say and treats the two almost as combined.
@@ -384,15 +283,11 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 
 				uint8_t prevValue=0;
 				uint32_t i=0;
-				while (i<hlit+hdist&&streamStatus)
+				while (i<hlit+hdist)
 				{
 					auto insert=[&](uint8_t value)
 					{
-						if (i>=hlit+hdist)
-						{
-							streamStatus=false;
-							return;
-						}
+						if (i>=hlit+hdist) throw DecompressionError();
 						if (i>=hlit) distanceTableBits[i-hlit]=value;
 							else llTableBits[i]=value;
 						prevValue=value;
@@ -400,10 +295,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 					};
 
 					int32_t code=bitLengthDecoder.decode(readBit);
-					if (code<0)
-					{
-						streamStatus=false;
-					} else if (code<16) {
+					if (code<16) {
 						insert(code);
 					} else switch (code) {
 						case 16:
@@ -411,7 +303,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 						{
 							uint32_t count=readBits(2)+3;
 							for (uint32_t j=0;j<count;j++) insert(prevValue);
-						} else streamStatus=false;
+						} else throw DecompressionError();
 						break;
 
 						case 17:
@@ -423,28 +315,22 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 						break;
 
 						default:
-						streamStatus=false;
-						break;
+						throw DecompressionError();
 					}
 					
 				}
 
-				createHuffmanTable(llDecoder,llTableBits,hlit);
-				createHuffmanTable(distanceDecoder,distanceTableBits,hdist);
+				CreateOrderlyHuffmanTable(llDecoder,llTableBits,hlit);
+				CreateOrderlyHuffmanTable(distanceDecoder,distanceTableBits,hdist);
 			}
 
 			// and now decode
-			while (streamStatus)
+			for (;;)
 			{
 				int32_t code=llDecoder.decode(readBit);
-				if (code<0)
-				{
-					streamStatus=false;
-				} else if (code<256) {
-					if (destOffset>=rawSize)
-					{
-						streamStatus=false;
-					} else dest[destOffset++]=code;
+				if (code<256) {
+					if (destOffset>=rawSize) throw DecompressionError();
+					dest[destOffset++]=code;
 				} else if (code==256) {
 					break;
 				} else {
@@ -463,11 +349,7 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 						5,5,5,5,0};
 					uint32_t count=readBits(lengthBits[code-257])+lengthAdditions[code-257];
 					int32_t distCode=distanceDecoder.decode(readBit);
-					if (distCode<0 || distCode>29)
-					{
-						streamStatus=false;
-						break;
-					}
+					if (distCode<0 || distCode>29) throw DecompressionError();
 					static const uint32_t distanceAdditions[30]={
 						1,2,3,4,5,7,9,13,
 						0x11,0x19,0x21,0x31,0x41,0x61,0x81,0xc1,
@@ -480,35 +362,48 @@ bool DEFLATEDecompressor::decompress(Buffer &rawData)
 						11,11,12,12,13,13};
 					uint32_t distance=readBits(distanceBits[distCode])+distanceAdditions[distCode];
 
-					if (!streamStatus || distance>destOffset || destOffset+count>rawSize)
-					{
-						streamStatus=false;
-					} else {
-						for (uint32_t i=0;i<count;i++,destOffset++)
-							dest[destOffset]=dest[destOffset-distance];
-					}
+					if (distance>destOffset || destOffset+count>rawSize) throw DecompressionError();
+					for (uint32_t i=0;i<count;i++,destOffset++)
+						dest[destOffset]=dest[destOffset-distance];
 				}
 			}
 		} else {
-			streamStatus=false;
+			throw DecompressionError();
 		}
-	} while (!final && streamStatus);
+	} while (!final);
 
-	if (streamStatus && !_rawSize)
+	if (!_rawSize) _rawSize=destOffset;
+	if (_type==Type::GZIP)
 	{
-		_rawSize=destOffset;
+		if (bufOffset+8>packedSize) throw DecompressionError();
+		if (!_packedSize)
+			_packedSize=bufOffset+8;
+	} else if (_type==Type::ZLib) {
+		if (bufOffset+4>packedSize) throw DecompressionError();
+		if (!_packedSize)
+			_packedSize=bufOffset+4;
+	} else {
+		if (!_packedSize)
+			_packedSize=bufOffset;
 	}
-	bool ret=(streamStatus && _rawSize==destOffset);
-	if (ret && _packedSize>bufOffset)
+	if (_rawSize!=destOffset) throw DecompressionError();
+
+	if (verify)
 	{
-		_packedSize=bufOffset;
+		if (_type==Type::GZIP)
+		{
+			uint32_t crc=_packedData.readLE32(bufOffset);
+			if (CRC32(rawData,0,_rawSize,0)!=crc) throw VerificationError();
+		} else if (_type==Type::ZLib) {
+			uint32_t adler=_packedData.readBE32(bufOffset);
+			if (Adler32(rawData,0,_rawSize)!=adler) throw VerificationError();
+		}
 	}
-	return ret;
 }
 
-bool DEFLATEDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void DEFLATEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	return decompress(rawData);
+	decompressImpl(rawData,verify);
 }
 
 Decompressor::Registry<DEFLATEDecompressor> DEFLATEDecompressor::_registration;

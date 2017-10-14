@@ -8,6 +8,9 @@
 
 #include <vector>
 
+// For exception
+#include "Decompressor.hpp"
+
 template<typename T>
 struct HuffmanCode
 {
@@ -24,11 +27,13 @@ private:
 	static const size_t _length=(2<<depth)-2;
 
 public:
+	typedef T ItemType;
+	typedef HuffmanCode<T> CodeType;
+
 	HuffmanDecoder(const HuffmanDecoder&)=delete;
 	HuffmanDecoder& operator=(const HuffmanDecoder&)=delete;
 
-	HuffmanDecoder() :
-		_isValid(true)
+	HuffmanDecoder()
 	{
 		for (size_t i=0;i<_length;i++) _table[i]=emptyValue;
 	}
@@ -48,13 +53,7 @@ public:
 
 	void reset()
 	{
-		_isValid=true;
 		for (size_t i=0;i<_length;i++) _table[i]=emptyValue;
-	}
-
-	bool isValid() const
-	{
-		return _isValid;
 	}
 
 	template<typename F>
@@ -67,31 +66,23 @@ public:
 			ret=_table[i];
 			i=i*2+2;
 		} while (ret==emptyValue && i<_length);
+		if (ret==emptyValue) throw Decompressor::DecompressionError();
 		return ret;
 	}
 
 	void insert(const HuffmanCode<T> &code)
 	{
-		if (code.length>depth)
-		{
-			_isValid=false;
-			return;
-		}
+		if (code.value==emptyValue || code.length>depth) throw Decompressor::DecompressionError();
 		for (size_t i=0,j=code.length;j!=0;j--)
 		{
 			if (code.code&(1<<(j-1))) i++;
-			if (_table[i]!=emptyValue)
-			{
-				_isValid=false;
-				return;
-			}
+			if (_table[i]!=emptyValue) throw Decompressor::DecompressionError();
 			if (j==1) _table[i]=code.value;
 			i=i*2+2;
 		}
 	}
 
 private:
-	bool	_isValid;
 	T	_table[_length];
 };
 
@@ -108,8 +99,10 @@ private:
 	};
 
 public:
-	HuffmanDecoder() :
-		_isValid(true)
+	typedef T ItemType;
+	typedef HuffmanCode<T> CodeType;
+
+	HuffmanDecoder()
 	{
 		_table.push_back(Node{{0,0},emptyValue});
 	}
@@ -129,13 +122,8 @@ public:
 
 	void reset()
 	{
-		_isValid=true;
 		_table.clear();
-	}
-
-	bool isValid() const
-	{
-		return _isValid;
+		_table.push_back(Node{{0,0},emptyValue});
 	}
 
 	template<typename F>
@@ -150,11 +138,13 @@ public:
 			ret=_table[i].value;
 			if (!i) break;
 		}
+		if (ret==emptyValue) throw Decompressor::DecompressionError();
 		return ret;
 	}
 
 	void insert(const HuffmanCode<T> &code)
 	{
+		if (code.value==emptyValue) throw Decompressor::DecompressionError();
 		size_t i=0,length=_table.size();
 		for (int32_t currentBit=code.length;currentBit>=0;currentBit--)
 		{
@@ -165,11 +155,7 @@ public:
 				length++;
 				i++;
 			} else {
-				if (!currentBit || _table[i].value!=emptyValue)
-				{
-					_isValid=false;
-					return;
-				}
+				if (!currentBit || _table[i].value!=emptyValue) throw Decompressor::DecompressionError();
 				size_t tmp=_table[i].sub[codeBit];
 				if (!tmp)
 				{
@@ -183,8 +169,33 @@ public:
 	}
 
 private:
-	bool			_isValid;
 	std::vector<Node>	_table;
 };
+
+// create orderly Huffman table, as used by Deflate and Bzip2
+template<typename T>
+void CreateOrderlyHuffmanTable(T &dec,const uint8_t *bitLengths,uint32_t bitTableLength)
+{
+	uint8_t minDepth=32,maxDepth=0;
+	for (uint32_t i=0;i<bitTableLength;i++)
+	{
+		if (bitLengths[i] && bitLengths[i]<minDepth) minDepth=bitLengths[i];
+		if (bitLengths[i]>maxDepth) maxDepth=bitLengths[i];
+	}
+	if (!maxDepth) throw Decompressor::DecompressionError();
+
+	uint32_t code=0;
+	for (uint32_t depth=minDepth;depth<=maxDepth;depth++)
+	{
+		for (uint32_t i=0;i<bitTableLength;i++)
+		{
+			if (bitLengths[i]==depth)
+			{
+				dec.insert(typename T::CodeType{depth,code>>(maxDepth-depth),(typename T::ItemType)i});
+				code+=1<<(maxDepth-depth);
+			}
+		}
+	}
+}
 
 #endif

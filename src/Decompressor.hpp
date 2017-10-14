@@ -15,6 +15,27 @@
 class Decompressor
 {
 public:
+	// just a base class to easily catch all the errors
+	class Error : public std::exception
+	{
+		// nothing needed
+	};
+
+	class InvalidFormatError : public Error
+	{
+		// nothing needed
+	};
+
+	class DecompressionError : public Error
+	{
+		// nothing needed
+	};
+
+	class VerificationError : public Error
+	{
+		// nothing needed
+	};
+
 	Decompressor()=default;
 
 	Decompressor(const Decompressor&)=delete;
@@ -22,23 +43,24 @@ public:
 
 	virtual ~Decompressor();
 
-	// if the data-stream is constructed properly, return true
-	virtual bool isValid() const=0;
-	// check the packedData for errors: CRC or other checksum if available
-	virtual bool verifyPacked() const=0;
-	virtual bool verifyRaw(const Buffer &rawData) const=0;
+	// Name returned is human readable long name
+	virtual const std::string &getName() const noexcept=0;
 
-	// Book keeping
-	// Name is human readable long name
-	virtual const std::string &getName() const;
-	// PackedSize or RawSize are taken from the stream
-	// if available. 0 otherwise. Sometimes decompression will update the size
-	// f.e. TPWM
-	virtual size_t getPackedSize() const=0;
-	virtual size_t getRawSize() const=0;
+	// PackedSize or RawSize are taken from the stream if available, 0 otherwise.
+	// for those compressors having 0 sizes, running decompression will update
+	// the values. (make sure to allocate big-enough buffer for decompression)
+	// There are exceptions: Some decompressors need to exact size of the packed data
+	// in order to decompress. For those providing a indefinitely size packed stream
+	// will not work
+	// use the "exactSizeKnown" flag for create to tell whether you know the size or not
+	virtual size_t getPackedSize() const noexcept=0;
+	virtual size_t getRawSize() const noexcept=0;
 
-	// Actual decompression
-	virtual bool decompress(Buffer &rawData)=0;
+	// Actual decompression.
+	// verify checksum if verify==true
+	// can throw DecompressionError if stream cant be unpacked
+	// can throw VerificationError if verify enabled and checksum does not match
+	void decompress(Buffer &rawData,bool verify);
 
 	// the functions are there to protect against "accidental" large files when parsing headers
 	// a.k.a. 16M should be enough for everybody (sizes do not have to accurate i.e.
@@ -50,6 +72,18 @@ public:
 	// This is for limiting memory usage of the algorithms. Again not a hard limit but rule of the thumb
 	static constexpr size_t getMaxMemorySize() noexcept { return 0x10'0000U; }
 
+	// Main entrypoint
+	// if verify=true then check the packedData for errors: CRC or other checksum if available
+	// check exactSizeKnown from size documentation
+	// can throw InvalidFormatError if stream is not recognized or it is invalid
+	// can throw VerificationError if verify enabled and checksum does not match
+	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
+
+	// Detect signature whether it matches to any known compressor
+	// This does not guarantee the data is decompressable though, only signature is read
+	static bool detect(const Buffer &packedData) noexcept;
+
+	// Registering new decompressors, not really part of public API
 	template<class T>
 	class Registry
 	{
@@ -65,13 +99,13 @@ public:
 		}
 	};
 
-	// Main entrypoint
-	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown);
+protected:
+	virtual void decompressImpl(Buffer &rawData,bool verify)=0;
 
 private:
-	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool));
+	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool,bool));
 
-	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool)>> *_decompressors;
+	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> *_decompressors;
 };
 
 

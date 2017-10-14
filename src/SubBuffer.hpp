@@ -32,26 +32,26 @@ public:
 	
 	virtual ~GenericSubBuffer() { }
 
-	virtual const uint8_t *data() const override
+	virtual const uint8_t *data() const noexcept override
 	{
 		return _base.data()+_start;
 	}
 
 	virtual uint8_t *data() override;
 
-	virtual size_t size() const override
+	virtual size_t size() const noexcept override
 	{
 		return _length;
 	}
 
 	// can only make the buffer smaller, can't run away from the current bounds
-	bool adjust(size_t start,size_t length)
+	void adjust(size_t start,size_t length)
 	{
-		if (start<_start || start+length>_start+_length) return false;
+		if (start<_start || start+length>_start+_length) throw OutOfBoundsError();
 		_start=start;
 		_length=length;
-		return true;
 	}
+
 private:
 	T &_base;
 	size_t	_start;

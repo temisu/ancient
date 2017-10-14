@@ -2,22 +2,21 @@
 
 #include "TDCSDecompressor.hpp"
 
-bool TDCSDecompressor::detectHeaderXPK(uint32_t hdr)
+bool TDCSDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('TDCS');
 }
 
-std::unique_ptr<XPKDecompressor> TDCSDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> TDCSDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<TDCSDecompressor>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<TDCSDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-TDCSDecompressor::TDCSDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+TDCSDecompressor::TDCSDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
 
 TDCSDecompressor::~TDCSDecompressor()
@@ -25,36 +24,15 @@ TDCSDecompressor::~TDCSDecompressor()
 	// nothing needed
 }
 
-bool TDCSDecompressor::isValid() const
+const std::string &TDCSDecompressor::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool TDCSDecompressor::verifyPacked() const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-bool TDCSDecompressor::verifyRaw(const Buffer &rawData) const
-{
-	// nothing can be done
-	return _isValid;
-}
-
-const std::string &TDCSDecompressor::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-TDCS: LZ77-compressor";
 	return name;
 }
 
-bool TDCSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
+void TDCSDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid) return false;
-
 	// Stream reading
-	bool streamStatus=true;
 	size_t packedSize=_packedData.size();
 	const uint8_t *bufPtr=_packedData.data();
 
@@ -64,14 +42,9 @@ bool TDCSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto read2Bits=[&]()->uint8_t
 	{
-		if (!streamStatus) return 0;
 		if (!bufBitsLength)
 		{
-			if (bufOffset+4>packedSize)
-			{
-				streamStatus=false;
-				return 0;
-			}
+			if (bufOffset+4>packedSize) throw Decompressor::DecompressionError();
 			for (uint32_t i=0;i<4;i++) bufBitsContent=uint32_t(bufPtr[bufOffset++])|(bufBitsContent<<8);
 			bufBitsLength=32;
 		}
@@ -83,11 +56,7 @@ bool TDCSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=packedSize)
-		{
-			streamStatus=false;
-			return 0;
-		}
+		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
 		return bufPtr[bufOffset++];
 	};
 
@@ -95,7 +64,7 @@ bool TDCSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 	size_t rawSize=rawData.size();
 	size_t destOffset=0;
 
-	while (streamStatus && destOffset<rawSize)
+	while (destOffset!=rawSize)
 	{
 		uint32_t distance=0;
 		uint32_t count=0;
@@ -124,27 +93,20 @@ bool TDCSDecompressor::decompress(Buffer &rawData,const Buffer &previousData)
 			distance=uint32_t(readByte())<<8;
 			distance|=uint32_t(readByte());
 			count=uint32_t(readByte())+3;
-			if (!distance) streamStatus=false;
+			if (!distance) throw Decompressor::DecompressionError();
 			distance=(distance^0xffff)+1;
 			break;
 			
 			default:
-			streamStatus=false;
-			break;
+			throw Decompressor::DecompressionError();
 		}
-		if (streamStatus && count && distance)
+		if (count && distance)
 		{
-			if (distance>destOffset || destOffset+count>rawSize)
-			{
-				streamStatus=false;
-			} else {
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[destOffset-distance];
-			}
+			if (distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+			for (uint32_t i=0;i<count;i++,destOffset++)
+				dest[destOffset]=dest[destOffset-distance];
 		}
 	}
-
-	return streamStatus && destOffset==rawSize;
 }
 
 XPKDecompressor::Registry<TDCSDecompressor> TDCSDecompressor::_XPKregistration;

@@ -2,22 +2,21 @@
 
 #include "DLTADecode.hpp"
 
-bool DLTADecode::detectHeaderXPK(uint32_t hdr)
+bool DLTADecode::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('DLTA');
 }
 
-std::unique_ptr<XPKDecompressor> DLTADecode::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state)
+std::unique_ptr<XPKDecompressor> DLTADecode::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<DLTADecode>(hdr,recursionLevel,packedData,state);
+	return std::make_unique<DLTADecode>(hdr,recursionLevel,packedData,state,verify);
 }
 
-DLTADecode::DLTADecode(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state) :
+DLTADecode::DLTADecode(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData)
 {
-	if (!detectHeaderXPK(hdr)) return;
-	_isValid=true;
+	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
 
 DLTADecode::~DLTADecode()
@@ -25,32 +24,16 @@ DLTADecode::~DLTADecode()
 	// nothing needed
 }
 
-bool DLTADecode::isValid() const
+const std::string &DLTADecode::getSubName() const noexcept
 {
-	return _isValid;
-}
-
-bool DLTADecode::verifyPacked() const
-{
-	return _isValid;
-}
-
-bool DLTADecode::verifyRaw(const Buffer &rawData) const
-{
-	return _isValid;
-}
-
-const std::string &DLTADecode::getSubName() const
-{
-	if (!_isValid) return XPKDecompressor::getSubName();
 	static std::string name="XPK-DLTA: Delta encoding";
 	return name;
 }
 
-bool DLTADecode::decode(Buffer &bufferDest,const Buffer &bufferSrc,size_t offset,size_t size)
+void DLTADecode::decode(Buffer &bufferDest,const Buffer &bufferSrc,size_t offset,size_t size)
 {
-	if (bufferSrc.size()<offset+size) return false;
-	if (bufferDest.size()<offset+size) return false;
+	if (bufferSrc.size()<offset+size) throw Buffer::OutOfBoundsError();
+	if (bufferDest.size()<offset+size) throw Buffer::OutOfBoundsError();;
 	const uint8_t *src=bufferSrc.data()+offset;
 	uint8_t *dest=bufferDest.data()+offset;
 
@@ -60,15 +43,13 @@ bool DLTADecode::decode(Buffer &bufferDest,const Buffer &bufferSrc,size_t offset
 		ctr+=src[i];
 		dest[i]=ctr;
 	}
-	return true;
 }
 
 
-bool DLTADecode::decompress(Buffer &rawData,const Buffer &previousData)
+void DLTADecode::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (!_isValid || rawData.size()<_packedData.size()) return false;
-
-	return decode(rawData,_packedData,0,_packedData.size());
+	if (rawData.size()<_packedData.size()) throw Decompressor::DecompressionError();
+	decode(rawData,_packedData,0,_packedData.size());
 }
 
 XPKDecompressor::Registry<DLTADecode> DLTADecode::_XPKregistration;

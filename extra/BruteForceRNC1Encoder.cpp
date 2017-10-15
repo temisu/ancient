@@ -23,11 +23,11 @@ public:
 
 	virtual ~VectorBuffer() override final;
 
-	virtual const uint8_t *data() const override final;
+	virtual const uint8_t *data() const noexcept override final;
 	virtual uint8_t *data() override final;
-	virtual size_t size() const override final;
+	virtual size_t size() const noexcept override final;
 
-	virtual bool isResizable() const override final;
+	virtual bool isResizable() const noexcept override final;
 	virtual void resize(size_t newSize) override final;
 
 private:
@@ -44,7 +44,7 @@ VectorBuffer::~VectorBuffer()
 	// nothing needed
 }
 
-const uint8_t *VectorBuffer::data() const
+const uint8_t *VectorBuffer::data() const noexcept
 {
 	return _data.data();
 }
@@ -54,12 +54,12 @@ uint8_t *VectorBuffer::data()
 	return _data.data();
 }
 
-size_t VectorBuffer::size() const
+size_t VectorBuffer::size() const noexcept
 {
 	return _data.size();
 }
 
-bool VectorBuffer::isResizable() const
+bool VectorBuffer::isResizable() const noexcept
 {
 	return true;
 }
@@ -137,7 +137,7 @@ uint16_t RNCCRC(const uint8_t *buffer,size_t len)
 }
 
 // this is really really quick 'n dirty
-// TODO: leeway is missing!
+// leeway is suspicious. I can't see it from the official RNC ProPack, but seems to be present elsewhere...
 void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 {
 	if (!chunkSize) chunkSize=65536;
@@ -170,6 +170,7 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 
 	uint32_t offset=0;
 	uint32_t chunkCount=0;
+	uint32_t leeway=0;
 	while (offset!=source.size())
 	{
 		auto bitLength=[](uint32_t value)->uint32_t
@@ -208,7 +209,7 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 				{
 					// encoding cost: how efficiently this hit encodes stuff
 					if (i>3 || bitLength(i-2)+bitLength(distance-1)<7 ||
-						(i==3 && bitLength(i-2)+bitLength(distance-1)<15))
+						(i==3 && bitLength(i-2)+bitLength(distance-1)<10))
 					{
 						best=std::make_pair(i,distance);
 					}
@@ -421,6 +422,7 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 		std::vector<std::pair<uint32_t,uint32_t>> distanceCodes(32,std::make_pair(0,0));
 		std::vector<std::pair<uint32_t,uint32_t>> lengthCodes(32,std::make_pair(0,0));
 
+		uint32_t streamStart=uint32_t(stream.size());
 		createHuffmanCodeTable(litCodes,litFrequencies);
 		createHuffmanCodeTable(distanceCodes,distanceFrequencies);
 		createHuffmanCodeTable(lengthCodes,lengthFrequencies);
@@ -461,6 +463,9 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 				break;
 			}
 		}
+		uint32_t outputLength=uint32_t(stream.size())-streamStart;
+		if (currentChunkSize>outputLength && outputLength-outputLength>leeway)
+			leeway=outputLength-outputLength;
 	}
 
 	if (bitAccumCount)
@@ -481,6 +486,13 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 	stream[14]=uint8_t(packedCrc>>8);
 	stream[15]=uint8_t(packedCrc);
 
+	if (leeway>255)
+	{
+		fprintf(stderr,"Leeway larger than 255\n");
+		exit(-1);
+	}
+
+	stream[16]=leeway;
 	stream[17]=chunkCount;
 
 	dest.resize(stream.size());

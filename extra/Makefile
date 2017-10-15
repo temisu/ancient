@@ -6,7 +6,7 @@ CC	= clang
 CXX	= clang++
 COMMONFLAGS = -g -Wall -Wsign-compare -Wshorten-64-to-32 -Wno-error=multichar -Wno-multichar -I../src
 CFLAGS	= $(COMMONFLAGS)
-CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti -fno-exceptions
+CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti
 
 PROG	= bruteRNC1
 OBJS	= Buffer.o SubBuffer.o BruteForceRNC1Encoder.o

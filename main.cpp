@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <functional>
 
 #include <stdio.h>
 #include <dirent.h>

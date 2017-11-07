@@ -9,10 +9,10 @@ CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti
 
 PROG	= ancient
-OBJS	= Buffer.o SubBuffer.o CRC32.o \
+OBJS	= Buffer.o FixedMemoryBuffer.o SubBuffer.o CRC16.o CRC32.o \
 	Decompressor.o XPKDecompressor.o XPKMaster.o main.o \
 	ACCADecompressor.o BLZWDecompressor.o BZIP2Decompressor.o CBR0Decompressor.o \
-	CRMDecompressor.o CYB2Decoder.o DEFLATEDecompressor.o DLTADecode.o \
+	CRMDecompressor.o CYB2Decoder.o DEFLATEDecompressor.o DLTADecode.o DMSDecompressor.o \
 	FASTDecompressor.o FBR2Decompressor.o FRLEDecompressor.o HFMNDecompressor.o \
 	HUFFDecompressor.o ILZRDecompressor.o IMPDecompressor.o LHLBDecompressor.o \
 	LIN1Decompressor.o LIN2Decompressor.o LZBSDecompressor.o LZW2Decompressor.o \

@@ -62,6 +62,13 @@ public:
 	// can throw VerificationError if verify enabled and checksum does not match
 	void decompress(Buffer &rawData,bool verify);
 
+	// in case of disk image based formats the data does not necessarily start
+	// from logical beginnig of the image but it is offsetted inside the logical image
+	// (f.e. DMS). getDataOffset will return the offset (or 0 if not relevant or if offset does not exist)
+	// getImageSize will return the size of the the logical image, or 0 if not image-based format
+	virtual size_t getImageSize() const noexcept;
+	virtual size_t getImageOffset() const noexcept;
+
 	// the functions are there to protect against "accidental" large files when parsing headers
 	// a.k.a. 16M should be enough for everybody (sizes do not have to accurate i.e.
 	// compressors can exclude header content for simplification)
@@ -69,8 +76,6 @@ public:
 	// for other usages these need to be tuned up
 	static constexpr size_t getMaxPackedSize() noexcept { return 0x100'0000U; }
 	static constexpr size_t getMaxRawSize() noexcept { return 0x100'0000U; }
-	// This is for limiting memory usage of the algorithms. Again not a hard limit but rule of the thumb
-	static constexpr size_t getMaxMemorySize() noexcept { return 0x10'0000U; }
 
 	// Main entrypoint
 	// if verify=true then check the packedData for errors: CRC or other checksum if available

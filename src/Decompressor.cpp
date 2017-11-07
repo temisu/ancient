@@ -55,3 +55,13 @@ void Decompressor::decompress(Buffer &rawData,bool verify)
 		throw DecompressionError();
 	}
 }
+
+size_t Decompressor::getImageSize() const noexcept
+{
+	return 0;
+}
+
+size_t Decompressor::getImageOffset() const noexcept
+{
+	return 0;
+}

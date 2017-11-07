@@ -21,10 +21,9 @@ ZENODecompressor::ZENODecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	// first 4 bytes is checksum for password. It needs to be zero
 	if (_packedData.readBE32(0)) throw Decompressor::InvalidFormatError();
 	_maxBits=_packedData.read8(4);
-	if (_maxBits<9 || _maxBits>24) throw Decompressor::InvalidFormatError();
+	if (_maxBits<9 || _maxBits>20) throw Decompressor::InvalidFormatError();
 	_startOffset=uint32_t(_packedData.read8(5))+6;
-	if (_startOffset>=_packedData.size() || (5U<<_maxBits)>Decompressor::getMaxMemorySize())
-		throw Decompressor::InvalidFormatError();
+	if (_startOffset>=_packedData.size()) throw Decompressor::InvalidFormatError();
 }
 
 ZENODecompressor::~ZENODecompressor()

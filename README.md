@@ -19,6 +19,9 @@ Decompression algorithms provided:
   * Crm!: Crunch-Mania standard-mode, sampled
   * CrM2: Crunch-Mania LZH-mode
   * Crm2: Crunch-Mania LZH-mode, sampled
+* Disk Masher System a.k.a. DMS
+  * Supports all different compression methods (NONE,SIMPLE,QUICK,MEDIUM,DEEP,HEAVY1,HEAVY2)
+  * Supports password bypassing
 * File Imploder (and most of its clones), specifically with following headers:
   * IMP!
   * ATN!
@@ -92,16 +95,17 @@ Special thanks go to Cholok for providing me references to many of the XPK-compr
 
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
 
-Currently planned future additions:
+Current work in progress
 * Completing XPK: ARTM, DCMB, DMCU (maybe), LZCB, PPMQ, SASC, SHSC
 * Support for MMCMP, StoneCracker
-* Disk images support for DMS, Warp and DiskSqueeze
+* Disk images support for Warp and DiskSqueeze
 
 Not planned:
 * PPC only XPK compressors
 
 Wishlist:
 * More files for my testbench
+* More DMS images
 * XPK DMCI and DMCD compressors. I can't find it anywhere or find anyone who knows anything about it. Would be fun to add it for completeness
 * XPK TLTA compressor/encoder. ditto.
 * XPK CBR1 compressor. Is this a thing? Probably not but I'd like to get my hands on the actual library to see it myself.

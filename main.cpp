@@ -1,8 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <memory>
-
 #include <stdint.h>
+
+#include <memory>
 #include <fstream>
 #include <vector>
 #include <string>
@@ -186,6 +186,12 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		raw->resize(decompressor->getRawSize());
+
+		if (decompressor->getImageOffset() || decompressor->getImageSize())
+		{
+			printf("File %s is disk image, decompressed stream offset is %zu, full image size is %zu\n",argv[2],decompressor->getImageOffset(),decompressor->getImageSize());
+			printf("!!! Please note !!!\n!!! The destionation will not be padded !!!\n\n");
+		}
 
 		if (cmd=="decompress")
 		{

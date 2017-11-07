@@ -18,9 +18,8 @@ BLZWDecompressor::BLZWDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 	_maxBits=_packedData.readBE16(0);
-	if (_maxBits<9 || _maxBits>24) throw Decompressor::InvalidFormatError();;
+	if (_maxBits<9 || _maxBits>20) throw Decompressor::InvalidFormatError();;
 	_stackLength=uint32_t(_packedData.readBE16(2))+5;
-	if ((5U<<_maxBits)+_stackLength>Decompressor::getMaxMemorySize()) throw Decompressor::InvalidFormatError();;
 }
 
 BLZWDecompressor::~BLZWDecompressor()

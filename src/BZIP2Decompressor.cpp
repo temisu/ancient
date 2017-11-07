@@ -5,6 +5,8 @@
 
 #include "BZIP2Decompressor.hpp"
 #include "HuffmanDecoder.hpp"
+
+#include <FixedMemoryBuffer.hpp>
 #include <CRC32.hpp>
 
 bool BZIP2Decompressor::detectHeader(uint32_t hdr) noexcept
@@ -154,7 +156,7 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 		HuffmanCode<int32_t>{2,0b11,-1}
 	};
 
-	std::vector<uint8_t> tmpBuffer(_blockSize);
+	FixedMemoryBuffer tmpBuffer(_blockSize);
 	uint8_t *tmpBufferPtr=tmpBuffer.data();
 
 	// This is the dark, ancient secret of bzip2.
@@ -303,7 +305,7 @@ bzip2/libbzip2 version 1.0.6 of 6 September 2010
 				uint32_t selectorsUsed=readBits(15);
 				if (!selectorsUsed) throw DecompressionError();
 
-				std::vector<uint8_t> huffmanSelectorList(selectorsUsed);
+				FixedMemoryBuffer huffmanSelectorList(selectorsUsed);
 
 				auto unMFT=[](uint8_t value,uint8_t map[])->uint8_t
 				{
@@ -424,8 +426,8 @@ bzip2/libbzip2 version 1.0.6 of 6 September 2010
 			// since by calculating forward table we can do forward decoding of the data on the same pass as iBWT
 			//
 			// also, because I'm lazy
-			std::vector<uint32_t> forwardIndex(currentBlockSize);
-			uint32_t *forwardIndexPtr=forwardIndex.data();
+			FixedMemoryBuffer forwardIndex(currentBlockSize*sizeof(uint32_t));
+			uint32_t *forwardIndexPtr=reinterpret_cast<uint32_t*>(forwardIndex.data());
 			for (uint32_t i=0;i<currentBlockSize;i++)
 				forwardIndexPtr[rank[tmpBufferPtr[i]]++]=i;
 

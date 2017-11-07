@@ -139,18 +139,7 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 			}
 			if (!maxDepth) return;
 
-			uint32_t code=0;
-			for (uint32_t depth=minDepth;depth<=maxDepth;depth++)
-			{
-				for (uint32_t i=0;i<bitTableLength;i++)
-				{
-					if (bitLengths[i]==depth)
-					{
-						dec.insert(HuffmanCode<uint32_t>{depth,code>>(maxDepth-depth),i});
-						code+=1<<(maxDepth-depth);
-					}
-				}
-			}
+			CreateOrderlyHuffmanTable(dec,bitLengths,bitTableLength);
 		};
 
 		uint32_t method=readBits(3);

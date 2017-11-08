@@ -190,7 +190,7 @@ int main(int argc,char **argv)
 		if (decompressor->getImageOffset() || decompressor->getImageSize())
 		{
 			printf("File %s is disk image, decompressed stream offset is %zu, full image size is %zu\n",argv[2],decompressor->getImageOffset(),decompressor->getImageSize());
-			printf("!!! Please note !!!\n!!! The destionation will not be padded !!!\n\n");
+			printf("!!! Please note !!!\n!!! The destination will not be padded !!!\n\n");
 		}
 
 		if (cmd=="decompress")

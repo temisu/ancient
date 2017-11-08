@@ -25,7 +25,7 @@ public:
 	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
 
 private:
-	bool decompressImpl(Buffer &rawData,bool verify,uint32_t limitedDecompress,uint16_t passCode);
+	bool decompressImpl(Buffer &rawData,bool verify,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer);
 
 	class ShortInputError : public Error
 	{

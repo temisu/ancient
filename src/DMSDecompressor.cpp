@@ -155,7 +155,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 
 	if (!_isObsfuscated)
 	{
-		if (!decompressImpl(rawData,verify,~0U,0))
+		if (!decompressImpl(rawData,verify,~0U,0,true))
 			throw DecompressionError();
 	} else {
 		// fast try: If the disc is bootable, we can detect it really quickly
@@ -163,9 +163,9 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		{
 			try
 			{
-				if (!decompressImpl(rawData,false,8,passCandidate)) continue;
+				if (!decompressImpl(rawData,false,8,passCandidate,false)) continue;
 				if ((rawData.readBE32(0)&0xffff'ff00U)!=FourCC('DOS\0')) continue;
-				if (!decompressImpl(rawData,true,~0U,passCandidate)) continue;
+				if (!decompressImpl(rawData,true,~0U,passCandidate,true)) continue;
 				return;
 			} catch (const Buffer::Error &) {
 				// just continue
@@ -178,7 +178,8 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		{
 			try
 			{
-				if (!decompressImpl(rawData,true,~0U,passCandidate)) continue;
+				if (!decompressImpl(rawData,true,~0U,passCandidate,false)) continue;
+				if (!decompressImpl(rawData,true,~0U,passCandidate,true)) continue;
 				return;
 			} catch (const Buffer::Error &) {
 				// just continue
@@ -194,10 +195,10 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 // This makes the code even more messier. Like the implementatio would need any more than that
 // However we can use it surgigally on the fast path...
 // TODO: limitedDecompress only works on first track!
-bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limitedDecompress,uint16_t passCode)
+bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer)
 {
 	// fill unused tracks with zeros
-	::memset(rawData.data(),0,std::min(_rawSize,limitedDecompress));
+	if (clearBuffer) ::memset(rawData.data(),0,_rawSize);
 
 	auto checksum=[](const uint8_t *src,uint32_t srcLength)->uint16_t
 	{
@@ -304,7 +305,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 	uint32_t deepContextLocation;
 	// context used is 4096/8192 bytes
 	uint32_t heavyContextLocation;
-	DynamicHuffmanDecoder<314> deepDecoder;
+	std::unique_ptr<DynamicHuffmanDecoder<314>> deepDecoder;
 	auto initContext=[&]()
 	{
 		if (doInitContext)
@@ -313,8 +314,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 			quickContextLocation=251;
 			mediumContextLocation=16318;
 			deepContextLocation=16324;
-			if (deepDecoder.getMaxFrequency()!=314)
-				deepDecoder.reset();
+			deepDecoder.reset();
 			heavyContextLocation=0;
 			doInitContext=false;
 		}
@@ -472,13 +472,14 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 	{
 		initStream(src,srcLength);
 		initContext();
+		if (!deepDecoder) deepDecoder=std::make_unique<DynamicHuffmanDecoder<314>>();
 
 		destOffset=0;
 		while (destOffset!=destLength)
 		{
-			uint32_t symbol=deepDecoder.decode(readBit);
-			if (deepDecoder.getMaxFrequency()==0x8000U) deepDecoder.halve();
-			deepDecoder.update(symbol);
+			uint32_t symbol=deepDecoder->decode(readBit);
+			if (deepDecoder->getMaxFrequency()==0x8000U) deepDecoder->halve();
+			deepDecoder->update(symbol);
 			if (symbol<256)
 			{
 				dest[destOffset++]=contextBufferPtr[deepContextLocation++]=symbol;
@@ -501,7 +502,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 	};
 
 	// these are not part of the initContext like other methods
-	HeavyDecoder symbolDecoder,offsetDecoder;
+	std::unique_ptr<HeavyDecoder> symbolDecoder,offsetDecoder;
 	bool heavyLastInitialized=false;		// this is part of initContext on some implementations. screwy!!!
 	uint32_t heavyLastOffset;
 	auto unpackHeavy=[&](uint8_t *dest,const uint8_t *src,uint32_t destLength,uint32_t srcLength,bool initTables,bool use8kDict)
@@ -515,13 +516,13 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 			heavyLastInitialized=true;
 		}
 
-		auto readTable=[&](HeavyDecoder &decoder,uint32_t countBits,uint32_t valueBits)
+		auto readTable=[&](std::unique_ptr<HeavyDecoder> &decoder,uint32_t countBits,uint32_t valueBits)
 		{
-			decoder.reset();
+			decoder=std::make_unique<HeavyDecoder>();
 			uint32_t count=readBits(countBits);
 			if (count)
 			{
-				FixedMemoryBuffer lengthBuffer(count);
+				uint8_t lengthBuffer[count];
 				// in order to speed up the deObsfuscation, do not send the hopeless
 				// data into slow CreateOrderlyHuffmanTable
 				uint64_t sum=0;
@@ -540,10 +541,10 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 					}
 					lengthBuffer[i]=bits;
 				}
-				CreateOrderlyHuffmanTable(decoder,lengthBuffer.data(),count);
+				CreateOrderlyHuffmanTable(*decoder,lengthBuffer,count);
 			} else {
 				uint32_t index=readBits(countBits);
-				decoder.setZero(index);
+				decoder->setZero(index);
 			}
 		};
 
@@ -562,7 +563,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 		while (destOffset!=destLength)
 		{
 			if (destOffset>=limitedDecompress) return;
-			uint32_t symbol=symbolDecoder.heavyDecode(readBit);
+			uint32_t symbol=symbolDecoder->heavyDecode(readBit);
 			if (symbol<256)
 			{
 				dest[destOffset++]=contextBufferPtr[heavyContextLocation++]=symbol;
@@ -570,7 +571,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 			} else {
 				uint32_t count=symbol-253;	// minimum repeat is 3
 				if (destOffset+count>destLength) throw DecompressionError();
-				uint32_t offsetLength=offsetDecoder.heavyDecode(readBit);
+				uint32_t offsetLength=offsetDecoder->heavyDecode(readBit);
 				uint32_t rawOffset=heavyLastOffset;
 				if (offsetLength!=bitLength)
 				{
@@ -631,6 +632,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t limite
 				try
 				{
 					func(tmpBuffer.data(),src,tmpChunkLength,packedChunkLength,params...);
+					if (!imageGood) return;
 					unRLE(dest,tmpBuffer.data(),rawChunkLength,tmpChunkLength,false,false);
 				} catch (const ShortInputError &) {
 					// if this error happens on repeat/offset instead of char, though luck :(

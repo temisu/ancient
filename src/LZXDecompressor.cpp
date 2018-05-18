@@ -6,6 +6,8 @@
 #include "LZXDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 #include "DLTADecode.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 #include <CRC32.hpp>
 
 bool LZXDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
@@ -77,48 +79,20 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 		return;
 	}
 
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=_packedOffset;
-
-	uint8_t bufBitsLength=0;
-	uint32_t bufBitsContent=0;
-
-	// streamreader
-	auto readBit=[&]()->uint8_t
-	{
-		uint8_t ret=0;
-		if (!bufBitsLength)
-		{
-			if (bufOffset+1>=_packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=uint32_t(bufPtr[bufOffset++])<<8;
-			bufBitsContent|=uint32_t(bufPtr[bufOffset++]);
-			bufBitsLength=16;
-		}
-		ret=bufBitsContent&1;
-		bufBitsContent>>=1;
-		bufBitsLength--;
-		return ret;
-	};
-
+	ForwardInputStream inputStream(_packedData,_packedOffset,_packedSize);
+	LSBBitReader<ForwardInputStream> bitReader(inputStream);
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		while (bufBitsLength<count)
-		{
-			if (bufOffset+1>=_packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent|=uint32_t(bufPtr[bufOffset++])<<(bufBitsLength+8);
-			bufBitsContent|=uint32_t(bufPtr[bufOffset++])<<bufBitsLength;
-			bufBitsLength+=16;
-		}
-		uint32_t ret=bufBitsContent&((1<<count)-1);
-		bufBitsContent>>=count;
-		bufBitsLength-=count;
-		return ret;
+		return bitReader.readBitsBE16(count);
+	};
+	auto readBit=[&]()->uint32_t
+	{
+		return bitReader.readBitsBE16(1);
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	typedef HuffmanDecoder<uint32_t,0x8000'0000U,0> LZXDecoder;
+	typedef HuffmanDecoder<uint32_t> LZXDecoder;
 
 	// possibly padded/reused later if multiple blocks
 	uint8_t literalTable[768];
@@ -126,7 +100,7 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 	LZXDecoder literalDecoder;
 	uint32_t previousDistance=1;
 
-	while (destOffset!=_rawSize)
+	while (!outputStream.eof())
 	{
 
 		auto createHuffmanTable=[&](LZXDecoder &dec,const uint8_t *bitLengths,uint32_t bitTableLength)
@@ -139,7 +113,7 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 			}
 			if (!maxDepth) return;
 
-			CreateOrderlyHuffmanTable(dec,bitLengths,bitTableLength);
+			dec.createOrderlyHuffmanTable(bitLengths,bitTableLength);
 		};
 
 		uint32_t method=readBits(3);
@@ -156,7 +130,7 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 		size_t blockLength=readBits(8)<<16;
 		blockLength|=readBits(8)<<8;
 		blockLength|=readBits(8);
-		if (blockLength+destOffset>_rawSize) throw Decompressor::DecompressionError();
+		if (blockLength+outputStream.getOffset()>_rawSize) throw Decompressor::DecompressionError();
 
 		if (method!=1)
 		{
@@ -181,9 +155,8 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 						while (count--) literalTable[pos++]=value;
 					};
 					
-					auto symDecode=[&](int32_t value)->uint32_t
+					auto symDecode=[&](uint32_t value)->uint32_t
 					{
-						if (value<0) throw Decompressor::DecompressionError();
 						return (literalTable[pos]+17-value)%17;
 					};
 
@@ -217,8 +190,7 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 		{
 			uint32_t symbol=literalDecoder.decode(readBit);
 			if (symbol<256) {
-				if (destOffset>=_rawSize) throw Decompressor::DecompressionError();
-				dest[destOffset++]=symbol;
+				outputStream.writeByte(symbol);
 				blockLength--;
 			} else {
 				// both of these tables are almost too regular to be tables...
@@ -249,9 +221,9 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 				previousDistance=distance;
 
 				uint32_t count=ldAdditions[symbol>>5]+readBits(ldBits[symbol>>5])+3;
-				if (distance>destOffset || count>blockLength || destOffset+count>_rawSize) throw Decompressor::DecompressionError();
-				for (uint32_t i=0;i<count;i++,destOffset++,blockLength--)
-					dest[destOffset]=dest[destOffset-distance];
+				if (count>blockLength) throw Decompressor::DecompressionError();
+				outputStream.copy(distance,count);
+				blockLength-=count;
 			}
 		}
 	}

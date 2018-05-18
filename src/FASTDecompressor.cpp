@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "FASTDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool FASTDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -32,62 +34,38 @@ const std::string &FASTDecompressor::getSubName() const noexcept
 
 void FASTDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-
-	size_t bufOffsetReverse=packedSize;
-	uint16_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	size_t bufOffset=0;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream forwardInputStream(_packedData,0,_packedData.size());
+	BackwardInputStream backwardInputStream(_packedData,0,_packedData.size());
+	forwardInputStream.link(backwardInputStream);
+	backwardInputStream.link(forwardInputStream);
+	MSBBitReader<BackwardInputStream> bitReader(backwardInputStream);
+	auto readBit=[&]()->uint32_t
 	{
-		if (!bufBitsLength)
-		{
-			if (bufOffsetReverse<bufOffset+2) throw Decompressor::DecompressionError();
-			bufBitsContent=uint16_t(bufPtr[--bufOffsetReverse]);
-			bufBitsContent|=uint16_t(bufPtr[--bufOffsetReverse])<<8;
-			bufBitsLength=16;
-		}
-		uint8_t ret=bufBitsContent>>15;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBitsBE16(1);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=bufOffsetReverse) throw Decompressor::DecompressionError();
-		return bufPtr[bufOffset++];
+		return forwardInputStream.readByte();
 	};
-
 	auto readShort=[&]()->uint16_t
 	{
-		if (bufOffsetReverse<bufOffset+2) throw Decompressor::DecompressionError();
-		uint16_t ret=uint16_t(bufPtr[--bufOffsetReverse]);
-		ret|=uint16_t(bufPtr[--bufOffsetReverse])<<8;
-		return ret;
+		const uint8_t *buf=backwardInputStream.consume(2);
+		uint16_t ret=uint16_t(buf[0])<<8;
+		return ret|uint16_t(buf[1]);
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		if (!readBit())
 		{
-			if (destOffset<rawSize)
-				dest[destOffset++]=readByte();
+			outputStream.writeByte(readByte());
 		} else {
 			uint16_t ld=readShort();
-			uint32_t count=18-(ld&0xf);
+			uint32_t count=std::min(18U-(ld&0xf),uint32_t(outputStream.getEndOffset()-outputStream.getOffset()));
 			uint32_t distance=ld>>4;
-			if (!distance || size_t(distance)>destOffset) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count&&destOffset<rawSize;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
+			outputStream.copy(distance,count);
 		}
 	}
 }

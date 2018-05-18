@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "SHRIDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 SHRIDecompressor::SHRIState::SHRIState() noexcept
 {
@@ -64,17 +66,13 @@ void SHRIDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 {
 	if (rawData.size()!=_rawSize) throw Decompressor::DecompressionError();
 
-	// stream reading
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=_startOffset;
-	size_t packedSize=_packedData.size();
+	ForwardInputStream inputStream(_packedData,_startOffset,_packedData.size());
+	auto readByte=[&]()->uint8_t
+	{
+		return inputStream.readByte();
+	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
-
-	const uint8_t *prev=previousData.data();
-	size_t prevSize=previousData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	// This follows quite closely Choloks pascal reference
 	uint32_t ar[999];
@@ -178,8 +176,7 @@ void SHRIDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	{
 		while (shift<0x100'0000)
 		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			stream=(stream<<8)|uint32_t(bufPtr[bufOffset++]);
+			stream=(stream<<8)|uint32_t(readByte());
 			shift<<=8;
 		}
 	};
@@ -259,17 +256,20 @@ void SHRIDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		shift=state->shift;
 		for (uint32_t i=0;i<999;i++) ar[i]=state->ar[i];
 	}
-	if (bufOffset+4>packedSize) throw Decompressor::DecompressionError();
-	stream=_packedData.readBE32(bufOffset);
-	bufOffset+=4;
 
-	while (destOffset!=rawSize)
+	{
+		const uint8_t *buf=inputStream.consume(4);
+		stream=(uint32_t(buf[0])<<24)|(uint32_t(buf[1])<<16)|
+			(uint32_t(buf[2])<<8)|uint32_t(buf[3]);
+	}
+
+	while (!outputStream.eof())
 	{
 		while (vlen>=vnext) upgrade();
 		uint32_t code=getSymbol();
 		if (code<256)
 		{
-			dest[destOffset++]=code;
+			outputStream.writeByte(code);
 			vlen++;
 		} else {
 		 	auto distanceAddition=[](uint32_t i)->uint32_t
@@ -318,9 +318,8 @@ void SHRIDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 				distance=getCode(16);
 			}
 			vlen+=count;
-			if (!count || !distance || distance>destOffset+prevSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=(destOffset>=distance)?dest[destOffset-distance]:prev[prevSize+destOffset-distance];
+			if (!count) throw Decompressor::DecompressionError();
+			outputStream.copy(distance,count,previousData);
 		}
 	}
 

@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "ILZRDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool ILZRDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -37,44 +39,28 @@ void ILZRDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 {
 	if (rawData.size()!=_rawSize) throw Decompressor::DecompressionError();
 
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=2;
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBits=[&](uint32_t bits)->uint32_t
+	ForwardInputStream inputStream(_packedData,2,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		while (bufBitsLength<bits)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=(bufBitsContent<<8)|bufPtr[bufOffset++];
-			bufBitsLength+=8;
-		}
-
-		uint32_t ret=(bufBitsContent>>(bufBitsLength-bits))&((1<<bits)-1);
-		bufBitsLength-=bits;
-		return ret;
+		return bitReader.readBits8(count);
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	uint32_t bits=8;
-	while (destOffset!=_rawSize)
+	while (!outputStream.eof())
 	{
 		if (readBits(1))
 		{
-			dest[destOffset++]=readBits(8);
+			outputStream.writeByte(readBits(8));
 		} else {
-			while (destOffset>(1U<<bits)) bits++;
+			while (outputStream.getOffset()>(1U<<bits)) bits++;
 			uint32_t position=readBits(bits);
 			uint32_t count=readBits(4)+3;
 
-			if (position>=destOffset || destOffset+count>_rawSize) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[position+i];
+			if (position>=outputStream.getOffset()) throw Decompressor::DecompressionError();
+			outputStream.copy(outputStream.getOffset()-position,count);
 		}
 	}
 }

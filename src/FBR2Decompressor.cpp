@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "FBR2Decompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool FBR2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -32,33 +34,22 @@ const std::string &FBR2Decompressor::getSubName() const noexcept
 
 void FBR2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=0;
+	ForwardInputStream inputStream(_packedData,0,_packedData.size());
 
-	auto readByte=[&]()->uint8_t
-	{
-		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-		return bufPtr[bufOffset++];
-	};
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
-
-	uint8_t mode=readByte();	
-	while (destOffset!=rawSize)
+	uint8_t mode=inputStream.readByte();
+	while (!outputStream.eof())
 	{
 		bool doCopy=false;
 		uint32_t count=0;
 		switch (mode)
 		{
 			case 33:
-			count=uint32_t(readByte())<<24;
-			count|=uint32_t(readByte())<<16;
-			count|=uint32_t(readByte())<<8;
-			count|=uint32_t(readByte());
+			count=uint32_t(inputStream.readByte())<<24;
+			count|=uint32_t(inputStream.readByte())<<16;
+			count|=uint32_t(inputStream.readByte())<<8;
+			count|=uint32_t(inputStream.readByte());
 			if (count>=0x8000'0000)
 			{
 				doCopy=true;
@@ -67,8 +58,8 @@ void FBR2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			break;
 
 			case 67:
-			count=uint32_t(readByte())<<8;
-			count|=uint32_t(readByte());
+			count=uint32_t(inputStream.readByte())<<8;
+			count|=uint32_t(inputStream.readByte());
 			if (count>=0x8000)
 			{
 				doCopy=true;
@@ -77,7 +68,7 @@ void FBR2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			break;
 
 			case 100:
-			count=uint32_t(readByte());
+			count=uint32_t(inputStream.readByte());
 			if (count>=0x80)
 			{
 				doCopy=true;
@@ -90,12 +81,11 @@ void FBR2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		}
 
 		count++;
-		if (destOffset+count>rawSize) throw Decompressor::DecompressionError();
 		if (doCopy) {
-			for (uint32_t i=0;i<count;i++) dest[destOffset++]=readByte();
+			for (uint32_t i=0;i<count;i++) outputStream.writeByte(inputStream.readByte());
 		} else {
-			uint8_t repeatChar=readByte();
-			for (uint32_t i=0;i<count;i++) dest[destOffset++]=repeatChar;
+			uint8_t repeatChar=inputStream.readByte();
+			for (uint32_t i=0;i<count;i++) outputStream.writeByte(repeatChar);
 		}
 	}
 }

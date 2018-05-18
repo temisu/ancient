@@ -5,6 +5,8 @@
 
 #include "Decompressor.hpp"
 
+#include <FixedMemoryBuffer.hpp>
+
 class DMSDecompressor : public Decompressor
 {
 public:
@@ -25,7 +27,7 @@ public:
 	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
 
 private:
-	bool decompressImpl(Buffer &rawData,bool verify,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer);
+	bool decompressImpl(Buffer &rawData,bool verify,FixedMemoryBuffer &contextBuffer,FixedMemoryBuffer &tmpBuffer,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer);
 
 	class ShortInputError : public Error
 	{
@@ -37,6 +39,7 @@ private:
 	uint32_t	_packedSize=0;
 	uint32_t	_rawSize=0;
 	uint32_t	_contextBufferSize=0;
+	uint32_t	_tmpBufferSize=0;
 	uint32_t	_imageSize;
 	uint32_t	_rawOffset;
 	bool		_isHD;

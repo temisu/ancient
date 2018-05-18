@@ -16,8 +16,22 @@ constexpr uint32_t FourCC(uint32_t cc) noexcept
 
 constexpr bool isValidSize(uint64_t &value) noexcept
 {
-	if (sizeof(size_t)==4) return value<0x1'0000'0000ULL;
-		else return true;
+#if INTPTR_MAX == INT32_MAX
+	return value<0x1'0000'0000ULL;
+#else
+	return true;
+#endif
 }
+
+constexpr bool isValidSize(off_t &value) noexcept
+{
+#if INTPTR_MAX == INT32_MAX
+	return value<0x1'0000'0000ULL;
+#else
+	return true;
+#endif
+}
+
+uint32_t rotateBits(uint32_t value,uint32_t count);
 
 #endif

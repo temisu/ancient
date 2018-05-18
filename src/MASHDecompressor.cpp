@@ -2,6 +2,8 @@
 
 #include "MASHDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool MASHDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -33,41 +35,25 @@ const std::string &MASHDecompressor::getSubName() const noexcept
 
 void MASHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=0;
-	uint8_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream inputStream(_packedData,0,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=bufPtr[bufOffset++];
-			bufBitsLength=8;
-		}
-		uint8_t ret=bufBitsContent>>7;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBits8(count);
 	};
-
-	auto readBits=[&](uint32_t bits)->uint32_t
+	auto readBit=[&]()->uint32_t
 	{
-		uint32_t ret=0;
-		for (uint32_t i=0;i<bits;i++) ret=(ret<<1)|readBit();
-		return ret;
+		return bitReader.readBits8(1);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-		return bufPtr[bufOffset++];
+		return inputStream.readByte();
 	};
 
-	HuffmanDecoder<uint32_t,0xff,6> litDecoder
+	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawSize);
+
+	HuffmanDecoder<uint32_t> litDecoder
 	{
 		HuffmanCode<uint32_t>{1,0b000000,0},
 		HuffmanCode<uint32_t>{2,0b000010,1},
@@ -78,11 +64,7 @@ void MASHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		HuffmanCode<uint32_t>{6,0b111111,6}
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
-
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		uint32_t litLength=litDecoder.decode(readBit);
 		if (litLength==6)
@@ -93,8 +75,7 @@ void MASHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			litLength=readBits(litBits)+(1<<litBits)+4;
 		}
 		
-		if (destOffset+litLength>rawSize) throw Decompressor::DecompressionError();
-		for (uint32_t i=0;i<litLength;i++) dest[destOffset++]=readByte();
+		for (uint32_t i=0;i<litLength;i++) outputStream.writeByte(readByte());
 
 		uint32_t count,distance;
 
@@ -124,15 +105,12 @@ void MASHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			}
 		}
 		// hacks to make it work
-		if (!distance && destOffset==rawSize) break;	// zero distance when we are at the end of the stream...
-		if (destOffset+count>rawSize)			// there seems to be almost systematic extra one byte at the end of the stream...
-			count=uint32_t(rawSize-destOffset);
-		if (distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-		for (uint32_t i=0;i<count;i++,destOffset++)
-			dest[destOffset]=dest[destOffset-distance];
+		if (!distance && outputStream.eof()) break;
+		// zero distance when we are at the end of the stream...
+		// there seems to be almost systematic extra one byte at the end of the stream...
+		count=std::min(count,uint32_t(rawSize-outputStream.getOffset()));
+		outputStream.copy(distance,count);
 	}
-
-	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<MASHDecompressor> MASHDecompressor::_XPKregistration;

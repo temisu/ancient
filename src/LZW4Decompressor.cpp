@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "LZW4Decompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool LZW4Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -32,59 +34,34 @@ const std::string &LZW4Decompressor::getSubName() const noexcept
 
 void LZW4Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=0;
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream inputStream(_packedData,0,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBit=[&]()->uint32_t
 	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset+3>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=uint32_t(bufPtr[bufOffset++])<<24;
-			bufBitsContent|=uint32_t(bufPtr[bufOffset++])<<16;
-			bufBitsContent|=uint32_t(bufPtr[bufOffset++])<<8;
-			bufBitsContent|=uint32_t(bufPtr[bufOffset++]);
-			bufBitsLength=32;
-		}
-		uint8_t ret=bufBitsContent>>31;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBitsBE32(1);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-		return bufPtr[bufOffset++];
+		return inputStream.readByte();
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		if (!readBit())
 		{
-			dest[destOffset++]=readByte();
+			outputStream.writeByte(readByte());
 		} else {
 			uint32_t distance=uint32_t(readByte())<<8;
 			distance|=uint32_t(readByte());
-			if (!distance) break;
+			if (!distance) throw Decompressor::DecompressionError();
 			distance=65536-distance;
 			uint32_t count=uint32_t(readByte())+3;
 
-			if (distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
+			outputStream.copy(distance,count);
 		}
 	}
-
-	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<LZW4Decompressor> LZW4Decompressor::_XPKregistration;

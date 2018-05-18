@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "TPWMDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool TPWMDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -50,38 +52,20 @@ void TPWMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	if (rawData.size()<_rawSize) throw DecompressionError();
 
-	// Stream reading
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=8;
-	size_t packedSize=_packedData.size();
-	uint8_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream inputStream(_packedData,8,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBit=[&]()->uint32_t
 	{
-		uint8_t ret=0;
-		if (!bufBitsLength)
-		{
-			if (bufOffset>=packedSize) throw DecompressionError();
-			bufBitsContent=bufPtr[bufOffset++];
-			bufBitsLength=8;
-		}
-		ret=bufBitsContent>>7;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBits8(1);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=packedSize) throw DecompressionError();
-		return bufPtr[bufOffset++];
+		return inputStream.readByte();
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
+	ForwardOutputStream outputStream(rawData,0,_rawSize);
 
-	while (destOffset!=_rawSize)
+	while (!outputStream.eof())
 	{
 		if (readBit())
 		{
@@ -89,19 +73,15 @@ void TPWMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			uint8_t byte2=readByte();
 			uint32_t distance=(uint32_t(byte1&0xf0)<<4)|byte2;
 			uint32_t count=uint32_t(byte1&0xf)+3;
-			if (!distance || distance>destOffset) throw DecompressionError();
-			for (uint32_t i=0;i<count;i++)
-			{
-				dest[destOffset]=dest[destOffset-distance];
-				destOffset++;
-				if (destOffset==_rawSize) break;
-			}
+
+			count=std::min(count,uint32_t(_rawSize-outputStream.getOffset()));
+			outputStream.copy(distance,count);
 		} else {
-			dest[destOffset++]=readByte();
+			outputStream.writeByte(readByte());
 		}
 	}
 
-	_decompressedPackedSize=bufOffset;
+	_decompressedPackedSize=inputStream.getOffset();
 }
 
 Decompressor::Registry<TPWMDecompressor> TPWMDecompressor::_registration;

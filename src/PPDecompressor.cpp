@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "PPDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 PPDecompressor::PPState::PPState(uint32_t mode) :
 	_cachedMode(mode)
@@ -126,41 +128,19 @@ void PPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	if (rawData.size()<_rawSize) throw DecompressionError();
 
-	// Stream reading
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=_dataStart;
-
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-	size_t minBufOffset=_isXPK?0:8;
-
-	auto fillBuffer=[&]() {
-		if (bufOffset+3<=minBufOffset) throw DecompressionError();
-		for (uint32_t i=0;i<4;i++) bufBitsContent=(uint32_t(bufPtr[--bufOffset])<<24)|(bufBitsContent>>8);
-		bufBitsLength=32;
-	};
-	fillBuffer();
-	bufBitsContent>>=_startShift;
-	bufBitsLength-=_startShift;
-
-	auto readBit=[&]()->uint8_t
-	{
-		if (!bufBitsLength) fillBuffer();
-		uint8_t ret=bufBitsContent&1;
-		bufBitsContent>>=1;
-		bufBitsLength--;
-		return ret;
-	};
-
+	BackwardInputStream inputStream(_packedData,_isXPK?0:8,_dataStart);
+	LSBBitReader<BackwardInputStream> bitReader(inputStream);
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		uint32_t ret=0;
-		for (uint32_t i=0;i<count;i++) ret=(ret<<1)|readBit();
-		return ret;
+		return rotateBits(bitReader.readBitsBE32(count),count);
 	};
+	auto readBit=[&]()->uint32_t
+	{
+		return bitReader.readBitsBE32(1);
+	};
+	readBits(_startShift);
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=_rawSize;
+	BackwardOutputStream outputStream(rawData,0,_rawSize);
 
 	for (;;)
 	{
@@ -174,10 +154,9 @@ void PPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				count+=tmp;
 				if (tmp<3) break;
 			}
-			if (destOffset<count) throw DecompressionError();
-			for (uint32_t i=0;i<count;i++) dest[--destOffset]=readBits(8);
+			for (uint32_t i=0;i<count;i++) outputStream.writeByte(readBits(8));
 		}
-		if (!destOffset) break;
+		if (outputStream.eof()) break;
 		uint32_t modeIndex=readBits(2);
 		uint32_t count,distance;
 		if (modeIndex==3)
@@ -195,9 +174,7 @@ void PPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			count=modeIndex+2;
 			distance=readBits(_modeTable[modeIndex])+1;
 		}
-		if (destOffset<count || destOffset+distance>_rawSize) throw DecompressionError();
-		distance+=destOffset;
-		for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
+		outputStream.copy(distance,count);
 	}
 }
 

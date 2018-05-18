@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "FRLEDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool FRLEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -32,35 +34,27 @@ const std::string &FRLEDecompressor::getSubName() const noexcept
 
 void FRLEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=0;
-	size_t packedSize=_packedData.size();
+	ForwardInputStream inputStream(_packedData,0,_packedData.size());
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
-		if (bufOffset==packedSize) throw Decompressor::DecompressionError();
-
 		auto countMod=[](uint32_t count)->uint32_t
 		{
 			return (32-(count&0x1f))+(count&0x60);
 		};
 
-		uint32_t count=uint32_t(bufPtr[bufOffset++]);
+		uint32_t count=uint32_t(inputStream.readByte());
 
 		if (count<128)
 		{
 			count=countMod(count);
-			if (bufOffset+count>packedSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++) dest[destOffset++]=bufPtr[bufOffset++];
+			for (uint32_t i=0;i<count;i++) outputStream.writeByte(inputStream.readByte());
 		} else {
 			count=countMod(count)+1;
-			if (bufOffset==packedSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			uint8_t ch=bufPtr[bufOffset++];
-			for (uint32_t i=0;i<count;i++) dest[destOffset++]=ch;
+			uint8_t ch=inputStream.readByte();
+			for (uint32_t i=0;i<count;i++) outputStream.writeByte(ch);
 		}
 	}
 }

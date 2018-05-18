@@ -42,6 +42,16 @@ Decompression algorithms provided:
 * Turbo Packer by Wolfgang Mayerle.
 * Standard gzip (only ancient in context of XPK)
 * Standard bzip2, both normal and randomized (only ancient in context of XPK)
+* Zip decompressor backend (decompressor only, no Zip file format reading yet) with following methods
+  * Shrink
+  * Reduce
+  * Implode
+  * Deflate
+  * Deflate64
+  * Bzip2
+* Lha/Lzh decompressor backend (decompressor only, no Lha file format reading yet) with following methods
+  * LH1
+  * LH2
 * Supports opening XPK-encapsulated files. XPK decompressors supported are:
   * ACCA: Andre's Code Compression Algorithm
   * BLZW: LZW-compressor

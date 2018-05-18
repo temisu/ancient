@@ -1,6 +1,6 @@
 # Copyright (C) Teemu Suutari
 
-VPATH  := src
+VPATH  := src src/Lzh src/Zip
 
 CC	= clang
 CXX	= clang++
@@ -9,8 +9,8 @@ CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti
 
 PROG	= ancient
-OBJS	= Buffer.o FixedMemoryBuffer.o SubBuffer.o CRC16.o CRC32.o \
-	Decompressor.o XPKDecompressor.o XPKMaster.o main.o \
+OBJS	= Buffer.o Common.o FixedMemoryBuffer.o SubBuffer.o CRC16.o CRC32.o \
+	Decompressor.o InputStream.o OutputStream.o XPKDecompressor.o XPKMaster.o main.o \
 	ACCADecompressor.o BLZWDecompressor.o BZIP2Decompressor.o CBR0Decompressor.o \
 	CRMDecompressor.o CYB2Decoder.o DEFLATEDecompressor.o DLTADecode.o DMSDecompressor.o \
 	FASTDecompressor.o FBR2Decompressor.o FRLEDecompressor.o HFMNDecompressor.o \
@@ -20,7 +20,9 @@ OBJS	= Buffer.o FixedMemoryBuffer.o SubBuffer.o CRC16.o CRC32.o \
 	NONEDecompressor.o NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o \
 	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SDHCDecompressor.o \
 	SHR3Decompressor.o SHRIDecompressor.o SLZ3Decompressor.o SMPLDecompressor.o \
-	SQSHDecompressor.o TDCSDecompressor.o TPWMDecompressor.o ZENODecompressor.o
+	SQSHDecompressor.o TDCSDecompressor.o TPWMDecompressor.o ZENODecompressor.o \
+	LH1Decompressor.o LH2Decompressor.o LZHDecompressor.o \
+	ImplodeDecompressor.o ReduceDecompressor.o ShrinkDecompressor.o ZIPDecompressor.o
 
 all: $(PROG)
 
@@ -35,14 +37,5 @@ $(PROG): $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(PROG) *~ src/*~
-
-test: $(PROG)
-	for a in gzbz2_files/*.gz ; do ./ancient verify $$a $$(echo $$a | sed s/\\.gz/.raw/) >/dev/null ; done
-	for a in gzbz2_files/*.bz2 ; do ./ancient verify $$a $$(echo $$a | sed s/\\.bz2/.raw/) >/dev/null ; done
-	for a in xpk_testfiles/*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/_xpk.*/.raw/) >/dev/null ; done
-	for a in pp_files/test*.pp ; do ./ancient verify $$a $$(echo $$a | sed s/\\.pp/.raw/) >/dev/null ; done
-	for a in xtra_files/test*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/pack/raw/) >/dev/null ; done
-	for a in good_files/test*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/pack/raw/) >/dev/null ; done
-	for a in regression_test/test*.pack ; do ./ancient verify $$a $$(echo $$a | sed s/pack/raw/) >/dev/null ; done
 
 .PHONY:

@@ -2,6 +2,9 @@
 
 #include "LIN1Decompressor.hpp"
 
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
+
 bool LIN1Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('LIN1') || hdr==FourCC('LIN3');
@@ -38,42 +41,25 @@ const std::string &LIN1Decompressor::getSubName() const noexcept
 
 void LIN1Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=5;
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBits=[&](uint8_t bits)->uint8_t
+	ForwardInputStream inputStream(_packedData,5,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		while (bufBitsLength<bits)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent<<=8;
-			bufBitsContent|=uint32_t(bufPtr[bufOffset++]);
-			bufBitsLength+=8;
-		}
-		uint8_t ret=(bufBitsContent>>(bufBitsLength-bits))&((1<<bits)-1);
-		bufBitsLength-=bits;
-		return ret;
+		return bitReader.readBits8(count);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-		return bufPtr[bufOffset++];
+		return inputStream.readByte();
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
 	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawSize);
 
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		if (!readBits(1))
 		{
-			dest[destOffset++]=readByte()^0x55;
+			outputStream.writeByte(readByte()^0x55);
 		} else {
 			uint32_t count=3;
 			if (readBits(1))
@@ -88,7 +74,7 @@ void LIN1Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 						if (count==15)
 						{
 							count=readByte();
-							if (count==0xff) break;
+							if (count==0xff) throw Decompressor::DecompressionError();
 							count+=3;
 						} else count+=14;
 					} else count+=7;
@@ -121,16 +107,12 @@ void LIN1Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			}
 
 			// buggy compressors
-			if (destOffset+count>rawSize) count=uint32_t(rawSize-destOffset);
-			if (!count) break;
+			count=std::min(count,uint32_t(rawSize-outputStream.getOffset()));
+			if (!count) throw Decompressor::DecompressionError();
 
-			if (distance>destOffset) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
+			outputStream.copy(distance,count);
 		}
 	}
-
-	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<LIN1Decompressor> LIN1Decompressor::_XPKregistration;

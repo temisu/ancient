@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "LZBSDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool LZBSDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -32,56 +34,34 @@ const std::string &LZBSDecompressor::getSubName() const noexcept
 
 void LZBSDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=1;
-	uint8_t bufBitsContent=0;
-	uint32_t bufBitsLength=0;
-
-	auto readBits=[&](uint32_t bits)->uint32_t
+	ForwardInputStream inputStream(_packedData,1,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		uint32_t ret=0;
-		for (uint32_t i=0;i<bits;i++)
-		{
-			if (!bufBitsLength)
-			{
-				if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-				bufBitsContent=bufPtr[bufOffset++];
-				bufBitsLength=8;
-			}
-			ret|=(bufBitsContent>>7)<<i;
-			bufBitsContent<<=1;
-			bufBitsLength--;
-		}
-		return ret;
+		return rotateBits(bitReader.readBits8(count),count);
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	uint32_t bits=0,maxBits=uint32_t(bufPtr[0]);
-	while (destOffset!=rawSize)
+	uint32_t bits=0,maxBits=uint32_t(_packedData[0]);
+	while (!outputStream.eof())
 	{
 		if (!readBits(1))
 		{
-			dest[destOffset++]=readBits(8);
+			outputStream.writeByte(readBits(8));
 		} else {
 			uint32_t count=readBits(8)+2;
 			if (count==2)
 			{
 				count=readBits(12);
-				if (!count || destOffset+count>rawSize) throw Decompressor::DecompressionError();
+				if (!count) throw Decompressor::DecompressionError();
 				for (uint32_t i=0;i<count;i++)
-					dest[destOffset++]=readBits(8);
+					outputStream.writeByte(readBits(8));
 			} else {
-				while (destOffset>=(1U<<bits) && bits<maxBits) bits++;
+				while (outputStream.getOffset()>=(1U<<bits) && bits<maxBits) bits++;
 				uint32_t distance=readBits(bits);
 
-				if (!distance || distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[destOffset-distance];
+				outputStream.copy(distance,count);
 			}
 		}
 	}

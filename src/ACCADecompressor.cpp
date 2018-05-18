@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "ACCADecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool ACCADecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -32,43 +34,24 @@ const std::string &ACCADecompressor::getSubName() const noexcept
 
 void ACCADecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=0;
-	uint16_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream inputStream(_packedData,0,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBit=[&]()->uint32_t
 	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset+1>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=uint16_t(bufPtr[bufOffset++])<<8;
-			bufBitsContent|=uint16_t(bufPtr[bufOffset++]);
-			bufBitsLength=16;
-		}
-		uint8_t ret=bufBitsContent>>15;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBitsBE16(1);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-		return bufPtr[bufOffset++];
+		return inputStream.readByte();
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		if (!readBit())
 		{
-			dest[destOffset++]=readByte();
+			outputStream.writeByte(readByte());
 		} else {
 			static const uint8_t staticBytes[16]={
 				0x00,0x01,0x02,0x03,0x04,0x08,0x10,0x20,
@@ -113,12 +96,9 @@ void ACCADecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			}
 			if (doRLE)
 			{
-				if (destOffset+count>rawSize) throw Decompressor::DecompressionError();
-				for (uint32_t i=0;i<count;i++) dest[destOffset++]=repeatChar;
+				for (uint32_t i=0;i<count;i++) outputStream.writeByte(repeatChar);
 			} else {
-				if (distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-				for (uint32_t i=0;i<count;i++,destOffset++)
-					dest[destOffset]=dest[destOffset-distance];
+				outputStream.copy(distance,count);
 			}
 		}
 	}

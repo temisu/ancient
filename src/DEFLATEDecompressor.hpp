@@ -11,7 +11,7 @@ class DEFLATEDecompressor : public Decompressor, public XPKDecompressor
 public:
 	DEFLATEDecompressor(const Buffer &packedData,bool exactSizeKnown,bool verify);
 	DEFLATEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
-	DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize,bool isZlib,bool verify);		// zlib or completely raw stream
+	DEFLATEDecompressor(const Buffer &packedData,size_t packedSize,size_t rawSize,bool isZlib,bool verify,bool deflate64);		// zlib or completely raw stream
 	virtual ~DEFLATEDecompressor();
 
 	virtual size_t getRawSize() const noexcept override final;
@@ -46,6 +46,7 @@ private:
 	size_t		_rawSize=0;
 	Type		_type;
 	bool		_exactSizeKnown=true;
+	bool		_deflate64=false;
 
 	static Decompressor::Registry<DEFLATEDecompressor> _registration;
 	static XPKDecompressor::Registry<DEFLATEDecompressor> _XPKregistration;

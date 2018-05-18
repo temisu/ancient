@@ -3,6 +3,8 @@
 #include "CRMDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
 #include "DLTADecode.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool CRMDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -98,50 +100,31 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	if (rawData.size()<_rawSize) throw Decompressor::DecompressionError();
 
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=_packedSize+14-6;
-
-	// There are empty bits?!? at the start of the stream. take them out
-	uint32_t originalBitsContent=_packedData.readBE32(bufOffset);
-	uint16_t originalShift=_packedData.readBE16(bufOffset+4);
-	uint8_t bufBitsLength=originalShift+16;
-	uint32_t bufBitsContent=originalBitsContent>>(16-originalShift);
-
-	// streamreader
-	auto readBit=[&]()->uint8_t
+	BackwardInputStream inputStream(_packedData,14,_packedSize+14-6);
+	LSBBitReader<BackwardInputStream> bitReader(inputStream);
 	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset<=14) throw Decompressor::DecompressionError();
-			bufBitsContent=uint32_t(bufPtr[--bufOffset]);
-			bufBitsLength=8;
-		}
-		uint8_t ret=bufBitsContent&1;
-		bufBitsContent>>=1;
-		bufBitsLength--;
-		return ret;
-	};
-
+		// There are empty bits?!? at the start of the stream. take them out
+		size_t bufOffset=_packedSize+14-6;
+		uint32_t originalBitsContent=_packedData.readBE32(bufOffset);
+		uint16_t originalShift=_packedData.readBE16(bufOffset+4);
+		uint8_t bufBitsLength=originalShift+16;
+		uint32_t bufBitsContent=originalBitsContent>>(16-originalShift);
+		bitReader.reset(bufBitsContent,bufBitsLength);
+	}
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		while (bufBitsLength<count)
-		{
-			if (bufOffset<=14) throw Decompressor::DecompressionError();
-			bufBitsContent|=uint32_t(bufPtr[--bufOffset])<<bufBitsLength;
-			bufBitsLength+=8;
-		}
-		uint32_t ret=bufBitsContent&((1<<count)-1);
-		bufBitsContent>>=count;
-		bufBitsLength-=count;
-		return ret;
+		return bitReader.readBits8(count);
+	};
+	auto readBit=[&]()->uint32_t
+	{
+		return bitReader.readBits8(1);
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=_rawSize;
+	BackwardOutputStream outputStream(rawData,0,_rawSize);
 
 	if (_isLZH)
 	{
-		typedef HuffmanDecoder<uint32_t,0x200,0> CRMHuffmanDecoder;
+		typedef HuffmanDecoder<uint32_t> CRMHuffmanDecoder;
 
 		auto readHuffmanTable=[&](CRMHuffmanDecoder &dec,uint32_t codeLength)
 		{
@@ -174,9 +157,7 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				uint32_t count=lengthDecoder.decode(readBit);
 				if (count&0x100)
 				{
-					// this is literal, not count
-					if (!destOffset) throw Decompressor::DecompressionError();
-					dest[--destOffset]=count;
+					outputStream.writeByte(count);
 				} else {
 					count+=3;
 
@@ -188,14 +169,12 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 					} else {
 						distance=(readBits(distanceBits)|(1<<distanceBits))+1;
 					}
-					if (destOffset<size_t(count) || destOffset+distance>_rawSize) throw Decompressor::DecompressionError();
-					distance+=destOffset;
-					for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
+					outputStream.copy(distance,count);
 				}
 			}
 		} while (readBit());
 	} else {
-		HuffmanDecoder<uint8_t,0xffU,3> lengthDecoder
+		HuffmanDecoder<uint8_t> lengthDecoder
 		{
 			HuffmanCode<uint8_t>{1,0b000,0},
 			HuffmanCode<uint8_t>{2,0b010,1},
@@ -203,18 +182,18 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			HuffmanCode<uint8_t>{3,0b111,3}
 		};
 
-		HuffmanDecoder<uint8_t,0xffU,2> distanceDecoder
+		HuffmanDecoder<uint8_t> distanceDecoder
 		{
 			HuffmanCode<uint8_t>{1,0b00,0},
 			HuffmanCode<uint8_t>{2,0b10,1},
 			HuffmanCode<uint8_t>{2,0b11,2}
 		};
 
-		while (destOffset)
+		while (!outputStream.eof())
 		{
 			if (readBit())
 			{
-				dest[--destOffset]=readBits(8);
+				outputStream.writeByte(readBits(8));
 			} else {
 				uint8_t lengthIndex=lengthDecoder.decode(readBit);
 
@@ -229,9 +208,8 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 					} else {
 						count=readBits(14)+15;
 					}
-					if (count>destOffset) throw Decompressor::DecompressionError();
 					for (uint32_t i=0;i<count;i++)
-						dest[--destOffset]=readBits(8);
+						outputStream.writeByte(readBits(8));
 				} else {
 					if (count>23) count--;
 
@@ -241,15 +219,13 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 					static const uint32_t distanceAdditions[3]={32,0,544};
 					uint32_t distance=readBits(distanceBits[distanceIndex])+distanceAdditions[distanceIndex];
 
-					if (!distance || destOffset<count || destOffset+distance>_rawSize) throw Decompressor::DecompressionError();
-					distance+=destOffset;
-					for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
+					outputStream.copy(distance,count);
 				}
 			}
 		}
 	}
 
-	if (destOffset) throw Decompressor::DecompressionError();
+	if (!outputStream.eof()) throw Decompressor::DecompressionError();
 	if (_isSampled)
 		DLTADecode::decode(rawData,rawData,0,_rawSize);
 }

@@ -2,6 +2,8 @@
 
 #include "LHLBDecompressor.hpp"
 
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 #include "DynamicHuffmanDecoder.hpp"
 
 bool LHLBDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
@@ -34,44 +36,29 @@ const std::string &LHLBDecompressor::getSubName() const noexcept
 
 void LHLBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=0;
-	uint8_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream inputStream(_packedData,0,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=bufPtr[bufOffset++];
-			bufBitsLength=8;
-		}
-		uint8_t ret=bufBitsContent>>7;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBits8(count);
+	};
+	auto readBit=[&]()->uint32_t
+	{
+		return bitReader.readBits8(1);
 	};
 
-	auto readBits=[&](uint32_t bits)->uint32_t
-	{
-		uint32_t ret=0;
-		for (uint32_t i=0;i<bits;i++) ret=(ret<<1)|readBit();
-		return ret;
-	};
-
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	// Same logic as in Choloks pascal implementation
-	// In his books LHLB is "almost" -lh1- (I'd assume the difference is in the metadata)
+	// Differences to LH1:
+	// - LHLB does not halve probabilities at 32k
+	// - 314 vs. 317 sized huffman entry
+	// - no end code
+	// - different distance/count logic
 
 	DynamicHuffmanDecoder<317> decoder;
 
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		uint32_t code=decoder.decode(readBit);
 		if (code==316) break;
@@ -79,7 +66,7 @@ void LHLBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 
 		if (code<256)
 		{
-			dest[destOffset++]=code;
+			outputStream.writeByte(code);
 		} else {
 			static const uint8_t distanceHighBits[256]={
 				 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
@@ -108,9 +95,7 @@ void LHLBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			distance|=tmp&63;
 			uint32_t count=code-255;
 
-			if (!distance || distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
+			outputStream.copy(distance,count);
 		}
 	}
 }

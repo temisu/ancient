@@ -4,7 +4,8 @@
 
 #include "RNCDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
-
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 #include <CRC16.hpp>
 
 bool RNCDecompressor::detectHeader(uint32_t hdr) noexcept
@@ -127,54 +128,41 @@ void RNCDecompressor::decompressImpl(Buffer &rawData,bool verify)
 
 void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 {
-	// Stream reading
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=_packedSize+12;
-
-	// make sure the anchor-bit is not taken in as a data bit
-	if (bufOffset==12) throw DecompressionError();
-	uint8_t bufBitsContent=bufPtr[--bufOffset];
-	uint8_t bufBitsLength=7;
-	// the anchor-bit does not seem always to be at the correct place
-	for (uint32_t i=0;i<7;i++)
-		if (bufBitsContent&(1<<i)) break;
-			else bufBitsLength--;
-
-	auto readBit=[&]()->uint8_t
-	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset<=12) throw DecompressionError();
-			bufBitsContent=bufPtr[--bufOffset];
-			bufBitsLength=8;
-		}
-		uint8_t ret=bufBitsContent>>7;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
-	};
-
+	BackwardInputStream inputStream(_packedData,12,_packedSize+12);
+	MSBBitReader<BackwardInputStream> bitReader(inputStream);
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		uint32_t ret=0;
-		for (uint32_t i=0;i<count;i++) ret=(ret<<1)|uint32_t(readBit());
-		return ret;
+		return bitReader.readBits8(count);
 	};
-
+	auto readBit=[&]()->uint32_t
+	{
+		return bitReader.readBits8(1);
+	};
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset<=12) throw DecompressionError();
-		return bufPtr[--bufOffset];
+		return inputStream.readByte();
 	};
+	// the anchor-bit does not seem always to be at the correct place
+	{
+		uint8_t halfByte=readByte();
+		for (uint32_t i=0;i<7;i++)
+			if (halfByte&(1<<i))
+			{
+				bitReader.reset(halfByte>>(i+1),7-i);
+				break;
+			}
+	}
 
-	HuffmanDecoder<uint8_t,0xffU,2> litDecoder
+	BackwardOutputStream outputStream(rawData,0,_rawSize);
+
+	HuffmanDecoder<uint8_t> litDecoder
 	{
 		HuffmanCode<uint8_t>{1,0b00,0},
 		HuffmanCode<uint8_t>{2,0b10,1},
 		HuffmanCode<uint8_t>{2,0b11,2}
 	};
 
-	HuffmanDecoder<uint8_t,0xffU,4> lengthDecoder
+	HuffmanDecoder<uint8_t> lengthDecoder
 	{
 		HuffmanCode<uint8_t>{1,0b0000,0},
 		HuffmanCode<uint8_t>{2,0b0010,1},
@@ -183,15 +171,12 @@ void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 		HuffmanCode<uint8_t>{4,0b1111,4}
 	};
 
-	HuffmanDecoder<uint8_t,0xffU,2> distanceDecoder
+	HuffmanDecoder<uint8_t> distanceDecoder
 	{
 		HuffmanCode<uint8_t>{1,0b00,0},
 		HuffmanCode<uint8_t>{2,0b10,1},
 		HuffmanCode<uint8_t>{2,0b11,2}
 	};
-
-	uint8_t *dest=rawData.data();
-	size_t destOffset=_rawSize;
 
 	for (;;)
 	{
@@ -212,11 +197,10 @@ void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 			}
 		}
 		
-		if (destOffset<litLength) throw DecompressionError();
-		for (uint32_t i=0;i<litLength;i++) dest[--destOffset]=readByte();
+		for (uint32_t i=0;i<litLength;i++) outputStream.writeByte(readByte());
 	
 		// the only way to successfully end the loop!
-		if (!destOffset) break;
+		if (outputStream.eof()) break;
 
 		uint32_t count;
 		{
@@ -242,55 +226,26 @@ void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 			}
 		}
 
-		uint32_t distOffset=(distance)?distance+count-1:1;
-		if (destOffset<count || destOffset+distOffset>_rawSize) throw DecompressionError();
-		distOffset+=destOffset;
-		for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distOffset];
+		outputStream.copy((distance)?distance+count-1:1,count);
 	}
 }
 
 void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 {
-	// Stream reading
-	const uint8_t *bufPtr=_packedData.data()+18;
-	size_t bufOffset=0;
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBits=[&](uint8_t bits)->uint32_t
+	ForwardInputStream inputStream(_packedData,18,_packedSize+18);
+	LSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		uint32_t ret=0;
-		uint8_t retBits=0;
-		while (retBits!=bits)
-		{
-			if (!bufBitsLength)
-			{
-				if (bufOffset>=_packedSize) throw DecompressionError();
-				bufBitsContent=bufPtr[bufOffset++];
-				bufBitsLength=8;
-				if (bufOffset<_packedSize)
-				{
-					bufBitsContent|=bufPtr[bufOffset++]<<8;
-					bufBitsLength+=8;
-				}
-			}
-			uint8_t bitsToTake=std::min<uint8_t>(bits-retBits,bufBitsLength);
-			ret|=(bufBitsContent&((1<<bitsToTake)-1))<<retBits;
-			retBits+=bitsToTake;
-			bufBitsContent>>=bitsToTake;
-			bufBitsLength-=bitsToTake;
-		}
-		return ret;
+		return bitReader.readBits16Limit(count);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=_packedSize) throw DecompressionError();
-		return bufPtr[bufOffset++];
+		return inputStream.readByte();
 	};
 
+	ForwardOutputStream outputStream(rawData,0,_rawSize);
 
-	typedef HuffmanDecoder<uint32_t,0x100U,0> RNC1HuffmanDecoder;
+	typedef HuffmanDecoder<uint32_t> RNC1HuffmanDecoder;
 
 	// helpers
 	auto readHuffmanTable=[&](RNC1HuffmanDecoder &dec)
@@ -306,7 +261,7 @@ void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 			if (lengthTable[i]>maxDepth) maxDepth=lengthTable[i];
 		}
 
-		CreateOrderlyHuffmanTable(dec,lengthTable,length);
+		dec.createOrderlyHuffmanTable(lengthTable,length);
 	};
 
 	auto huffmanDecode=[&](const RNC1HuffmanDecoder &dec)->int32_t
@@ -318,14 +273,10 @@ void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 		return ret;
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-
 	auto processLiterals=[&](const RNC1HuffmanDecoder &dec)
 	{
 		uint32_t litLength=huffmanDecode(dec);
-		if (destOffset+litLength>_rawSize) throw DecompressionError();
-		for (uint32_t i=0;i<litLength;i++) dest[destOffset++]=readByte();
+		for (uint32_t i=0;i<litLength;i++) outputStream.writeByte(readByte());
 	};
 
 	readBits(2);
@@ -342,52 +293,36 @@ void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 			processLiterals(litDecoder);
 			uint32_t distance=huffmanDecode(distanceDecoder);
 			uint32_t count=huffmanDecode(lengthDecoder);
-			if (size_t(distance+1)>destOffset || destOffset+count+2>_rawSize) throw DecompressionError();
 			distance++;
 			count+=2;
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
+			outputStream.copy(distance,count);
 		}
 		processLiterals(litDecoder);
 	}
 
-	if (_rawSize!=destOffset) throw DecompressionError();
+	if (!outputStream.eof()) throw DecompressionError();
 	if (verify && CRC16(rawData,0,_rawSize,0)!=_rawCRC) throw VerificationError();
 }
 
 void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 {
-	// Stream reading
-	const uint8_t *bufPtr=_packedData.data()+18;
-	size_t bufOffset=0;
-	uint8_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream inputStream(_packedData,18,_packedSize+18);
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBit=[&]()->uint32_t
 	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset>=_packedSize) throw DecompressionError();
-			bufBitsContent=bufPtr[bufOffset++];
-			bufBitsLength=8;
-		}
-		uint8_t ret=bufBitsContent>>7;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBits8(1);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffset>=_packedSize) throw DecompressionError();
-		return bufPtr[bufOffset++];
+		return inputStream.readByte();
 	};
+
+	ForwardOutputStream outputStream(rawData,0,_rawSize);
 
 	// Huffman decoding
 	enum class Cmd
 	{
-		INV,	// Invalid
-		LIT,	// 0, Literal
+		LIT=0,	// 0, Literal
 		MOV,	// 10, Move bytes + length + distance, Get bytes if length=9 + 4bits
 		MV2,	// 110, Move 2 bytes
 		MV3,	// 1110, Move 3 bytes
@@ -395,7 +330,7 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 		
 	};
 
-	HuffmanDecoder<Cmd,Cmd::INV,4> cmdDecoder
+	HuffmanDecoder<Cmd> cmdDecoder
 	{
 		HuffmanCode<Cmd>{1,0b0000,Cmd::LIT},
 		HuffmanCode<Cmd>{2,0b0010,Cmd::MOV},
@@ -405,7 +340,7 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 	};
 
 	/* length of 9 is a marker for literals */
-	HuffmanDecoder<uint8_t,0,3> lengthDecoder
+	HuffmanDecoder<uint8_t> lengthDecoder
 	{
 		HuffmanCode<uint8_t>{2,0b000,4},
 		HuffmanCode<uint8_t>{2,0b010,5},
@@ -415,7 +350,7 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 		HuffmanCode<uint8_t>{3,0b111,9}
 	};
 	
-	HuffmanDecoder<int8_t,-1,6> distanceDecoder
+	HuffmanDecoder<int8_t> distanceDecoder
 	{
 		HuffmanCode<int8_t>{1,0b000000,0},
 		HuffmanCode<int8_t>{3,0b000110,1},
@@ -436,9 +371,6 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 	};
 
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-
 	// helpers
 	auto readDistance=[&]()->uint32_t
 	{
@@ -450,9 +382,8 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 	
 	auto moveBytes=[&](uint32_t distance,uint32_t count)->void
 	{
-		if (!count || distance>destOffset || destOffset+count>_rawSize) throw DecompressionError();
-		for (uint32_t i=0;i<count;i++,destOffset++)
-			dest[destOffset]=dest[destOffset-distance];
+		if (!count) throw DecompressionError();
+		outputStream.copy(distance,count);
 	};
 
 	readBit();
@@ -463,13 +394,8 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 	{
 		Cmd cmd=cmdDecoder.decode(readBit);
 		switch (cmd) {
-			case Cmd::INV:
-			throw DecompressionError();
-			break;
-
 			case Cmd::LIT:
-			if (destOffset>=_rawSize) throw DecompressionError();
-			dest[destOffset++]=readByte();
+			outputStream.writeByte(readByte());
 			break;
 
 			case Cmd::MOV:
@@ -482,9 +408,8 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 					for (uint32_t i=0;i<4;i++)
 						rep=(rep<<1)|readBit();
 					rep=(rep+3)*4;
-					if (destOffset+rep>_rawSize) throw DecompressionError();
-					for (uint32_t i=0;i<rep;i++,destOffset++)
-						dest[destOffset]=readByte();
+					for (uint32_t i=0;i<rep;i++)
+						outputStream.writeByte(readByte());
 				}
 			}
 			break;
@@ -512,7 +437,7 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 		}
 	}
 
-	if (_rawSize!=destOffset || _chunks!=foundChunks) throw DecompressionError();
+	if (!outputStream.eof() || _chunks!=foundChunks) throw DecompressionError();
 	if (verify && CRC16(rawData,0,_rawSize,0)!=_rawCRC) throw VerificationError();
 }
 

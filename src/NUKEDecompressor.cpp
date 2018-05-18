@@ -4,6 +4,8 @@
 
 #include "NUKEDecompressor.hpp"
 #include "DLTADecode.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool NUKEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -37,95 +39,39 @@ const std::string &NUKEDecompressor::getSubName() const noexcept
 
 void NUKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-
 	// there are 2 streams, reverse stream for bytes and
 	// normal stream for bits, the bit stream is divided
 	// into single bit, 2 bit, 4 bit and random accumulator
-	size_t bufOffset=0;
-	uint16_t bufBits1Content=0;
-	uint8_t bufBits1Length=0;
-	uint16_t bufBits2Content=0;
-	uint8_t bufBits2Length=0;
-	uint32_t bufBits4Content=0;
-	uint8_t bufBits4Length=0;
-	uint32_t bufBitsXContent=0;
-	uint8_t bufBitsXLength=0;
-	size_t bufOffsetReverse=packedSize;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream forwardInputStream(_packedData,0,_packedData.size());
+	BackwardInputStream backwardInputStream(_packedData,0,_packedData.size());
+	forwardInputStream.link(backwardInputStream);
+	backwardInputStream.link(forwardInputStream);
+	MSBBitReader<ForwardInputStream> bit1Reader(forwardInputStream);
+	MSBBitReader<ForwardInputStream> bit2Reader(forwardInputStream);
+	LSBBitReader<ForwardInputStream> bit4Reader(forwardInputStream);
+	MSBBitReader<ForwardInputStream> bitXReader(forwardInputStream);
+	auto readBit=[&]()->uint32_t
 	{
-		if (!bufBits1Length)
-		{
-			if (bufOffset+1>=bufOffsetReverse) throw Decompressor::DecompressionError();
-			bufBits1Content=uint16_t(bufPtr[bufOffset++])<<8;
-			bufBits1Content|=uint16_t(bufPtr[bufOffset++]);
-			bufBits1Length=16;
-		}
-		uint8_t ret=bufBits1Content>>15;
-		bufBits1Content<<=1;
-		bufBits1Length--;
-		return ret;
+		return bit1Reader.readBitsBE16(1);
 	};
-
-	auto read2Bits=[&]()->uint8_t
+	auto read2Bits=[&]()->uint32_t
 	{
-		if (!bufBits2Length)
-		{
-			if (bufOffset+1>=bufOffsetReverse) throw Decompressor::DecompressionError();
-			bufBits2Content=uint16_t(bufPtr[bufOffset++])<<8;
-			bufBits2Content|=uint16_t(bufPtr[bufOffset++]);
-			bufBits2Length=16;
-		}
-		uint8_t ret=bufBits2Content>>14;
-		bufBits2Content<<=2;
-		bufBits2Length-=2;
-		return ret;
+		return bit2Reader.readBitsBE16(2);
 	};
-
-	auto read4Bits=[&]()->uint8_t
+	auto read4Bits=[&]()->uint32_t
 	{
-		if (!bufBits4Length)
-		{
-			if (bufOffset+3>=bufOffsetReverse) throw Decompressor::DecompressionError();
-			bufBits4Content=uint32_t(bufPtr[bufOffset++])<<24;
-			bufBits4Content|=uint32_t(bufPtr[bufOffset++])<<16;
-			bufBits4Content|=uint32_t(bufPtr[bufOffset++])<<8;
-			bufBits4Content|=uint32_t(bufPtr[bufOffset++]);
-			bufBits4Length=32;
-		}
-		uint8_t ret=bufBits4Content&0xf;
-		bufBits4Content>>=4;
-		bufBits4Length-=4;
-		return ret;
+		return bit4Reader.readBitsBE32(4);
 	};
-
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		if (bufBitsXLength<count)
-		{
-			if (bufOffset+1>=bufOffsetReverse) throw Decompressor::DecompressionError();
-			bufBitsXContent<<=16;
-			bufBitsXContent|=uint16_t(bufPtr[bufOffset++])<<8;
-			bufBitsXContent|=uint16_t(bufPtr[bufOffset++]);
-			bufBitsXLength+=16;
-		}
-		uint32_t ret=(bufBitsXContent>>(bufBitsXLength-count))&((1<<count)-1);
-		bufBitsXLength-=count;
-		return ret;
+		return bitXReader.readBitsBE16(count);
 	};
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufOffsetReverse<=bufOffset) throw Decompressor::DecompressionError();
-		return bufPtr[--bufOffsetReverse];
+		return backwardInputStream.readByte();
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	for (;;)
 	{
@@ -143,10 +89,9 @@ void NUKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 						else count+=3;
 				} while (!tmp);
 			}
-			if (destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++) dest[destOffset++]=readByte();
+			for (uint32_t i=0;i<count;i++) outputStream.writeByte(readByte());
 		}
-		if (destOffset==rawSize) break;
+		if (outputStream.eof()) break;
 		uint32_t distanceIndex=read4Bits();
 		static const uint8_t distanceBits[16]={
 			4,6,8,9,
@@ -172,13 +117,10 @@ void NUKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 				} while (!tmp);
 			} else count=3+4-count;
 		}
-		if (!distance || size_t(distance)>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-		for (uint32_t i=0;i<count;i++,destOffset++)
-			dest[destOffset]=dest[destOffset-distance];
+		outputStream.copy(distance,count);
 	}
-	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 	if (_isDUKE)
-		DLTADecode::decode(rawData,rawData,0,rawSize);
+		DLTADecode::decode(rawData,rawData,0,rawData.size());
 }
 
 XPKDecompressor::Registry<NUKEDecompressor> NUKEDecompressor::_XPKregistration;

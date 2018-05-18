@@ -2,6 +2,8 @@
 
 #include "RAKEDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool RAKEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -39,60 +41,36 @@ const std::string &RAKEDecompressor::getSubName() const noexcept
 
 void RAKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-
 	// 2 streams
 	// 1st: bit stream starting from _midStreamOffset(+1) going to packedSize
 	// 2nd: byte stream starting from _midStreamOffset going backwards to 4
-
-	size_t bufOffset=_midStreamOffset+(_midStreamOffset&1);
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto fillBuffer=[&]()
+	ForwardInputStream forwardInputStream(_packedData,_midStreamOffset+(_midStreamOffset&1),_packedData.size());
+	BackwardInputStream backwardInputStream(_packedData,4,_midStreamOffset);
+	MSBBitReader<ForwardInputStream> bitReader(forwardInputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		if (bufOffset+4>packedSize) throw Decompressor::DecompressionError();
-		for (uint32_t i=0;i<4;i++) bufBitsContent=uint32_t(bufPtr[bufOffset++])|(bufBitsContent<<8);
-		bufBitsLength=32;
+		return bitReader.readBitsBE32(count);
 	};
-
-	auto readBit=[&]()->uint8_t
+	auto readBit=[&]()->uint32_t
 	{
-		if (!bufBitsLength) fillBuffer();
-		uint8_t ret=bufBitsContent>>31;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBitsBE32(1);
 	};
-
-	auto readBits=[&](uint32_t bits)->uint32_t
-	{
-		uint32_t ret=0;
-		for (uint32_t i=0;i<bits;i++) ret=(ret<<1)|readBit();
-		return ret;
-	};
-
-	uint16_t tmp=(uint16_t(bufPtr[0])<<8)|uint16_t(bufPtr[1]);
-        if (tmp>32) throw Decompressor::DecompressionError();
-        fillBuffer();
-        bufBitsLength-=tmp;
-
-
-	size_t bufByteOffset=_midStreamOffset;
-
 	auto readByte=[&]()->uint8_t
 	{
-		if (bufByteOffset<=4) throw Decompressor::DecompressionError();
-		return bufPtr[--bufByteOffset];
+		return backwardInputStream.readByte();
 	};
+	{
+		uint16_t tmp=_packedData.readBE16(0);
+	        if (tmp>32) throw Decompressor::DecompressionError();
+		const uint8_t *buf=forwardInputStream.consume(4);
+		uint32_t content=(uint32_t(buf[0])<<24)|(uint32_t(buf[1])<<16)|
+			(uint32_t(buf[2])<<8)|uint32_t(buf[3]);
+		bitReader.reset(content>>tmp,32-tmp);
+	}
 
-	uint8_t *dest=rawData.data();
-	size_t rawSize=rawData.size();
-	size_t destOffset=rawSize;
+	BackwardOutputStream outputStream(rawData,0,rawData.size());
 
-	HuffmanDecoder<uint32_t,0x100,0> lengthDecoder;
+	HuffmanDecoder<uint32_t> lengthDecoder;
 	// is there some logic into this?
 	static const uint8_t decTable[255][2]={
 		{ 1,0x01},{ 3,0x03},{ 5,0x05},{ 6,0x09},{ 7,0x0c},{ 9,0x13},{12,0x34},{18,0xc0},
@@ -135,11 +113,11 @@ void RAKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		hufCode+=1<<(32-it[0]);
 	}
 
-	while (destOffset)
+	while (!outputStream.eof())
 	{
 		if (!readBit())
 		{
-			dest[--destOffset]=readByte();
+			outputStream.writeByte(readByte());
 		} else {
 			uint32_t count=lengthDecoder.decode(readBit);
 			count+=2;
@@ -156,9 +134,7 @@ void RAKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 					distance=((readBits(6)<<8)|uint32_t(readByte()))+0x901;
 				}
 			}
-			if (destOffset<count || destOffset+distance>rawSize) throw Decompressor::DecompressionError();
-			distance+=destOffset;
-			for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
+			outputStream.copy(distance,count);
 		}
 	}
 }

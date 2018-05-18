@@ -2,6 +2,8 @@
 
 #include "HFMNDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool HFMNDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -43,33 +45,16 @@ const std::string &HFMNDecompressor::getSubName() const noexcept
 void HFMNDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
 	if (rawData.size()!=_rawSize) throw Decompressor::DecompressionError();
-
-	// Stream reading
-	const uint8_t *bufPtr=_packedData.data();
-	size_t packedSize=_packedData.size();
-	size_t bufOffset=2;
-
-	uint8_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBit=[&]()->uint8_t
+	ForwardInputStream inputStream(_packedData,2,_headerSize);
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBit=[&]()->uint32_t
 	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=bufPtr[bufOffset++];
-			bufBitsLength=8;
-		}
-		uint8_t ret=bufBitsContent>>7;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+		return bitReader.readBits8(1);
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	HuffmanDecoder<uint32_t,256,0> decoder;
+	HuffmanDecoder<uint32_t> decoder;
 	uint32_t code=1;
 	uint32_t codeBits=1;
 	for (;;)
@@ -91,14 +76,11 @@ void HFMNDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			codeBits++;
 		}
 	}
-	if (bufOffset+2>_headerSize) throw Decompressor::DecompressionError();
+	inputStream=ForwardInputStream(_packedData,_headerSize,_packedData.size());
+	bitReader.reset();
 
-	bufOffset=_headerSize;
-	bufBitsContent=0;
-	bufBitsLength=0;
-
-	while (destOffset!=_rawSize)
-		dest[destOffset++]=decoder.decode(readBit);
+	while (!outputStream.eof())
+		outputStream.writeByte(decoder.decode(readBit));
 }
 
 XPKDecompressor::Registry<HFMNDecompressor> HFMNDecompressor::_XPKregistration;

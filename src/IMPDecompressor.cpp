@@ -2,6 +2,8 @@
 
 #include "IMPDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 static bool readIMPHeader(uint32_t hdr,uint32_t &addition) noexcept
 {
@@ -126,64 +128,87 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	if (rawData.size()<_rawSize) throw DecompressionError();
 
-	uint8_t markerByte=_packedData.read8(_endOffset+16);
-
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=_endOffset;
-	if (!(markerByte&0x80)) bufOffset--;
-
-	uint8_t bufBitsContent=_packedData.read8(_endOffset+17);
-	uint8_t bufBitsLength=7;
-	// the anchor-bit does not seem always to be at the correct place
-	for (uint32_t i=0;i<7;i++)
-		if (bufBitsContent&(1<<i)) break;
-			else bufBitsLength--;
-
-	// streamreader with funny ordering
-	auto sourceOffset=[&](size_t i)->size_t
+	class IMPInputStream
 	{
-		if (i>=12)
+	public:
+		IMPInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset) :
+			_bufPtr(buffer.data()),
+			_currentOffset(endOffset),
+			_endOffset(startOffset),
+			_refOffset(endOffset)
 		{
-			return i;
-		} else {
-			if (i<4)
+			if (_currentOffset<_endOffset || _currentOffset>buffer.size() || _endOffset>buffer.size()) throw Decompressor::DecompressionError();
+			uint8_t markerByte=buffer.read8(_currentOffset+16);
+			if (!(markerByte&0x80))
 			{
-				return i+_endOffset+8;
-			} else if (i<8) {
-				return i+_endOffset;
-			} else {
-				return i+_endOffset-8;
+				if (_currentOffset==_endOffset) throw Decompressor::DecompressionError();
+				_currentOffset--;
 			}
 		}
-	};
 
-	auto readBit=[&]()->uint8_t
-	{
-		if (!bufBitsLength)
+		~IMPInputStream()
 		{
-			if (!bufOffset) throw DecompressionError();
-			bufBitsContent=bufPtr[sourceOffset(--bufOffset)];
-			bufBitsLength=8;
+			// nothing needed
 		}
-		uint8_t ret=bufBitsContent>>7;
-		bufBitsContent<<=1;
-		bufBitsLength--;
-		return ret;
+
+		uint8_t readByte()
+		{
+			// streamreader with funny ordering
+			auto sourceOffset=[&](size_t i)->size_t
+			{
+				if (i>=12)
+				{
+					return i;
+				} else {
+					if (i<4)
+					{
+						return i+_refOffset+8;
+					} else if (i<8) {
+						return i+_refOffset;
+					} else {
+						return i+_refOffset-8;
+					}
+				}
+			};
+			if (_currentOffset<=_endOffset) throw Decompressor::DecompressionError();
+			return _bufPtr[sourceOffset(--_currentOffset)];
+		}
+
+		bool eof() const { return _currentOffset==_endOffset; }
+
+	private:
+		const uint8_t		*_bufPtr;
+		size_t			_currentOffset;
+		size_t			_endOffset;
+		size_t			_refOffset;
 	};
 
+	IMPInputStream inputStream(_packedData,0,_endOffset);
+	MSBBitReader<IMPInputStream> bitReader(inputStream);
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		uint32_t ret=0;
-		for (uint32_t i=0;i<count;i++) ret=(ret<<1)|uint32_t(readBit());
-		return ret;
+		return bitReader.readBits8(count);
 	};
-
+	auto readBit=[&]()->uint32_t
+	{
+		return bitReader.readBits8(1);
+	};
 	auto readByte=[&]()->uint8_t
 	{
-		if (!bufOffset) throw DecompressionError();
-		return bufPtr[sourceOffset(--bufOffset)];
+		return inputStream.readByte();
 	};
-	
+	// the anchor-bit does not seem always to be at the correct place
+	{
+		uint8_t halfByte=_packedData.read8(_endOffset+17);
+		for (uint32_t i=0;i<7;i++)
+			if (halfByte&(1<<i))
+			{
+				bitReader.reset(halfByte>>(i+1),7-i);
+				break;
+			}
+	}
+
+	BackwardOutputStream outputStream(rawData,0,_rawSize);
 
 	// tables
 	uint16_t distanceValues[2][4];
@@ -194,7 +219,7 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		distanceBits[i>>2][i&3]=_packedData.read8(_endOffset+34+i);
 
 	// length, distance & literal counts are all intertwined
-	HuffmanDecoder<uint8_t,0xffU,5> lldDecoder
+	HuffmanDecoder<uint8_t> lldDecoder
 	{
 		HuffmanCode<uint8_t>{1,0b00000,0},
 		HuffmanCode<uint8_t>{2,0b00010,1},
@@ -204,7 +229,7 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		HuffmanCode<uint8_t>{5,0b11111,5}
 	};
 
-	HuffmanDecoder<uint8_t,0xffU,2> lldDecoder2
+	HuffmanDecoder<uint8_t> lldDecoder2
 	{
 		HuffmanCode<uint8_t>{1,0b00,0},
 		HuffmanCode<uint8_t>{2,0b10,1},
@@ -212,18 +237,13 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	};
 
 	// finally loop
-
-	uint8_t *dest=rawData.data();
-	size_t destOffset=_rawSize;
-
 	uint32_t litLength=_packedData.readBE32(_endOffset+12);
 
 	for (;;)
 	{
-		if (destOffset<litLength) throw DecompressionError();
-		for (uint32_t i=0;i<litLength;i++) dest[--destOffset]=readByte();
+		for (uint32_t i=0;i<litLength;i++) outputStream.writeByte(readByte());
 
-		if (!destOffset) break;
+		if (outputStream.eof()) break;
 
 		// now the intertwined Huffman table reads.
 		uint32_t i0=lldDecoder.decode(readBit);
@@ -254,9 +274,7 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		uint32_t i2=lldDecoder2.decode(readBit);
 		uint32_t distance=1+((i2)?distanceValues[i2-1][selector]:0)+readBits(distanceBits[i2][selector]);
 
-		if (destOffset<count || destOffset+distance>_rawSize) throw DecompressionError();
-		distance+=destOffset;
-		for (uint32_t i=0;i<count;i++) dest[--destOffset]=dest[--distance];
+		outputStream.copy(distance,count);
 	}
 }
 

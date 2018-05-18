@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "ZENODecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool ZENODecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -39,30 +41,14 @@ const std::string &ZENODecompressor::getSubName() const noexcept
 
 void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=_startOffset;
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBits=[&](uint32_t bits)->uint32_t
+	ForwardInputStream inputStream(_packedData,_startOffset,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		while (bufBitsLength<bits)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=(bufBitsContent<<8)|bufPtr[bufOffset++];
-			bufBitsLength+=8;
-		}
-
-		uint32_t ret=(bufBitsContent>>(bufBitsLength-bits))&((1<<bits)-1);
-		bufBitsLength-=bits;
-		return ret;
+		return bitReader.readBits8(count);
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	uint32_t maxCode=1<<_maxBits;
 	uint32_t stackLength=5000;				// magic constant
@@ -84,18 +70,16 @@ void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	suffix[freeIndex-258]=0;
 	prefix[freeIndex-258]=0;
 	freeIndex++;
-	if (destOffset>=rawSize) throw Decompressor::DecompressionError();
-	dest[destOffset++]=newCode;
+	outputStream.writeByte(newCode);
 	
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		if (freeIndex+3>=(1U<<codeBits) && codeBits<_maxBits) codeBits++;
 		uint32_t code=readBits(codeBits);
-		bool doExit=false;
 		switch (code)
 		{
 			case 256:
-			doExit=true;
+			throw Decompressor::DecompressionError();
 			break;
 
 			case 257:
@@ -119,13 +103,11 @@ void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 						tmp=prefix[tmp-258];
 					} while (tmp>=258);
 					stack[stackPos++]=newCode=tmp;
-					if (destOffset+stackPos>rawSize) throw Decompressor::DecompressionError();
-					while (stackPos) dest[destOffset++]=stack[--stackPos];
+					while (stackPos) outputStream.writeByte(stack[--stackPos]);
 				} else {
 					newCode=tmp;
-					if (destOffset+stackPos>=rawSize) throw Decompressor::DecompressionError();
-					dest[destOffset++]=tmp;
-					if (stackPos) dest[destOffset++]=stack[0];
+					outputStream.writeByte(tmp);
+					if (stackPos) outputStream.writeByte(stack[0]);
 				}
 			}
 			if (freeIndex<maxCode)
@@ -137,9 +119,7 @@ void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			prevCode=code;
 			break;
 		}
-		if (doExit) break;
 	}
-	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<ZENODecompressor> ZENODecompressor::_XPKregistration;

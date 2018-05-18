@@ -41,7 +41,7 @@ void Decompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<
 {
 	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> _list;
 	if (!_decompressors) _decompressors=&_list;
-	_decompressors->push_back(std::make_pair(detect,create));
+	_decompressors->emplace_back(detect,create);
 }
 
 void Decompressor::decompress(Buffer &rawData,bool verify)

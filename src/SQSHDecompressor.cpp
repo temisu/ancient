@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "SQSHDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 #include "HuffmanDecoder.hpp"
 
 bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
@@ -37,32 +39,12 @@ void SQSHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 {
 	if (rawData.size()!=_rawSize) throw Decompressor::DecompressionError();
 
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=2;
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBits=[&](uint8_t bits)->uint32_t
+	ForwardInputStream inputStream(_packedData,2,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		while (bufBitsLength<bits)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=(bufBitsContent<<8)|bufPtr[bufOffset++];
-			bufBitsLength+=8;
-		}
-
-		uint32_t ret=(bufBitsContent>>(bufBitsLength-bits))&((1<<bits)-1);
-		bufBitsLength-=bits;
-		return ret;
+		return bitReader.readBits8(count);
 	};
-	
-	auto readBit=[&]()->uint32_t
-	{
-		return readBits(1);
-	};
-
 	auto readSignedBits=[&](uint8_t bits)->int32_t
 	{
 		int32_t ret=readBits(bits);
@@ -70,8 +52,18 @@ void SQSHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			ret|=~0U<<bits;
 		return ret;
 	};
+	auto readBit=[&]()->uint32_t
+	{
+		return bitReader.readBits8(1);
+	};
+	auto readByte=[&]()->uint8_t
+	{
+		return inputStream.readByte();
+	};
 
-	HuffmanDecoder<uint8_t,0xffU,4> modDecoder
+	ForwardOutputStream outputStream(rawData,0,_rawSize);
+
+	HuffmanDecoder<uint8_t> modDecoder
 	{
 		HuffmanCode<uint8_t>{1,0b0001,0},
 		HuffmanCode<uint8_t>{2,0b0000,1},
@@ -80,7 +72,7 @@ void SQSHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		HuffmanCode<uint8_t>{4,0b0111,4}
 	};
 
-	HuffmanDecoder<uint8_t,0xffU,4> lengthDecoder
+	HuffmanDecoder<uint8_t> lengthDecoder
 	{
 		HuffmanCode<uint8_t>{1,0b0000,0},
 		HuffmanCode<uint8_t>{2,0b0010,1},
@@ -89,23 +81,20 @@ void SQSHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		HuffmanCode<uint8_t>{4,0b1111,4}
 	};
 
-	HuffmanDecoder<uint8_t,0xffU,2> distanceDecoder
+	HuffmanDecoder<uint8_t> distanceDecoder
 	{
 		HuffmanCode<uint8_t>{1,0b01,0},
 		HuffmanCode<uint8_t>{2,0b00,1},
 		HuffmanCode<uint8_t>{2,0b01,2}
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-
 	// first byte is special
-	uint8_t currentSample=bufPtr[bufOffset++];
-	dest[destOffset++]=currentSample;
+	uint8_t currentSample=readByte();
+	outputStream.writeByte(currentSample);
 
 	uint32_t accum1=0,accum2=0,prevBits=0;
 
-	while (destOffset!=_rawSize)
+	while (!outputStream.eof())
 	{
 		uint8_t bits=0;
 		uint32_t count=0;
@@ -204,19 +193,14 @@ void SQSHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			static const uint8_t distanceBits[3]={12,8,14};
 			static const uint32_t distanceAdditions[3]={0x101,1,0x1101};
 			uint32_t distance=readBits(distanceBits[distanceIndex])+distanceAdditions[distanceIndex];
-			if (destOffset+count>_rawSize)
-				count=uint32_t(_rawSize-destOffset);
-			if (distance>destOffset) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
-			currentSample=dest[destOffset-1];
+			count=std::min(count,uint32_t(_rawSize-outputStream.getOffset()));
+			currentSample=outputStream.copy(distance,count);
 		} else {
-			if (destOffset+count>_rawSize)
-				count=uint32_t(_rawSize-destOffset);
+			count=std::min(count,uint32_t(_rawSize-outputStream.getOffset()));
 			for (uint32_t i=0;i<count;i++)
 			{
 				currentSample-=readSignedBits(bits);
-				dest[destOffset++]=currentSample;
+				outputStream.writeByte(currentSample);
 			}
 			if (accum1!=31) accum1++;
 			prevBits=bits;

@@ -25,7 +25,7 @@ void XPKMaster::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPK
 {
 	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool)>> _list;
 	if (!_XPKDecompressors) _XPKDecompressors=&_list;
-	_XPKDecompressors->push_back(std::make_pair(detect,create));
+	_XPKDecompressors->emplace_back(detect,create);
 }
 
 

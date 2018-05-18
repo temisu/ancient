@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "SMPLDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 #include "HuffmanDecoder.hpp"
 
 bool SMPLDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
@@ -35,52 +37,20 @@ const std::string &SMPLDecompressor::getSubName() const noexcept
 
 void SMPLDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-
-	size_t bufOffset=2;
-	uint8_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBit=[&]()->uint8_t
-	{
-		if (!bufBitsLength)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=bufPtr[bufOffset++];
-			bufBitsLength=8;
-		}
-		return (bufBitsContent>>(--bufBitsLength))&1;
-	};
-
+	ForwardInputStream inputStream(_packedData,2,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		uint32_t ret=0;
-
-		while (bufBitsLength<count)
-		{
-			ret=(ret<<bufBitsLength)|(bufBitsContent&((1<<bufBitsLength)-1));
-			count-=bufBitsLength;
-			bufBitsLength=0;
-
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=bufPtr[bufOffset++];
-			bufBitsLength=8;
-		}
-		if (count)
-		{
-			ret=(ret<<count)|((bufBitsContent>>(bufBitsLength-count))&((1<<count)-1));
-			bufBitsLength-=count;
-		}
-		return ret;
+		return bitReader.readBits8(count);
 	};
-	
-	uint8_t *dest=rawData.data();
-	size_t rawSize=rawData.size();
-	size_t destOffset=0;
+	auto readBit=[&]()->uint32_t
+	{
+		return bitReader.readBits8(1);
+	};
 
-	HuffmanDecoder<uint32_t,0x100,0> decoder;
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
+
+	HuffmanDecoder<uint32_t> decoder;
 
 	for (uint32_t i=0;i<256;i++)
 	{
@@ -92,11 +62,11 @@ void SMPLDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	}
 
 	uint8_t accum=0;
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		uint32_t code=decoder.decode(readBit);
 		accum+=code;
-		dest[destOffset++]=accum;
+		outputStream.writeByte(accum);
 	}
 }
 

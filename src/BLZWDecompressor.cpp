@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "BLZWDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool BLZWDecompressor::detectHeaderXPK(uint32_t hdr)
 {
@@ -35,30 +37,14 @@ const std::string &BLZWDecompressor::getSubName() const noexcept
 
 void BLZWDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	size_t packedSize=_packedData.size();
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=4;
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
-	auto readBits=[&](uint32_t bits)->uint32_t
+	ForwardInputStream inputStream(_packedData,4,_packedData.size());
+	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		while (bufBitsLength<bits)
-		{
-			if (bufOffset>=packedSize) throw Decompressor::DecompressionError();
-			bufBitsContent=(bufBitsContent<<8)|bufPtr[bufOffset++];
-			bufBitsLength+=8;
-		}
-
-		uint32_t ret=(bufBitsContent>>(bufBitsLength-bits))&((1<<bits)-1);
-		bufBitsLength-=bits;
-		return ret;
+		return bitReader.readBits8(count);
 	};
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	uint32_t maxCode=1<<_maxBits;
 	auto prefix=std::make_unique<uint32_t[]>(maxCode-259);
@@ -85,8 +71,7 @@ void BLZWDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			newCode=suffixLookup(code);
 		}
 		stack[stackPos++]=newCode;
-		if (destOffset+stackPos>rawSize) throw Decompressor::DecompressionError();
-		while (stackPos) dest[destOffset++]=stack[--stackPos];
+		while (stackPos) outputStream.writeByte(stack[--stackPos]);
 	};
 
 	auto init=[&]()
@@ -98,14 +83,13 @@ void BLZWDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	};
 
 	init();
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		uint32_t code=readBits(codeBits);
-		bool doExit=false;
 		switch (code)
 		{
 			case 256:
-			doExit=true;
+			throw Decompressor::DecompressionError();
 			break;
 
 			case 257:
@@ -121,8 +105,7 @@ void BLZWDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			{
 				uint32_t tmp=newCode;
 				insert(prevCode);
-				if (destOffset>=rawSize) throw Decompressor::DecompressionError();
-				dest[destOffset++]=tmp;
+				outputStream.writeByte(tmp);
 			} else insert(code);
 			if (freeIndex<maxCode)
 			{
@@ -133,9 +116,7 @@ void BLZWDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			prevCode=code;
 			break;
 		}
-		if (doExit) break;
 	}
-	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<BLZWDecompressor> BLZWDecompressor::_XPKregistration;

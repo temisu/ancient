@@ -1,6 +1,8 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "RLENDecompressor.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool RLENDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -32,30 +34,22 @@ const std::string &RLENDecompressor::getSubName() const noexcept
 
 void RLENDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufOffset=0;
-	size_t packedSize=_packedData.size();
+	ForwardInputStream inputStream(_packedData,0,_packedData.size());
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
-
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
-		if (bufOffset==packedSize) throw Decompressor::DecompressionError();
-		uint32_t count=uint32_t(bufPtr[bufOffset++]);
+		uint32_t count=uint32_t(inputStream.readByte());
 		if (count<128)
 		{
 			if (!count) throw Decompressor::DecompressionError();	// lets have this as error...
-			if (bufOffset+count>packedSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++) dest[destOffset++]=bufPtr[bufOffset++];
+			for (uint32_t i=0;i<count;i++) outputStream.writeByte(inputStream.readByte());
 		} else {
 			// I can see from different implementations that count=0x80 is buggy...
 			// lets try to have it more or less correctly here
 			count=256-count;
-			if (bufOffset==packedSize || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			uint8_t ch=bufPtr[bufOffset++];
-			for (uint32_t i=0;i<count;i++) dest[destOffset++]=ch;
+			uint8_t ch=inputStream.readByte();
+			for (uint32_t i=0;i<count;i++) outputStream.writeByte(ch);
 		}
 	}
 }

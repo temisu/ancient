@@ -2,6 +2,8 @@
 
 #include "LIN2Decompressor.hpp"
 #include "HuffmanDecoder.hpp"
+#include "InputStream.hpp"
+#include "OutputStream.hpp"
 
 bool LIN2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -62,98 +64,76 @@ const std::string &LIN2Decompressor::getSubName() const noexcept
 
 void LIN2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	// Stream reading
-	const uint8_t *bufPtr=_packedData.data();
-	size_t bufBitsOffset=10;
-	uint32_t bufBitsContent=0;
-	uint8_t bufBitsLength=0;
-
 	// three streams.
 	// 1. ordinary bit stream out of words (readBits)
 	// 2. bit stream for literals (readBit)
 	// 3. nibble stream for literal (read4Bits)
-	// at the end of the stream there is a literal table of 16 bytes
+	// at the end of the stream there is a literal table of 16/32 bytes
 	// apart from confusing naming, there are also some nasty
 	// interdependencies :(
-
-	auto readBits=[&](uint8_t bits)->uint32_t
+	ForwardInputStream forwardInputStream(_packedData,10,_midStreamOffset);
+	ForwardInputStream middleInputStream(_packedData,_midStreamOffset,_endStreamOffset);
+	BackwardInputStream backwardInputStream(_packedData,_midStreamOffset,_endStreamOffset);
+	middleInputStream.link(backwardInputStream);
+	backwardInputStream.link(middleInputStream);
+	MSBBitReader<ForwardInputStream> bitsReader(forwardInputStream);
+	MSBBitReader<ForwardInputStream> bitReader(middleInputStream);
+	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		while (bufBitsLength<bits)
-		{
-			if (bufBitsOffset>=_midStreamOffset) throw Decompressor::DecompressionError();
-			bufBitsContent<<=8;
-			bufBitsContent|=uint32_t(bufPtr[bufBitsOffset++]);
-			bufBitsLength+=8;
-		}
-		uint32_t ret=(bufBitsContent>>(bufBitsLength-bits))&((1<<bits)-1);
-		bufBitsLength-=bits;
-		return ret;
+		return bitsReader.readBits8(count);
 	};
 
-	size_t bufBitOffset=_midStreamOffset;
-	size_t buf4BitsOffset=_endStreamOffset;
+	{
+		uint8_t tmp=middleInputStream.readByte();
+		if (tmp>8) throw Decompressor::DecompressionError();
+		bitReader.reset(middleInputStream.readByte()>>tmp,8-tmp);
+	}
+	auto readBit=[&]()->uint8_t
+	{
+		return bitReader.readBits8(1);
+	};
+
 	bool buf4Incomplete=false;
+	uint8_t nibbleContent=0;
 	{
 		uint8_t tmp=_packedData.read8(9);
 		buf4Incomplete=!!tmp;
 		if (buf4Incomplete)
-		{
-			if (buf4BitsOffset<=bufBitOffset) throw Decompressor::DecompressionError();
-			buf4BitsOffset--;
-		}
+			nibbleContent=backwardInputStream.readByte();
 	}
-
-	uint8_t bufBitContent=0;
-	uint8_t bufBitLength=0;
-	if (bufBitOffset+1>=buf4BitsOffset) throw Decompressor::DecompressionError();
-	bufBitLength=8-bufPtr[bufBitOffset++];
-	if (bufBitLength>8) throw Decompressor::DecompressionError();
-	bufBitContent=bufPtr[bufBitOffset++];
-
-	auto readBit=[&]()->uint8_t
-	{
-		if (!bufBitLength)
-		{
-			if (bufBitOffset>=buf4BitsOffset) throw Decompressor::DecompressionError();
-			bufBitContent=bufPtr[bufBitOffset++];
-			bufBitLength=8;
-		}
-		uint8_t ret=bufBitContent>>7;
-		bufBitContent<<=1;
-		bufBitLength--;
-		return ret;
-	};
-
 	// this is a rather strange thing...
-	auto read4Bits=[&](uint32_t multiple)->uint8_t
+	auto read4Bits=[&](bool fullByte)->uint8_t
 	{
-		if (multiple==1)
+		if (!fullByte)
 		{
-			if (buf4Incomplete)
+			buf4Incomplete=!buf4Incomplete;
+			if (!buf4Incomplete)
 			{
-				buf4Incomplete=false;
-				return bufPtr[buf4BitsOffset]&0xf;
+				return nibbleContent&0xf;
 			} else {
-				if (buf4BitsOffset<=bufBitOffset) throw Decompressor::DecompressionError();
-				buf4Incomplete=true;
-				return bufPtr[--buf4BitsOffset]>>4;
+				nibbleContent=backwardInputStream.readByte();
+				return nibbleContent>>4;
 			}
 		} else {
-			// a byte
-			if (buf4BitsOffset<=bufBitOffset) throw Decompressor::DecompressionError();
 			if (buf4Incomplete)
 			{
-				uint8_t ret=bufPtr[buf4BitsOffset]&0xf;
-				ret|=bufPtr[--buf4BitsOffset]&0xf0U;
+				uint8_t ret=nibbleContent&0xf;
+				nibbleContent=backwardInputStream.readByte();
+				ret|=nibbleContent&0xf0U;
 				return ret;
 			} else {
-				return bufPtr[--buf4BitsOffset];
+				return backwardInputStream.readByte();
 			}
 		}
 	};
 
+	const uint8_t *literalTable=&_packedData[_endStreamOffset];
+
+	size_t rawSize=rawData.size();
+	ForwardOutputStream outputStream(rawData,0,rawSize);
+
 	// little meh to initialize both (intentionally deleted copy/assign)
-	HuffmanDecoder<uint8_t,0xffU,7> lengthDecoder2
+	HuffmanDecoder<uint8_t> lengthDecoder2
 	{
 		HuffmanCode<uint8_t>{1,0b000000,3},
 		HuffmanCode<uint8_t>{3,0b000100,4},
@@ -169,7 +149,7 @@ void LIN2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		HuffmanCode<uint8_t>{6,0b111111,0}
 	};
 
-	HuffmanDecoder<uint8_t,0xffU,7> lengthDecoder4
+	HuffmanDecoder<uint8_t> lengthDecoder4
 	{
 		HuffmanCode<uint8_t>{2,0b0000000,3},
 		HuffmanCode<uint8_t>{2,0b0000001,4},
@@ -188,24 +168,20 @@ void LIN2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	};
 	auto &lengthDecoder=(_ver==2)?lengthDecoder2:lengthDecoder4;
 
-	uint8_t *dest=rawData.data();
-	size_t destOffset=0;
-	size_t rawSize=rawData.size();
-
 	uint32_t minBits=1;
 
-	while (destOffset!=rawSize)
+	while (!outputStream.eof())
 	{
 		if (!readBits(1))
 		{
 			if (readBit())
 			{
-				dest[destOffset++]=read4Bits(2);
+				outputStream.writeByte(read4Bits(true));
 			} else {
 				if (_ver==4)
 				{
-					dest[destOffset++]=bufPtr[_endStreamOffset+(read4Bits(1)<<1)+readBit()];
-				} else dest[destOffset++]=bufPtr[_endStreamOffset+read4Bits(1)];
+					outputStream.writeByte(literalTable[(read4Bits(false)<<1)+readBit()]);
+				} else outputStream.writeByte(literalTable[read4Bits(false)]);
 			}
 		} else {
 			uint32_t count=lengthDecoder.decode([&](){return readBits(1);});
@@ -215,7 +191,7 @@ void LIN2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 				if (count==0xfU)
 				{
 					count=readBits(8);
-					if (count==0xffU) break;
+					if (count==0xffU) throw Decompressor::DecompressionError();
 						else count+=3;
 				} else count+=(_ver==2)?14:16;
 			}
@@ -231,16 +207,12 @@ void LIN2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			} while (isMax);
 
 			// buggy compressors
-			if (destOffset+count>rawSize) count=uint32_t(rawSize-destOffset);
-			if (!count) break;
+			count=std::min(count,uint32_t(rawSize-outputStream.getOffset()));
+			if (!count) throw Decompressor::DecompressionError();
 
-			if (distance>destOffset || destOffset+count>rawSize) throw Decompressor::DecompressionError();
-			for (uint32_t i=0;i<count;i++,destOffset++)
-				dest[destOffset]=dest[destOffset-distance];
+			outputStream.copy(distance,count);
 		}
 	}
-
-	if (destOffset!=rawSize) throw Decompressor::DecompressionError();
 }
 
 XPKDecompressor::Registry<LIN2Decompressor> LIN2Decompressor::_XPKregistration;

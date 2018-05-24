@@ -16,8 +16,6 @@ public:
 	DynamicHuffmanDecoder(uint32_t initialCount=maxCount) :
 		_initialCount(initialCount)
 	{
-		::memset(_nodes,0xff,sizeof(_nodes));
-		::memset(_codeMap,0xff,sizeof(_codeMap));
 		if (_initialCount>maxCount) throw Decompressor::DecompressionError();
 		reset();
 	}

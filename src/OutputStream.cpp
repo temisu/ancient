@@ -37,12 +37,13 @@ uint8_t ForwardOutputStream::copy(size_t distance,size_t count)
 
 uint8_t ForwardOutputStream::copy(size_t distance,size_t count,const Buffer &prevBuffer)
 {
-	size_t prevSize=prevBuffer.size();
-	if (!distance || _startOffset+distance>_currentOffset+prevSize || _currentOffset+count>_endOffset) throw Decompressor::DecompressionError();
+	if (!distance || _currentOffset+count>_endOffset) throw Decompressor::DecompressionError();
 	size_t prevCount=0;
 	uint8_t ret=0;
 	if (_startOffset+distance>_currentOffset)
 	{
+		size_t prevSize=prevBuffer.size();
+		if (_startOffset+distance>_currentOffset+prevSize) throw Decompressor::DecompressionError(); 
 		size_t prevDist=_startOffset+distance-_currentOffset;
 		prevCount=std::min(count,prevDist);
 		const uint8_t *prev=&prevBuffer[prevSize-prevDist];
@@ -68,6 +69,12 @@ uint8_t ForwardOutputStream::copy(size_t distance,size_t count,uint8_t defaultCh
 	for (size_t i=prevCount;i<count;i++,_currentOffset++)
 		ret=_bufPtr[_currentOffset]=_bufPtr[_currentOffset-distance];
 	return ret;
+}
+
+const uint8_t *ForwardOutputStream::history(size_t distance) const
+{
+	if (distance>_currentOffset) throw Decompressor::DecompressionError();
+	return &_bufPtr[_currentOffset-distance];
 }
 
 void ForwardOutputStream::produce(const uint8_t *src,size_t bytes)

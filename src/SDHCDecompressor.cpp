@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include <SubBuffer.hpp>
+#include "common/SubBuffer.hpp"
 #include "SDHCDecompressor.hpp"
 #include "XPKMaster.hpp"
 #include "DLTADecode.hpp"

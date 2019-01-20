@@ -47,7 +47,7 @@ void Decompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<
 void Decompressor::decompress(Buffer &rawData,bool verify)
 {
 	// Simplifying the implementation of sub-decompressors. Just let the buffer-exception pass here,
-	// and thet will get translated into Decompressor exceptions
+	// and that will get translated into Decompressor exceptions
 	try
 	{
 		decompressImpl(rawData,verify);

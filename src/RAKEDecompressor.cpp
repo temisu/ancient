@@ -17,11 +17,11 @@ std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,uint32_t 
 
 RAKEDecompressor::RAKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
-	_packedData(packedData)
+	_packedData(packedData),
+	_isRAKE(hdr==FourCC('RAKE'))
 {
 	if (!detectHeaderXPK(hdr) || packedData.size()<4)
 		throw Decompressor::InvalidFormatError();
-	if (hdr==FourCC('RAKE')) _isRAKE=true;
 
 	_midStreamOffset=packedData.readBE16(2);
 	if (_midStreamOffset>=packedData.size()) throw Decompressor::InvalidFormatError();

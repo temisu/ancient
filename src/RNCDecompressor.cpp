@@ -6,7 +6,7 @@
 #include "HuffmanDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-#include <CRC16.hpp>
+#include "common/CRC16.hpp"
 
 bool RNCDecompressor::detectHeader(uint32_t hdr) noexcept
 {

@@ -7,8 +7,8 @@
 #include "HuffmanDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-#include <FixedMemoryBuffer.hpp>
-#include <CRC32.hpp>
+#include "common/MemoryBuffer.hpp"
+#include "common/CRC32.hpp"
 
 bool BZIP2Decompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -130,7 +130,7 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 		HuffmanCode<int32_t>{2,0b11,-1}
 	};
 
-	FixedMemoryBuffer tmpBuffer(_blockSize);
+	MemoryBuffer tmpBuffer(_blockSize);
 	uint8_t *tmpBufferPtr=tmpBuffer.data();
 
 	// This is the dark, ancient secret of bzip2.
@@ -200,9 +200,9 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 				uint32_t selectorsUsed=readBits(15);
 				if (!selectorsUsed) throw DecompressionError();
 
-				FixedMemoryBuffer huffmanSelectorList(selectorsUsed);
+				MemoryBuffer huffmanSelectorList(selectorsUsed);
 
-				auto unMFT=[](uint8_t value,uint8_t map[])->uint8_t
+				auto unMTF=[](uint8_t value,uint8_t map[])->uint8_t
 				{
 					uint8_t ret=map[value];
 					if (value)
@@ -216,11 +216,11 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 				};
 
 				// create Huffman selectors
-				uint8_t selectorMFTMap[6]={0,1,2,3,4,5};
+				uint8_t selectorMTFMap[6]={0,1,2,3,4,5};
 
 				for (uint32_t i=0;i<selectorsUsed;i++)
 				{
-					uint8_t item=unMFT(selectorDecoder.decode(readBit),selectorMFTMap);
+					uint8_t item=unMTF(selectorDecoder.decode(readBit),selectorMTFMap);
 					if (item>=huffmanGroups) throw DecompressionError();
 					huffmanSelectorList[i]=item;
 				}
@@ -249,11 +249,11 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 					dataDecoders[i].createOrderlyHuffmanTable(bitLengths,numHuffmanItems);
 				}
 
-				// de-Huffman + unRLE + deMFT
+				// Huffman decode + unRLE + unMTF
 				BZIP2Decoder *currentHuffmanDecoder=nullptr;
 				uint32_t currentHuffmanIndex=0;
-				uint8_t dataMFTMap[256];
-				for (uint32_t i=0;i<numHuffmanItems-2;i++) dataMFTMap[i]=i;
+				uint8_t dataMTFMap[256];
+				for (uint32_t i=0;i<numHuffmanItems-2;i++) dataMTFMap[i]=i;
 
 				uint32_t currentRunLength=0;
 				uint32_t currentRLEWeight=1;
@@ -263,7 +263,7 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 					if (currentRunLength)
 					{
 						if (currentBlockSize+currentRunLength>_blockSize) throw DecompressionError();
-						for (uint32_t i=0;i<currentRunLength;i++) tmpBufferPtr[currentBlockSize++]=huffmanValues[dataMFTMap[0]];
+						for (uint32_t i=0;i<currentRunLength;i++) tmpBufferPtr[currentBlockSize++]=huffmanValues[dataMTFMap[0]];
 					}
 					currentRunLength=0;
 					currentRLEWeight=1;
@@ -276,18 +276,18 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 						if (currentHuffmanIndex>=selectorsUsed) throw DecompressionError();
 						currentHuffmanDecoder=&dataDecoders[huffmanSelectorList[currentHuffmanIndex++]];
 					}
-					uint32_t symbolMFT=currentHuffmanDecoder->decode(readBit);
+					uint32_t symbolMTF=currentHuffmanDecoder->decode(readBit);
 					// stop marker is referenced only once, and it is the last one
-					// This means we do no have to un-MFT it for detection
-					if (symbolMFT==numHuffmanItems-1) break;
+					// This means we do no have to un-MTF it for detection
+					if (symbolMTF==numHuffmanItems-1) break;
 					if (currentBlockSize>=_blockSize) throw DecompressionError();
-					if (symbolMFT<2)
+					if (symbolMTF<2)
 					{
-						currentRunLength+=currentRLEWeight<<symbolMFT;
+						currentRunLength+=currentRLEWeight<<symbolMTF;
 						currentRLEWeight<<=1;
 					} else {
 						decodeRLE();
-						uint8_t symbol=unMFT(symbolMFT-1,dataMFTMap);
+						uint8_t symbol=unMTF(symbolMTF-1,dataMTFMap);
 						if (currentBlockSize>=_blockSize) throw DecompressionError();
 						tmpBufferPtr[currentBlockSize++]=huffmanValues[symbol];
 					}
@@ -321,8 +321,8 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 			// since by calculating forward table we can do forward decoding of the data on the same pass as iBWT
 			//
 			// also, because I'm lazy
-			FixedMemoryBuffer forwardIndex(currentBlockSize*sizeof(uint32_t));
-			uint32_t *forwardIndexPtr=reinterpret_cast<uint32_t*>(forwardIndex.data());
+			MemoryBuffer forwardIndex(currentBlockSize*sizeof(uint32_t));
+			auto forwardIndexPtr=forwardIndex.cast<uint32_t>();
 			for (uint32_t i=0;i<currentBlockSize;i++)
 				forwardIndexPtr[rank[tmpBufferPtr[i]]++]=i;
 

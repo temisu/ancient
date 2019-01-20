@@ -10,8 +10,8 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 
-#include <FixedMemoryBuffer.hpp>
-#include <CRC16.hpp>
+#include "common/MemoryBuffer.hpp"
+#include "common/CRC16.hpp"
 
 bool DMSDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -135,35 +135,11 @@ size_t DMSDecompressor::getImageOffset() const noexcept
 	return _rawOffset;
 }
 
-class HeavyDecoder : public HuffmanDecoder<uint32_t>
-{
-public:
-	HeavyDecoder() {}
-	~HeavyDecoder() {}
-
-	void setZero(uint32_t index)
-	{
-		_isZeroLength=true;
-		_zeroIndex=index;
-	}
-
-	template<typename F>
-	uint32_t heavyDecode(F bitReader)
-	{
-		if (_isZeroLength) return _zeroIndex;
-			else return decode(bitReader);
-	}
-
-private:
-	bool		_isZeroLength=false;
-	uint32_t	_zeroIndex=0;
-};
-
 void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	if (rawData.size()<_rawSize) throw DecompressionError();
-	FixedMemoryBuffer contextBuffer(_contextBufferSize);
-	FixedMemoryBuffer tmpBuffer(_tmpBufferSize);
+	MemoryBuffer contextBuffer(_contextBufferSize);
+	MemoryBuffer tmpBuffer(_tmpBufferSize);
 
 	if (!_isObsfuscated)
 	{
@@ -208,7 +184,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 // This makes the code even more messier. Like the implementatio would need any more than that
 // However we can use it surgigally on the fast path...
 // TODO: limitedDecompress only works on first track!
-bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,FixedMemoryBuffer &contextBuffer,FixedMemoryBuffer &tmpBuffer,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer)
+bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &contextBuffer,MemoryBuffer &tmpBuffer,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer)
 {
 	class UnObsfuscator
 	{
@@ -505,7 +481,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,FixedMemoryBuff
 	};
 
 	// these are not part of the initContext like other methods
-	std::unique_ptr<HeavyDecoder> symbolDecoder,offsetDecoder;
+	std::unique_ptr<OptionalHuffmanDecoder<uint32_t>> symbolDecoder,offsetDecoder;
 	bool heavyLastInitialized=false;		// this is part of initContext on some implementations. screwy!!!
 	uint32_t heavyLastOffset;
 	auto unpackHeavy=[&](bool initTables,bool use8kDict)
@@ -518,9 +494,9 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,FixedMemoryBuff
 			heavyLastInitialized=true;
 		}
 
-		auto readTable=[&](std::unique_ptr<HeavyDecoder> &decoder,uint32_t countBits,uint32_t valueBits)
+		auto readTable=[&](std::unique_ptr<OptionalHuffmanDecoder<uint32_t>> &decoder,uint32_t countBits,uint32_t valueBits)
 		{
-			decoder=std::make_unique<HeavyDecoder>();
+			decoder=std::make_unique<OptionalHuffmanDecoder<uint32_t>>();
 			uint32_t count=readBits(countBits);
 			if (count)
 			{
@@ -546,7 +522,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,FixedMemoryBuff
 				decoder->createOrderlyHuffmanTable(lengthBuffer,count);
 			} else {
 				uint32_t index=readBits(countBits);
-				decoder->setZero(index);
+				decoder->setEmpty(index);
 			}
 		};
 
@@ -564,14 +540,14 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,FixedMemoryBuff
 		while (!outputStream.eof())
 		{
 			if (outputStream.getOffset()>=limitedDecompress) return;
-			uint32_t symbol=symbolDecoder->heavyDecode(readBit);
+			uint32_t symbol=symbolDecoder->decode(readBit);
 			if (symbol<256)
 			{
 				outputStream.writeByte(contextBufferPtr[heavyContextLocation++]=symbol);
 				heavyContextLocation&=mask;
 			} else {
 				uint32_t count=symbol-253;	// minimum repeat is 3
-				uint32_t offsetLength=offsetDecoder->heavyDecode(readBit);
+				uint32_t offsetLength=offsetDecoder->decode(readBit);
 				uint32_t rawOffset=heavyLastOffset;
 				if (offsetLength!=bitLength)
 				{

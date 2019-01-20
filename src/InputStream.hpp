@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-#include <Buffer.hpp>
+#include "common/Buffer.hpp"
 
 class BackwardInputStream;
 
@@ -17,11 +17,11 @@ class ForwardInputStream
 	friend class BackwardInputStream;
 
 public:
-	ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset);
+	ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun=false);
 	~ForwardInputStream();
 
 	uint8_t readByte();
-	const uint8_t *consume(size_t bytes);
+	const uint8_t *consume(size_t bytes,uint8_t *buffer=nullptr);
 
 	bool eof() const { return _currentOffset==_endOffset; }
 	size_t getOffset() const { return _currentOffset; }
@@ -34,6 +34,7 @@ private:
 	const uint8_t		*_bufPtr;
 	size_t			_currentOffset;
 	size_t			_endOffset;
+	bool			_allowOverrun;
 
 	BackwardInputStream	*_linkedInputStream=nullptr;
 };
@@ -43,11 +44,11 @@ class BackwardInputStream
 {
 	friend class ForwardInputStream;
 public:
-	BackwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset);
+	BackwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun=false);
 	~BackwardInputStream();
 
 	uint8_t readByte();
-	const uint8_t *consume(size_t bytes);
+	const uint8_t *consume(size_t bytes,uint8_t *buffer=nullptr);
 
 	bool eof() const { return _currentOffset==_endOffset; }
 	size_t getOffset() const { return _currentOffset; }
@@ -59,6 +60,7 @@ private:
 	const uint8_t		*_bufPtr;
 	size_t			_currentOffset;
 	size_t			_endOffset;
+	bool			_allowOverrun;
 
 	ForwardInputStream	*_linkedInputStream=nullptr;
 };
@@ -90,7 +92,8 @@ public:
 	uint32_t readBitsBE16(uint32_t count)
 	{
 		return readBitsInternal(count,[&](){
-			const uint8_t *buf=_inputStream.consume(2);
+			uint8_t tmp[2];
+			const uint8_t *buf=_inputStream.consume(2,tmp);
 			_bufContent=(uint32_t(buf[0])<<8)|uint32_t(buf[1]);
 			_bufLength=16;
 		});
@@ -99,7 +102,8 @@ public:
 	uint32_t readBitsBE32(uint32_t count)
 	{
 		return readBitsInternal(count,[&](){
-			const uint8_t *buf=_inputStream.consume(4);
+			uint8_t tmp[4];
+			const uint8_t *buf=_inputStream.consume(4,tmp);
 			_bufContent=(uint32_t(buf[0])<<24)|(uint32_t(buf[1])<<16)|
 				(uint32_t(buf[2])<<8)|uint32_t(buf[3]);
 			_bufLength=32;
@@ -178,7 +182,8 @@ public:
 	uint32_t readBitsBE16(uint32_t count)
 	{
 		return readBitsInternal(count,[&](){
-			const uint8_t *buf=_inputStream.consume(2);
+			uint8_t tmp[2];
+			const uint8_t *buf=_inputStream.consume(2,tmp);
 			_bufContent=(uint32_t(buf[0])<<8)|uint32_t(buf[1]);
 			_bufLength=16;
 		});
@@ -187,7 +192,8 @@ public:
 	uint32_t readBitsBE32(uint32_t count)
 	{
 		return readBitsInternal(count,[&](){
-			const uint8_t *buf=_inputStream.consume(4);
+			uint8_t tmp[4];
+			const uint8_t *buf=_inputStream.consume(4,tmp);
 			_bufContent=(uint32_t(buf[0])<<24)|(uint32_t(buf[1])<<16)|
 				(uint32_t(buf[2])<<8)|uint32_t(buf[3]);
 			_bufLength=32;

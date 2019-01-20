@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include <SubBuffer.hpp>
+#include "common/SubBuffer.hpp"
 #include "CYB2Decoder.hpp"
 #include "XPKMaster.hpp"
 

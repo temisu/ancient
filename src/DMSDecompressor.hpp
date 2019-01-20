@@ -5,7 +5,7 @@
 
 #include "Decompressor.hpp"
 
-#include <FixedMemoryBuffer.hpp>
+#include "common/MemoryBuffer.hpp"
 
 class DMSDecompressor : public Decompressor
 {
@@ -27,7 +27,7 @@ public:
 	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
 
 private:
-	bool decompressImpl(Buffer &rawData,bool verify,FixedMemoryBuffer &contextBuffer,FixedMemoryBuffer &tmpBuffer,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer);
+	bool decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &contextBuffer,MemoryBuffer &tmpBuffer,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer);
 
 	class ShortInputError : public Error
 	{

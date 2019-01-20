@@ -1,6 +1,6 @@
 # Copyright (C) Teemu Suutari
 
-VPATH  := ../src
+VPATH  := ../src ../src/common
 
 CC	= clang
 CXX	= clang++

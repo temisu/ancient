@@ -44,6 +44,11 @@ public:
 		return _length;
 	}
 
+	virtual bool isResizable() const noexcept override
+	{
+		return false;
+	}
+
 	// can only make the buffer smaller, can't run away from the current bounds
 	void adjust(size_t start,size_t length)
 	{

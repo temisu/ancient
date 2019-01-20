@@ -7,7 +7,7 @@
 #include "HuffmanDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-#include <CRC32.hpp>
+#include "common/CRC32.hpp"
 
 static uint32_t Adler32(const Buffer &buffer,size_t offset,size_t len)
 {

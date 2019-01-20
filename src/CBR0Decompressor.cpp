@@ -6,7 +6,8 @@
 
 bool CBR0Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('CBR0');
+	// CBR1 is practical joke: it is the same as CBR0 but with ID changed
+	return hdr==FourCC('CBR0') || hdr==FourCC('CBR1');
 }
 
 std::unique_ptr<XPKDecompressor> CBR0Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -16,7 +17,8 @@ std::unique_ptr<XPKDecompressor> CBR0Decompressor::create(uint32_t hdr,uint32_t 
 
 CBR0Decompressor::CBR0Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
-	_packedData(packedData)
+	_packedData(packedData),
+	_isCBR0(hdr==FourCC('CBR0'))
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }
@@ -28,11 +30,12 @@ CBR0Decompressor::~CBR0Decompressor()
 
 const std::string &CBR0Decompressor::getSubName() const noexcept
 {
-	static std::string name="XPK-CBR0: RLE-compressor";
-	return name;
+	static std::string nameCBR0="XPK-CBR0: RLE-compressor";
+	static std::string nameCBR1="XPK-CBR1: RLE-compressor";
+	return (_isCBR0)?nameCBR0:nameCBR1;
 }
 
-void CBR0Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool veridy)
+void CBR0Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
 	ForwardInputStream inputStream(_packedData,0,_packedData.size());
 	ForwardOutputStream outputStream(rawData,0,rawData.size());

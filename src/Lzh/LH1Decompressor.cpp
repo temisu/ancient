@@ -73,8 +73,8 @@ void LH1Decompressor::decompressImpl(Buffer &rawData,bool verify)
 		{
 			outputStream.writeByte(code);
 		} else {
-			uint32_t distance=distanceDecoder.decode(readBit)<<6;
-			distance|=readBits(6);
+			uint32_t distance=distanceDecoder.decode(readBit);
+			distance=(distance<<6)|readBits(6);
 			distance++;
 
 			uint32_t count=code-253;

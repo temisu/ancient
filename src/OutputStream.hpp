@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <Buffer.hpp>
+#include "common/Buffer.hpp"
 
 class ForwardOutputStream
 {
@@ -19,6 +19,7 @@ public:
 	uint8_t copy(size_t distance,size_t count);
 	uint8_t copy(size_t distance,size_t count,const Buffer &prevBuffer);
 	uint8_t copy(size_t distance,size_t count,uint8_t defaultChar);
+	const uint8_t *history(size_t distance) const;
 	void produce(const uint8_t *src,size_t bytes);
 
 	bool eof() const { return _currentOffset==_endOffset; }

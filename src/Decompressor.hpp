@@ -9,8 +9,8 @@
 #include <string>
 #include <memory>
 
-#include <Common.hpp>
-#include <Buffer.hpp>
+#include "common/Common.hpp"
+#include "common/Buffer.hpp"
 
 class Decompressor
 {

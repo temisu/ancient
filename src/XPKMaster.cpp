@@ -4,7 +4,7 @@
 #include <memory>
 #include <algorithm>
 
-#include <SubBuffer.hpp>
+#include "common/SubBuffer.hpp"
 
 #include "XPKMaster.hpp"
 #include "XPKDecompressor.hpp"

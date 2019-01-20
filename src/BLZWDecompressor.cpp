@@ -43,7 +43,7 @@ void BLZWDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	{
 		return bitReader.readBits8(count);
 	};
-
+	
 	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	uint32_t maxCode=1<<_maxBits;

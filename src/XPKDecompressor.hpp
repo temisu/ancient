@@ -8,7 +8,7 @@
 
 #include <string>
 
-#include <Buffer.hpp>
+#include "common/Buffer.hpp"
 #include "Decompressor.hpp"
 
 class XPKDecompressor

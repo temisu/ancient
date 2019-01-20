@@ -16,14 +16,17 @@ template<typename T>
 struct HuffmanCode
 {
 	uint32_t	length;
-	size_t		code;
+	uint32_t	code;
 
 	T		value;
 };
 
+template<typename T> class OptionalHuffmanDecoder;
+
 template<typename T>
 class HuffmanDecoder
 {
+friend class OptionalHuffmanDecoder<T>;
 private:
 	struct Node
 	{
@@ -98,7 +101,7 @@ public:
 		uint32_t i=0,length=uint32_t(_table.size());
 		for (int32_t currentBit=code.length;currentBit>=0;currentBit--)
 		{
-			uint32_t codeBit=(currentBit)?(code.code&(1<<(currentBit-1)))?1:0:0;
+			uint32_t codeBit=(currentBit && (size_t(code.code)&(1<<(currentBit-1))))?1:0;
 			if (i!=length)
 			{
 				if (!currentBit || (!_table[i].sub[0] && !_table[i].sub[1])) throw Decompressor::DecompressionError();
@@ -164,6 +167,57 @@ public:
 
 private:
 	std::vector<Node>	_table;
+};
+
+template<typename T>
+class OptionalHuffmanDecoder
+{
+public:
+	template<typename ...Args>
+	OptionalHuffmanDecoder(const Args&& ...args) :
+		_base()
+	{
+		const HuffmanCode<T> list[sizeof...(args)]={args...};
+		for (auto &item : list)
+			insert(item);
+	}
+
+	~OptionalHuffmanDecoder()
+	{
+		// nothing needed
+	}
+
+	void reset()
+	{
+		_base.reset();
+	}
+
+	void setEmpty(T value)
+	{
+		reset();
+		_emptyValue=value;
+	}
+
+	template<typename F>
+	T decode(F bitReader) const
+	{
+		if (!_base._table.size()) return _emptyValue;
+			else return _base.decode(bitReader);
+	}
+
+	void insert(const HuffmanCode<T> &code)
+	{
+		_base.insert(code);
+	}
+
+	void createOrderlyHuffmanTable(const uint8_t *bitLengths,uint32_t bitTableLength)
+	{
+		_base.createOrderlyHuffmanTable(bitLengths,bitTableLength);
+	}
+
+private:
+	HuffmanDecoder<T>	_base;
+	T			_emptyValue;
 };
 
 #endif

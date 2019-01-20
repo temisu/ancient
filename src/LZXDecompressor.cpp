@@ -8,7 +8,7 @@
 #include "DLTADecode.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-#include <CRC32.hpp>
+#include "common/CRC32.hpp"
 
 bool LZXDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {

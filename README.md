@@ -40,8 +40,8 @@ Decompression algorithms provided:
   * RNC1: Both old and formats utilizing the same header. heuristics for detecting the current one
   * RNC2: RNC version 2 stream
 * Turbo Packer by Wolfgang Mayerle.
-* Standard gzip (only ancient in context of XPK)
-* Standard bzip2, both normal and randomized (only ancient in context of XPK)
+* Standard gzip
+* Standard bzip2, both normal and randomized
 * Zip decompressor backend (decompressor only, no Zip file format reading yet) with following methods
   * Shrink
   * Reduce
@@ -50,13 +50,28 @@ Decompression algorithms provided:
   * Deflate64
   * Bzip2
 * Lha/Lzh decompressor backend (decompressor only, no Lha file format reading yet) with following methods
-  * LH1
-  * LH2
+  * LH0: Null compressor
+  * LH1: LZRW-compressor with 4kB window
+  * LH2: LZRW-compressor with Dynamic Huffman Encoding (experimental)
+  * LH3: LZRW-compressor (experimental)
+  * LH4: LZRW-compressor with 4kB window
+  * LH5: LZRW-compressor with 8kB window
+  * LH6: LZRW-compressor with 32kB window
+  * LH7: LZRW-compressor with 64kB window
+  * LH8: LZRW-compressor with 64kB window (Joe Jared extension)
+  * LHX: LZRW-compressor with up to 512kB window (UnLHX extension)
+  * LZ4: Null compressor
+  * LZ5: LZ-compressor
+  * LZS: LZ-compressor
+  * PM0: Null compressor
+  * PM1: LZ-compressor
+  * PM2: LZ-compressor
 * Supports opening XPK-encapsulated files. XPK decompressors supported are:
   * ACCA: Andre's Code Compression Algorithm
   * BLZW: LZW-compressor
   * BZP2: Bzip2 backend for XPK
   * CBR0: RLE compressor
+  * CBR1: RLE compressor
   * CRM2: CrunchMania backend for XPK
   * CRMS: CrunchMania backend for XPK, sampled
   * CYB2: xpkCybPrefs container
@@ -94,6 +109,7 @@ Decompression algorithms provided:
   * SHRI: LZ-compressor with arithmetic encoding
   * SLZ3: CyberYAFA compressor
   * SLZX: LZX-compressor with delta encoding
+  * SASC: LZ-compressor with arithmetic encoding
   * SMPL: Huffman compressor with delta encoding
   * SQSH: Compressor for sampled sounds
   * TDCS: LZ77-compressor
@@ -101,12 +117,17 @@ Decompression algorithms provided:
 
 Special thanks go to Cholok for providing me references to many of the XPK-compressors.
 
+BZIP2 tables for randomization have been included, they have BZIP2-license.
+
+SASC/SHSC decompressors have been re-implemented by using the original HA code from Harri Hirvola as reference. (No code re-used)
+
+Some of the rare Lzh-compressors have been re-implemented by using Lhasa as a reference. (No code re-used)
 
 
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
 
 Current work in progress
-* Completing XPK: ARTM, DCMB, DMCU (maybe), LZCB, PPMQ, SASC, SHSC
+* Completing XPK: ARTM, DCMB, DMCU (maybe), LZCB, PPMQ, SHSC
 * Support for MMCMP, StoneCracker
 * Disk images support for Warp and DiskSqueeze
 
@@ -118,6 +139,5 @@ Wishlist:
 * More DMS images
 * XPK DMCI and DMCD compressors. I can't find it anywhere or find anyone who knows anything about it. Would be fun to add it for completeness
 * XPK TLTA compressor/encoder. ditto.
-* XPK CBR1 compressor. Is this a thing? Probably not but I'd like to get my hands on the actual library to see it myself.
 
 Feedback: tz at iki dot fi

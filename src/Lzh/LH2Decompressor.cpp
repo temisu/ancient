@@ -47,7 +47,7 @@ const std::string &LH2Decompressor::getName() const noexcept
 //    but better safe than sorry)
 // c. LH 1.9x and UNLHA32 refuse to use LH2 beyond 8k files. Thus
 //    we can only guess if the wraparound is correct, since nothing
-//    should use
+//    should use it
 // jLHA in theory supports LH2 without limitations, but it produces
 // broken bitstream.
 //

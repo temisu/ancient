@@ -12,11 +12,6 @@ Buffer::~Buffer()
 	// nothing needed
 }
 
-bool Buffer::isResizable() const noexcept
-{
-	return false;
-}
-
 void Buffer::resize(size_t newSize)
 {
 	throw InvalidOperationError();

@@ -96,6 +96,7 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 	}
 	uint32_t trackSize=(_isHD)?22528:11264;
 	_rawOffset=minTrack*trackSize;
+	_minTrack=minTrack;
 	_rawSize=(numTracks-minTrack)*trackSize+lastTrackSize;
 	_imageSize=trackSize*80;
 
@@ -137,61 +138,44 @@ size_t DMSDecompressor::getImageOffset() const noexcept
 
 void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	if (rawData.size()<_rawSize) throw DecompressionError();
-	MemoryBuffer contextBuffer(_contextBufferSize);
-	MemoryBuffer tmpBuffer(_tmpBufferSize);
-
+	uint32_t restartPosition=0;
 	if (!_isObsfuscated)
 	{
-		if (!decompressImpl(rawData,verify,contextBuffer,tmpBuffer,~0U,0,true))
-			throw DecompressionError();
+		decompressImpl(rawData,verify,restartPosition);
 	} else {
-		// fast try: If the disc is bootable, we can detect it really quickly
-		if (!_rawOffset) for (uint32_t passCandidate=0;passCandidate<0x10000U;passCandidate++)
+		while (restartPosition<0x20000U)
 		{
+			// more than single run here is really rare. It means that first track CRC succeeds
+			// but later something else fails
 			try
 			{
-				if (!decompressImpl(rawData,false,contextBuffer,tmpBuffer,8,passCandidate,false)) continue;
-				if ((rawData.readBE32(0)&0xffff'ff00U)!=FourCC('DOS\0')) continue;
-				if (!decompressImpl(rawData,true,contextBuffer,tmpBuffer,~0U,passCandidate,true)) continue;
+				decompressImpl(rawData,verify,restartPosition);
 				return;
 			} catch (const Buffer::Error &) {
 				// just continue
 			} catch (const Decompressor::Error &) {
 				// just continue
 			}
-		}
-		// slow try
-		for (uint32_t passCandidate=0;passCandidate<0x10000U;passCandidate++)
-		{
-			try
-			{
-				if (!decompressImpl(rawData,true,contextBuffer,tmpBuffer,~0U,passCandidate,false)) continue;
-				// second one is needed in case there is sparse data
-				if (!decompressImpl(rawData,verify,contextBuffer,tmpBuffer,~0U,passCandidate,true)) continue;
-				return;
-			} catch (const Buffer::Error &) {
-				// just continue
-			} catch (const Decompressor::Error &) {
-				// just continue
-			}
+			restartPosition++;
 		}
 		throw DecompressionError();
 	}
 }
 
-// Exceptions affect performance here when doing guessing loop, have a return value in addition to exceptions
-// This makes the code even more messier. Like the implementatio would need any more than that
-// However we can use it surgigally on the fast path...
-// TODO: limitedDecompress only works on first track!
-bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &contextBuffer,MemoryBuffer &tmpBuffer,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer)
+// TODO: Too much state for a single method. too convoluted
+// needs to be split
+void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &restartPosition)
 {
+	if (rawData.size()<_rawSize) throw DecompressionError();
+	MemoryBuffer contextBuffer(_contextBufferSize);
+	MemoryBuffer tmpBuffer(_tmpBufferSize);
+	uint32_t limitedDecompress=~0U;
+
 	class UnObsfuscator
 	{
 	public:
-		UnObsfuscator(ForwardInputStream &inputStream,uint16_t passAccumulator) :
-			_inputStream(inputStream),
-			_passAccumulator(passAccumulator)
+		UnObsfuscator(ForwardInputStream &inputStream) :
+			_inputStream(inputStream)
 		{
 			// nothing needed
 		}
@@ -210,6 +194,11 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 			}
 		}
 
+		void setCode(uint16_t passAccumulator)
+		{
+			_passAccumulator=passAccumulator;
+		}
+
 		void setObsfuscate(bool obsfuscate) { _obsfuscate=obsfuscate; }
 		bool eof() const { return _inputStream.getOffset()==_inputStream.getEndOffset(); }
 
@@ -221,11 +210,11 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 	private:
 		ForwardInputStream	&_inputStream;
 		bool			_obsfuscate=false;
-		uint16_t		_passAccumulator;
+		uint16_t		_passAccumulator=0;
 	};
 
 	ForwardInputStream inputStream(_packedData,0,0);
-	UnObsfuscator inputUnObsfuscator(inputStream,passCode);
+	UnObsfuscator inputUnObsfuscator(inputStream);
 	MSBBitReader<UnObsfuscator> bitReader(inputUnObsfuscator);
 	auto initInputStream=[&](const Buffer &buffer,uint32_t start,uint32_t length,bool obsfuscate)
 	{
@@ -235,7 +224,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 	};
 	auto finishStream=[&]()
 	{
-		if (_isObsfuscated)
+		if (_isObsfuscated && limitedDecompress==~0U)
 			while (!inputUnObsfuscator.eof())
 				inputUnObsfuscator.readByte();
 	};
@@ -255,7 +244,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 	};
 
 	// fill unused tracks with zeros
-	if (clearBuffer) ::memset(rawData.data(),0,_rawSize);
+	::memset(rawData.data(),0,_rawSize);
 
 	auto checksum=[](const uint8_t *src,uint32_t srcLength)->uint16_t
 	{
@@ -270,8 +259,6 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 			outputStream.writeByte(inputUnObsfuscator.readByte());
 	};
 
-	bool imageGood=true;
-
 	// same as simple
 	auto unRLE=[&](bool lastCharMissing)->uint32_t
 	{
@@ -282,10 +269,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 			if (lastCharMissing && inputUnObsfuscator.eofMinus1())
 			{
 				if (outputStream.getOffset()+1!=outputStream.getEndOffset())
-				{
-					imageGood=false;
-					return 0;
-				}
+					throw DecompressionError();
 				return 1;
 			}
 			uint8_t ch=inputUnObsfuscator.readByte();
@@ -511,11 +495,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 					{
 						sum+=uint64_t(1U)<<(32-bits);
 						if (sum>(uint64_t(1U)<<32))
-						{
-							// this is the number 1 offender for lots of exceptions
-							imageGood=false;
-							return;
-						}
+							throw DecompressionError();
 					}
 					lengthBuffer[i]=bits;
 				}
@@ -529,9 +509,7 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 		if (initTables)
 		{
 			readTable(symbolDecoder,9,5);
-			if (!imageGood) return;
 			readTable(offsetDecoder,5,4);
-			if (!imageGood) return;
 		}
 
 		uint32_t mask=use8kDict?0x1fffU:0xfffU;
@@ -603,15 +581,12 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 				{
 					initOutputStream(tmpBuffer,0,tmpChunkLength);
 					func(params...);
-					if (!imageGood) return;
 					finishStream();
 					initInputStream(tmpBuffer,0,tmpChunkLength,false);
 					initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
 					unRLE(false);
 				} catch (const ShortInputError &) {
 					// if this error happens on repeat/offset instead of char, though luck :(
-					// (ditto in obsfuscated file, because that would result too much guessing)
-					if (_isObsfuscated) throw DecompressionError();
 					// missing last char on src we can fix :)
 					initInputStream(tmpBuffer,0,tmpChunkLength,false);
 					initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
@@ -641,27 +616,76 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 			finishStream();
 		};
 
+		auto processBlockCode=[&](bool doRLE,auto func,auto&&... params)
+		{
+			if (!_isObsfuscated || trackNo!=_minTrack) return processBlock(doRLE,func,params...);
+
+			// fast try
+			if (!trackNo && restartPosition<0x10000U) for (;restartPosition<0x10000U;restartPosition++)
+			{
+				try
+				{
+					doInitContext=true;
+					inputUnObsfuscator.setCode(restartPosition);
+					limitedDecompress=8;
+					processBlock(doRLE,func,params...);
+					if ((rawData.readBE32(0)&0xffff'ff00U)!=FourCC('DOS\0')) continue;
+
+					// now see if the candidate is any good
+					doInitContext=true;
+					inputUnObsfuscator.setCode(restartPosition);
+					limitedDecompress=~0U;
+					processBlock(doRLE,func,params...);
+					if (checksum(&rawData[dataOffset-_rawOffset],rawChunkLength)!=_packedData.readBE16(packedOffset+14)) continue;
+					return;
+				} catch (const Buffer::Error &) {
+					// just continue
+				} catch (const Decompressor::Error &) {
+					// just continue
+				}
+			}
+
+			// slow round
+			limitedDecompress=~0U;
+			for (;restartPosition<0x20000U;restartPosition++)
+			{
+				try
+				{
+					doInitContext=true;
+					inputUnObsfuscator.setCode(restartPosition);
+					processBlock(doRLE,func,params...);
+					if (checksum(&rawData[dataOffset-_rawOffset],rawChunkLength)!=_packedData.readBE16(packedOffset+14)) continue;
+					return;
+				} catch (const Buffer::Error &) {
+					// just continue
+				} catch (const Decompressor::Error &) {
+					// just continue
+				}
+			}
+			throw DecompressionError();
+		};
+
 		switch (mode)
 		{
 			case 0:
-			processBlock(false,unpackNone);
+			processBlockCode(false,unpackNone);
 			rawChunkLength=packedChunkLength;
 			break;
 
 			case 1:
-			processBlock(false,unRLE,false);
+			processBlockCode(false,unRLE,false);
 			break;
 
 			case 2:
-			processBlock(true,unpackQuick);
+			processBlockCode(true,unpackQuick);
 			break;
 
 			case 3:
-			processBlock(true,unpackMedium);
+			processBlockCode(true,unpackMedium);
 			break;
 
 			case 4:
-			processBlock(true,unpackDeep);
+			processBlockCode(true,unpackDeep);
 			break;
 
 			// heavy flags:
@@ -670,21 +694,17 @@ bool DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &c
 			// heavy1 uses 4k dictionary (mode 5), whereas heavy2 uses 8k dictionary
 			case 5:
 			case 6:
-			processBlock(flags&4,unpackHeavy,flags&2,mode==6);
+			processBlockCode(flags&4,unpackHeavy,flags&2,mode==6);
 			break;
 
 			default:
 			throw DecompressionError();
 		}
-		if (!imageGood) break;
 		if (!(flags&1)) doInitContext=true;
-
-		if (!trackNo && limitedDecompress!=~0U) break;
 
 		if (verify && checksum(&rawData[dataOffset-_rawOffset],rawChunkLength)!=_packedData.readBE16(packedOffset+14))
 			throw VerificationError();
 	}
-	return imageGood;
 }
 
 Decompressor::Registry<DMSDecompressor> DMSDecompressor::_registration;

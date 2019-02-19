@@ -27,7 +27,7 @@ public:
 	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
 
 private:
-	bool decompressImpl(Buffer &rawData,bool verify,MemoryBuffer &contextBuffer,MemoryBuffer &tmpBuffer,uint32_t limitedDecompress,uint16_t passCode,bool clearBuffer);
+	void decompressImpl(Buffer &rawData,bool verify,uint32_t &restartPosition);
 
 	class ShortInputError : public Error
 	{
@@ -42,6 +42,7 @@ private:
 	uint32_t	_tmpBufferSize=0;
 	uint32_t	_imageSize;
 	uint32_t	_rawOffset;
+	uint32_t	_minTrack;
 	bool		_isHD;
 	bool		_isObsfuscated;
 

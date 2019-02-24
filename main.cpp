@@ -113,7 +113,7 @@ int main(int argc,char **argv)
 {
 	auto usage=[]()
 	{
-		fprintf(stderr,"Usage: <prog> indentify input_packed\n");
+		fprintf(stderr,"Usage: <prog> identify input_packed\n");
 		fprintf(stderr," - identifies compression used in a file\n");
 		fprintf(stderr,"Usage: <prog> verify input_packed input_unpacked\n");
 		fprintf(stderr," - verifies decompression against known good unpacked file\n");
@@ -142,7 +142,7 @@ int main(int argc,char **argv)
 		std::unique_ptr<Decompressor> decompressor;
 		try
 		{
-			decompressor=Decompressor::create(*packed,false,true);
+			decompressor=Decompressor::create(*packed,true,true);
 		} catch (const Decompressor::InvalidFormatError&)
 		{
 			fprintf(stderr,"Unknown or invalid compression format in file %s\n",argv[2]);

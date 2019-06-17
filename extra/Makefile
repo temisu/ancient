@@ -4,10 +4,12 @@ VPATH  := ../src ../src/common
 
 CC	= clang
 CXX	= clang++
-COMMONFLAGS = -g -Wall -Wsign-compare -Wshorten-64-to-32 -Wno-error=multichar -Wno-multichar -I../src
+PKG_CONFIG = pkg-config
+COMMONFLAGS = -g -Wall -Wsign-compare -Wshorten-64-to-32 -Wno-error=multichar -Wno-multichar -I../src `$(PKG_CONFIG) --cflags libbsd`
 CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti
-
+LIBS = `$(PKG_CONFIG) --libs libbsd`
+LDFLAGS=$(LIBS)
 PROG	= bruteRNC1
 OBJS	= Buffer.o SubBuffer.o BruteForceRNC1Encoder.o
 
@@ -20,7 +22,7 @@ all: $(PROG)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(PROG): $(OBJS)
-	$(CXX) $(CFLAGS) -o $(PROG) $(OBJS)
+	$(CXX) $(CFLAGS) $(LDFLAGS) -o $(PROG) $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(PROG) *~ src/*~

@@ -4,9 +4,12 @@ VPATH  := src src/Lzh src/Zip src/common
 
 CC	= clang
 CXX	= clang++
-COMMONFLAGS = -Os -Wall -Wsign-compare -Wshorten-64-to-32 -Wno-error=multichar -Wno-multichar -Isrc
+PKG_CONFIG = pkg-config
+COMMONFLAGS = -Os -Wall -Wsign-compare -Wshorten-64-to-32 -Wno-error=multichar -Wno-multichar -Isrc `$(PKG_CONFIG) --cflags libbsd`
 CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti
+LIBS = `$(PKG_CONFIG) --libs libbsd`
+LDFLAGS = $(LIBS)
 
 PROG	= ancient
 OBJS	= Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o CRC16.o CRC32.o \
@@ -37,7 +40,7 @@ all: $(PROG)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(PROG): $(OBJS)
-	$(CXX) $(CFLAGS) -o $(PROG) $(OBJS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(PROG) $(OBJS)
 
 clean:
 	rm -f $(OBJS) $(PROG) *~ src/*~

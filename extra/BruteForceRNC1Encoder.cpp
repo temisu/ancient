@@ -3,13 +3,18 @@
 // This is really quick and dirty. Works though
 
 #include <memory>
-
-#include <stdint.h>
+#include <array>
+#include <cstdint>
+#include <cstdio>
 #include <fstream>
 #include <vector>
 #include <string>
+#include <functional>
 
-#include <stdio.h>
+#ifdef __linux__
+#include <bsd/string.h>
+#endif
+
 #include <dirent.h>
 #include <sys/stat.h>
 

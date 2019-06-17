@@ -3,6 +3,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef __linux__
+#include <bsd/stdlib.h>
+#endif
+
 #include <memory>
 
 #include "MemoryBuffer.hpp"

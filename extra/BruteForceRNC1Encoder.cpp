@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <algorithm>
 
 #ifdef __linux__
 #include <bsd/string.h>

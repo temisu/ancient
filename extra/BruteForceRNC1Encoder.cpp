@@ -3,7 +3,6 @@
 // This is really quick and dirty. Works though
 
 #include <memory>
-#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>

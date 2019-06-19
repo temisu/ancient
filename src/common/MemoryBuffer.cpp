@@ -49,6 +49,6 @@ bool MemoryBuffer::isResizable() const noexcept
 
 void MemoryBuffer::resize(size_t newSize) 
 {
-	_data=reinterpret_cast<uint8_t*>(::reallocf(_data,newSize));
+	_data=reinterpret_cast<uint8_t*>(::realloc(_data,newSize));
 	if (!_data) throw OutOfMemoryError();
 }

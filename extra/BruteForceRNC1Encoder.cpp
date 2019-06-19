@@ -5,9 +5,13 @@
 #include <memory>
 
 #include <stdint.h>
+#include <string.h>
+
 #include <fstream>
 #include <vector>
 #include <string>
+#include <algorithm>
+#include <functional>
 
 #include <stdio.h>
 #include <dirent.h>

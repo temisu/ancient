@@ -107,6 +107,7 @@ Decompression algorithms provided:
   * SDHC: Sample delta huffman compressor
   * SHR3: LZ-compressor with arithmetic encoding
   * SHRI: LZ-compressor with arithmetic encoding
+  * SHSC: Context modeling compressor
   * SLZ3: CyberYAFA compressor
   * SLZX: LZX-compressor with delta encoding
   * SASC: LZ-compressor with arithmetic encoding
@@ -127,7 +128,7 @@ Some of the rare Lzh-compressors have been re-implemented by using Lhasa as a re
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
 
 Current work in progress
-* Completing XPK: ARTM, DCMB, DMCU (maybe), LZCB, PPMQ, SHSC
+* Completing XPK: ARTM, DCMB, DMCU (maybe), LZCB, PPMQ
 * Support for MMCMP, StoneCracker
 * Disk images support for Warp and DiskSqueeze
 

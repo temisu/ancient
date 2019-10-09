@@ -55,7 +55,7 @@ void SXSCDecompressor::ArithDecoder::scale(uint16_t newLow,uint16_t newHigh,uint
 
 bool SXSCDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('SASC');//||hdr==FourCC('SHSC');
+	return hdr==FourCC('SASC')||hdr==FourCC('SHSC');
 }
 
 std::unique_ptr<XPKDecompressor> SXSCDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -251,9 +251,520 @@ void SXSCDecompressor::decompressASC(Buffer &rawData,ForwardInputStream &inputSt
 	if (!outputStream.eof()) throw Decompressor::DecompressionError();
 }
 
+template<typename T,size_t length>
+class CheckedArray
+{
+public:
+	CheckedArray() :
+		_memory(length*sizeof(T))
+	{
+		// nothing needed
+	}
+
+	~CheckedArray()
+	{
+		// nothing needed
+	}
+
+	T &operator[](size_t i)
+	{
+		if (i>=length) throw Decompressor::DecompressionError();
+		return _memory.cast<T>()[i];
+	}
+
+	const T &operator[](size_t i) const
+	{
+		if (i>=length) throw Decompressor::DecompressionError();
+		return _memory.cast<T>()[i];
+	}
+
+private:
+	MemoryBuffer _memory;
+};
+
+// The horror. It needs to follow exactly the original logic, even if that logic is not very good.
 void SXSCDecompressor::decompressHSC(Buffer &rawData,ForwardInputStream &inputStream)
 {
-	// todo
+	struct Model
+	{
+		uint8_t		context[4];
+
+		uint16_t	hashPointer;
+		uint16_t	expiryPrevious;
+		uint16_t	expiryNext;
+		uint16_t	frequencyTotal;
+		uint16_t	escapeFrequency;
+
+		uint8_t		contextLength;
+		uint8_t		characterCount;
+		uint8_t		refreshCounter;
+	};
+
+	struct Frequency
+	{
+		uint16_t	frequency;
+		uint16_t	next;
+		uint8_t		character;
+	};
+
+	struct HashItem
+	{
+		uint16_t data;
+		uint16_t random;
+	};
+
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
+	ArithDecoder arithDecoder(inputStream);
+
+	uint8_t maxContextLength=4;
+	int16_t dropCount=2500;
+	int16_t contextSearchLength=0;
+
+	CheckedArray<Model,10000> models{};
+	for (uint32_t i=0;i<10000;i++)
+	{
+		auto &m=models[i];
+
+		for (uint32_t j=0;j<4;j++)
+			m.context[j]=0;
+
+		m.hashPointer=0;
+		m.expiryPrevious=i-1;
+		m.expiryNext=i+1;
+		m.frequencyTotal=0;
+		m.escapeFrequency=0;
+
+		m.contextLength=0xffU;
+		m.characterCount=0;
+		m.refreshCounter=0;
+	}
+
+	uint8_t currentContext[4];
+	for (uint32_t i=0;i<4;i++) currentContext[i]=0;
+	uint16_t firstExpiry=0,lastExpiry=9999;
+	uint16_t freeBlockPointer=10000;
+	uint16_t releaseBlock=0;
+
+	CheckedArray<Frequency,32760> frequencies{};
+	for (uint32_t i=0;i<32760;i++)
+	{
+		auto &f=frequencies[i];
+		f.frequency=0;
+		f.next=(i>=10000&&i<32759)?i+1:0xffffU;
+		f.character=0;
+	}
+
+	CheckedArray<HashItem,0x4000> hashes{};
+	for (uint32_t i=0,j=10;i<0x4000U;i++)
+	{
+		auto &h=hashes[i];
+		h.data=0xffffU;
+		// constants used are 2147483647 % / 16807
+		int32_t integerPart=j/127773U;
+		int32_t fractionalPart=j%127773U;
+		int32_t tmp=16807*fractionalPart-2836*integerPart;
+		j=tmp<0?tmp+0x7fff'ffff:tmp;
+		h.random=j&0x3fffU;
+	}
+	uint16_t hashStack[5];
+	for (uint32_t i=0;i<5;i++)
+		hashStack[i]=0;
+
+	bool characterMask[256];
+	uint8_t characterMaskStack[256];
+	for (uint32_t i=0;i<256;i++)
+	{
+		characterMask[i]=false;
+		characterMaskStack[i]=0;
+	}
+	int16_t characterMaskStackPointer=0;
+
+	uint8_t initialEscapeChar[5];
+	for (uint32_t i=0;i<5;i++)
+		initialEscapeChar[i]=i?15:16;
+	uint8_t escapeCharacterCounter=0;
+
+	uint16_t stackPointer=0;
+	uint16_t contextPointer[5];
+	uint16_t frequencyArrayIndex[5];
+	for (uint32_t i=0;i<5;i++)
+	{
+		contextPointer[i]=0;
+		frequencyArrayIndex[i]=0;
+	}
+
+	auto loopBreaker=[](uint16_t i) {
+		if (i>=0x8000U) throw Decompressor::DecompressionError();
+	};
+
+	auto findNext=[&]()->uint16_t
+	{
+		for (int32_t i=contextSearchLength-1;i>=0;i--)
+		{
+			for (uint32_t lb=0,j=hashes[hashStack[i]].data;j!=0xffffU;j=models[j].hashPointer,loopBreaker(lb++))
+			{
+				if (i==models[j].contextLength)
+				{
+					if ([&]()->bool
+					{
+						for (int32_t k=0;k<i;k++)
+							if (currentContext[k]!=models[j].context[k]) return false;
+						return true;
+					}()) {
+						contextSearchLength=i;
+						return j;
+					}
+				}
+			}
+		}
+		return 0xffffU;
+	};
+
+	for (;;)
+	{
+		for (uint32_t i=0;i<4;i++)
+			hashStack[i+1]=hashes[(currentContext[i]+hashStack[i])&0x3fffU].random;
+		stackPointer=0;
+		while (characterMaskStackPointer)
+			characterMask[characterMaskStack[--characterMaskStackPointer]]=false;
+		contextSearchLength=5;
+		uint16_t index=findNext();
+
+		uint8_t minLength=index!=0xffffU?models[index].contextLength+1:0;
+		uint16_t ch;
+		for (;;index=findNext())
+		{
+			if (index==0xffffU)
+			{
+				uint16_t size=257-characterMaskStackPointer;
+				uint16_t value=arithDecoder.decode(size);
+				// logic from original, could be improved a lot
+				// however, lets not optimize unless it is a problem...
+				uint16_t i=0;
+				for (ch=0;ch<256;ch++)
+				{
+					if (characterMask[ch]) continue;
+					if (i>=value) break;
+					i++;
+				}
+				arithDecoder.scale(i,i+1,size);
+				break;
+			}
+
+			// madness!!!
+			auto getEscFrequency=[&](uint16_t value,uint16_t i)->uint16_t
+			{
+				auto &model=models[i];
+				if (model.frequencyTotal==1)
+					return initialEscapeChar[model.contextLength]>=16?2:1;
+				if (model.characterCount==0xffU) return 1;
+				uint16_t tmp=uint16_t(model.characterCount)*2+2;
+				if (model.characterCount && tmp>=model.frequencyTotal)
+				{
+					value=int32_t(value)*tmp/model.frequencyTotal;
+					if (model.characterCount+1==model.frequencyTotal) value+=tmp>>2;
+				}
+				if (!value) value++;
+				return value;
+			};
+
+			int16_t freq=0,escapeFreq=0;
+			int16_t currentFrequency=0,frequencyTotal=0;
+			auto decodeCf=[&](uint16_t shift,bool cmCondition)->uint16_t
+			{
+				freq<<=shift;
+				uint16_t i,value=arithDecoder.decode(freq+escapeFreq)>>shift;
+				uint32_t lb=0;
+				for (i=index;i!=0xffffU;i=frequencies[i].next,loopBreaker(lb++))
+				{
+					auto &frequency=frequencies[i];
+					if (cmCondition||!characterMask[frequency.character])
+					{
+						if (frequencyTotal+frequency.frequency<=value)
+						{
+							frequencyTotal+=frequency.frequency;
+						} else {
+							currentFrequency=frequency.frequency<<shift;
+							break;
+						}
+					}
+				}
+				frequencyTotal<<=shift;
+				return i;
+			};
+
+			auto decodeCh=[&](uint16_t chPos,uint16_t insertPos,bool cmCondition)->bool
+			{
+				if (chPos==0xffffU)
+				{
+					arithDecoder.scale(freq,freq+escapeFreq,freq+escapeFreq);
+					if (models[index].frequencyTotal==1 && initialEscapeChar[models[index].contextLength]<32)
+						initialEscapeChar[models[index].contextLength]++;
+					uint16_t prevI=0;
+					for (uint16_t lb=0,i=index;i!=0xffffU;prevI=i,i=frequencies[i].next,loopBreaker(lb++))
+					{
+						auto &frequency=frequencies[i];
+						if (cmCondition||!characterMask[frequency.character])
+						{
+							if (characterMaskStackPointer==256) throw Decompressor::DecompressionError();
+							characterMaskStack[characterMaskStackPointer++]=frequency.character;
+							characterMask[frequency.character]=true;
+						}
+					}
+					contextPointer[insertPos]=index|0x8000U;
+					frequencyArrayIndex[insertPos]=prevI;
+					ch=256;
+					return true;
+				} else {
+					arithDecoder.scale(frequencyTotal,frequencyTotal+currentFrequency,freq+escapeFreq);
+					if (models[index].frequencyTotal==1 && initialEscapeChar[models[index].contextLength])
+						initialEscapeChar[models[index].contextLength]--;
+					contextPointer[insertPos]=index;
+					frequencyArrayIndex[insertPos]=chPos;
+					ch=frequencies[chPos].character;
+					return false;
+				}
+			};
+
+			if (characterMaskStackPointer)
+			{
+				for (uint16_t lb=0,i=index;i!=0xffffU;i=frequencies[i].next,loopBreaker(lb++))
+				{
+					auto &frequency=frequencies[i];
+					if (!characterMask[frequency.character])
+					{
+						freq+=frequency.frequency;
+						if (frequency.frequency<3) escapeFreq++;
+					}
+				}
+				escapeFreq=getEscFrequency(escapeFreq,index);
+
+				uint16_t chPos=decodeCf(0,false);
+				if (stackPointer==5) throw Decompressor::DecompressionError();
+				if (!decodeCh(chPos,stackPointer,false))
+				{
+					if (escapeCharacterCounter==10) throw Decompressor::DecompressionError();
+					escapeCharacterCounter++;
+				}
+				stackPointer++;
+
+			} else {
+				freq=models[index].frequencyTotal;
+				escapeFreq=getEscFrequency(models[index].escapeFrequency,index);
+
+				uint16_t chPos=decodeCf((escapeCharacterCounter>=5)?(freq<5 && escapeCharacterCounter==10)?2:1:0,true);
+
+				stackPointer=1;
+				if (decodeCh(chPos,0,true))
+				{
+					escapeCharacterCounter=0;
+				} else {
+					if (escapeCharacterCounter<10) escapeCharacterCounter++;
+				}
+			}
+
+			if (ch!=256)
+			{
+				if (index!=firstExpiry)
+				{
+					auto &model=models[index];
+					if (index==lastExpiry)
+					{
+						lastExpiry=model.expiryPrevious;
+					} else {
+						models[model.expiryNext].expiryPrevious=model.expiryPrevious;
+						models[model.expiryPrevious].expiryNext=model.expiryNext;
+					}
+					models[firstExpiry].expiryPrevious=index;
+					model.expiryNext=firstExpiry;
+					firstExpiry=index;
+				}
+				break;
+			}
+		}
+
+		if (ch==256) break;
+
+		while (stackPointer)
+		{
+			uint16_t freqIndex=frequencyArrayIndex[--stackPointer];
+			uint16_t pointer=contextPointer[stackPointer];
+			auto &model=models[pointer&0x7fffU];
+			if (pointer&0x8000U)
+			{
+				if (freeBlockPointer==0xffffU)
+				{
+					for (uint16_t i=0;i<=stackPointer;)
+					{
+						// yuck
+						uint32_t lb=0;
+						do
+						{
+							releaseBlock=(releaseBlock!=9999U)?releaseBlock+1:0;
+							loopBreaker(lb++);
+						} while (frequencies[releaseBlock].next==0xffffU);
+						for (i=0;i<=stackPointer;i++)
+							if ((contextPointer[i]&0x7fffU)==releaseBlock) break;
+					}
+					auto &frequencyRB=frequencies[releaseBlock];
+					auto &modelRB=models[releaseBlock];
+					uint16_t f=frequencyRB.frequency;
+					for (uint16_t lb=0,i=frequencyRB.next;i!=0xffffU;i=frequencies[i].next,loopBreaker(lb++))
+						if (frequencies[i].frequency<f) f=frequencies[i].frequency;
+					bool stopProcess=false;
+					if (frequencyRB.frequency<++f)
+					{
+						uint16_t i,lb=0;
+						for (lb=0,i=frequencyRB.next;frequencies[i].frequency<f&&frequencies[i].next!=0xffffU;i=frequencies[i].next,loopBreaker(lb++));
+						auto &frequencyI=frequencies[i];
+						frequencyRB.frequency=frequencyI.frequency;
+						frequencyRB.character=frequencyI.character;
+						uint16_t j=frequencyI.next;
+						frequencyI.next=freeBlockPointer;
+						freeBlockPointer=frequencyRB.next;
+						frequencyRB.next=j;
+						if (j==0xffffU)
+						{
+							modelRB.characterCount=0;
+							uint16_t tmp=modelRB.frequencyTotal=frequencyRB.frequency;
+							modelRB.escapeFrequency=tmp<3?1:0;
+							stopProcess=true;
+						}
+					}
+					if (!stopProcess)
+					{
+						{
+							modelRB.characterCount=0;
+							uint16_t tmp=frequencyRB.frequency/=f;
+							modelRB.frequencyTotal=tmp;
+							modelRB.escapeFrequency=tmp<3?1:0;
+						}
+						for (uint16_t lb=0,i=frequencyRB.next,j=releaseBlock;i!=0xffffU;i=frequencies[j].next,loopBreaker(lb++))
+						{
+							if (frequencies[i].frequency<f)
+							{
+								frequencies[j].next=frequencies[i].next;
+								frequencies[i].next=freeBlockPointer;
+								freeBlockPointer=i;
+							} else {
+								modelRB.characterCount++;
+								uint16_t tmp=frequencies[i].frequency/=f;
+								if (tmp<3) modelRB.escapeFrequency++;
+								modelRB.frequencyTotal+=tmp;
+								j=i;
+							}
+						}
+					}
+				}
+				freqIndex=frequencies[freqIndex].next=freeBlockPointer;
+				freeBlockPointer=frequencies[freeBlockPointer].next;
+				auto &frequencyFI=frequencies[freqIndex];
+				frequencyFI.frequency=1U;
+				frequencyFI.next=0xffffU;
+				frequencyFI.character=ch;
+				model.escapeFrequency++;
+				model.characterCount++;
+			} else if (++frequencies[freqIndex].frequency==3) {
+				model.escapeFrequency--;
+			}
+			if ((++model.frequencyTotal)/(model.characterCount+1)>frequencies[freqIndex].frequency*2)
+			{
+				model.refreshCounter--;
+			} else if (model.refreshCounter<4) {
+				model.refreshCounter++;
+			}
+			// one ugly scaler
+			if (!model.refreshCounter||model.frequencyTotal>=8000)
+			{
+				model.refreshCounter++;
+				model.escapeFrequency=0;
+				model.frequencyTotal=0;
+				for (uint16_t lb=0,i=pointer&0x7fffU;i!=0xffffU;i=frequencies[i].next,loopBreaker(lb++))
+				{
+					if (frequencies[i].frequency>1)
+					{
+						uint16_t tmp=frequencies[i].frequency>>=1;
+						model.frequencyTotal+=tmp;
+						if (tmp<3) model.escapeFrequency++;
+					} else {
+						model.escapeFrequency++;
+						model.frequencyTotal++;
+					}
+				}
+			}
+		}
+
+		uint8_t maxLength=maxContextLength+1;
+		while (maxLength-->minLength)
+		{
+			auto hash=[&](const uint8_t *block,uint32_t length)->uint16_t
+			{
+				uint16_t ret=0;
+				for (uint32_t i=0;i<length;i++)
+					ret=hashes[(block[i]+ret)&0x3fffU].random;
+				return ret;
+			};
+			uint16_t le=lastExpiry;
+			auto &model=models[le];
+			auto &frequency=frequencies[le];
+			lastExpiry=model.expiryPrevious;
+
+			models[firstExpiry].expiryPrevious=le;
+			model.expiryNext=firstExpiry;
+			firstExpiry=le;
+			if (model.contextLength!=0xffU)
+			{
+				if (model.contextLength==4 && !--dropCount)
+					maxContextLength=3;
+				uint16_t h=hash(model.context,model.contextLength);
+				if (hashes[h].data==le)
+				{
+					hashes[h].data=model.hashPointer;
+				} else {
+					uint16_t i=hashes[h].data;
+					uint32_t lb=0;
+					while (le!=models[i].hashPointer)
+					{
+						i=models[i].hashPointer;
+						loopBreaker(lb++);
+					}
+					models[i].hashPointer=model.hashPointer;
+				}
+				if (frequency.next!=0xffffU)
+				{
+					uint16_t i=frequency.next;
+					uint32_t lb=0;
+					while (frequencies[i].next!=0xffffU)
+					{
+						i=frequencies[i].next;
+						loopBreaker(lb++);
+					}
+					frequencies[i].next=freeBlockPointer;
+					freeBlockPointer=frequency.next;
+				}
+			}
+			frequency.next=0xffffU;
+			frequency.frequency=1;
+			frequency.character=ch;
+			model.escapeFrequency=1;
+			model.frequencyTotal=1;
+			model.contextLength=maxLength;
+			model.characterCount=0;
+			model.refreshCounter=4;
+			for (uint32_t i=0;i<4;i++) model.context[i]=currentContext[i];
+			uint16_t hashValue=hash(currentContext,maxLength);
+			model.hashPointer=hashes[hashValue].data;
+			hashes[hashValue].data=le;
+		}
+
+		outputStream.writeByte(ch);
+		for (uint16_t i=3;i!=0;i--)
+		{
+			currentContext[i]=currentContext[i-1];
+		}
+		currentContext[0]=ch;
+	}
+	if (!outputStream.eof()) throw Decompressor::DecompressionError();
 }
 
 void SXSCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)

@@ -131,13 +131,12 @@ void ARTMDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 
 		if (frequencyTotal==0x3fffU)
 		{
-			uint16_t total=1;
+			frequencyTotal=1;
 			for (int32_t i=255;i>=0;i--)
 			{
-				frequencySums[i]=total;
-				total+=frequencies[i]=(frequencies[i]+1)>>1;
+				frequencySums[i]=frequencyTotal;
+				frequencyTotal+=frequencies[i]=(frequencies[i]+1)>>1;
 			}
-			frequencyTotal=total;
 		}
 		
 		uint16_t i;

@@ -129,7 +129,7 @@ Some of the rare Lzh-compressors have been re-implemented by using Lhasa as a re
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
 
 Current work in progress
-* Completing XPK: ARTM, DCMB, DMCU (maybe), LZCB, PPMQ
+* Completing XPK: DCMB, DMCU (maybe), LZCB, PPMQ
 * Support for MMCMP, StoneCracker
 * Disk images support for Warp and DiskSqueeze
 

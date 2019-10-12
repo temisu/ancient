@@ -68,6 +68,7 @@ Decompression algorithms provided:
   * PM2: LZ-compressor
 * Supports opening XPK-encapsulated files. XPK decompressors supported are:
   * ACCA: Andre's Code Compression Algorithm
+  * ARTM: Arithmetic encoding compressor
   * BLZW: LZW-compressor
   * BZP2: Bzip2 backend for XPK
   * CBR0: RLE compressor
@@ -104,13 +105,13 @@ Decompression algorithms provided:
   * RAKE: LZ77-compressor
   * RDCN: Ross Data Compression
   * RLEN: RLE compressor
+  * SASC: LZ-compressor with arithmetic encoding
   * SDHC: Sample delta huffman compressor
   * SHR3: LZ-compressor with arithmetic encoding
   * SHRI: LZ-compressor with arithmetic encoding
   * SHSC: Context modeling compressor
   * SLZ3: CyberYAFA compressor
   * SLZX: LZX-compressor with delta encoding
-  * SASC: LZ-compressor with arithmetic encoding
   * SMPL: Huffman compressor with delta encoding
   * SQSH: Compressor for sampled sounds
   * TDCS: LZ77-compressor

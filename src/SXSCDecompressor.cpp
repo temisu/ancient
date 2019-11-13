@@ -7,49 +7,20 @@
 #include "DLTADecode.hpp"
 #include "common/MemoryBuffer.hpp"
 
-// not very pretty arithcoder, but arithcoders
-// are very sensitive to implementation details
-// thus we have to implement it just like original
-SXSCDecompressor::ArithDecoder::ArithDecoder(ForwardInputStream &inputStream) :
-	_bitReader(inputStream)
-{
-	_stream=inputStream.readByte()<<8;
-	_stream|=inputStream.readByte();
-}
-
-SXSCDecompressor::ArithDecoder::~ArithDecoder()
+SXSCDecompressor::SXSCReader::SXSCReader(ForwardInputStream &stream) :
+	_reader(stream)
 {
 	// nothing needed
 }
 
-uint16_t SXSCDecompressor::ArithDecoder::decode(uint16_t length)
+SXSCDecompressor::SXSCReader::~SXSCReader()
 {
-	return ((uint32_t(_stream-_low)+1)*length-1)/(uint32_t(_high-_low)+1);
+	// nothing needed
 }
 
-void SXSCDecompressor::ArithDecoder::scale(uint16_t newLow,uint16_t newHigh,uint16_t newRange)
+uint32_t SXSCDecompressor::SXSCReader::readBit()
 {
-	auto readBit=[&]()->uint32_t
-	{
-		return _bitReader.readBits8(1);
-	};
-
-	uint32_t range=uint32_t(_high-_low)+1;
-	_high=(range*newHigh)/newRange+_low-1;
-	_low=(range*newLow)/newRange+_low;
-	while (!((_low^_high)&0x8000U))
-	{
-		_low<<=1;
-		_high=(_high<<1)|1U;
-		_stream=(_stream<<1)|readBit();
-	}
-	// funky!
-	while ((_low&0x4000U)&&!(_high&0x4000U))
-	{
-		_low=(_low<<1)&0x7fffU;
-		_high=(_high<<1)|0x8001U;
-		_stream=((_stream<<1)^0x8000U)|readBit();
-	}
+	return _reader.readBits8(1);
 }
 
 
@@ -86,7 +57,12 @@ const std::string &SXSCDecompressor::getSubName() const noexcept
 void SXSCDecompressor::decompressASC(Buffer &rawData,ForwardInputStream &inputStream)
 {
 	ForwardOutputStream outputStream(rawData,0,rawData.size());
-	ArithDecoder arithDecoder(inputStream);
+
+	uint16_t bitReaderInitialValue;
+	bitReaderInitialValue=inputStream.readByte()<<8;
+	bitReaderInitialValue|=inputStream.readByte();
+	SXSCReader bitReader(inputStream);
+	RangeDecoder arithDecoder(bitReader,bitReaderInitialValue);
 
 	// decoder for literal, copy, end decision
 	// two thresholds -> 3 symbols, last symbol is break with size of 1
@@ -314,7 +290,12 @@ void SXSCDecompressor::decompressHSC(Buffer &rawData,ForwardInputStream &inputSt
 	};
 
 	ForwardOutputStream outputStream(rawData,0,rawData.size());
-	ArithDecoder arithDecoder(inputStream);
+
+	uint16_t bitReaderInitialValue;
+	bitReaderInitialValue=inputStream.readByte()<<8;
+	bitReaderInitialValue|=inputStream.readByte();
+	SXSCReader bitReader(inputStream);
+	RangeDecoder arithDecoder(bitReader,bitReaderInitialValue);
 
 	uint8_t maxContextLength=4;
 	int16_t dropCount=2500;

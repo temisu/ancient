@@ -7,6 +7,7 @@
 
 #include "XPKDecompressor.hpp"
 #include "InputStream.hpp"
+#include "RangeDecoder.hpp"
 
 class SXSCDecompressor : public XPKDecompressor
 {
@@ -23,24 +24,20 @@ public:
 	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
 
 private:
-	void decompressASC(Buffer &rawData,ForwardInputStream &inputStream);
-	void decompressHSC(Buffer &rawData,ForwardInputStream &inputStream);
-
-	class ArithDecoder {
+	class SXSCReader : public RangeDecoder::BitReader
+	{
 	public:
-		ArithDecoder(ForwardInputStream &inputStream);
-		~ArithDecoder();
+		SXSCReader(ForwardInputStream &stream);
+		virtual ~SXSCReader();
 
-		uint16_t decode(uint16_t length);
-		void scale(uint16_t newLow,uint16_t newHigh,uint16_t newRange);
+		virtual uint32_t readBit() override final;
 
 	private:
-		MSBBitReader<ForwardInputStream>	_bitReader;
-
-		uint16_t				_low=0;
-		uint16_t				_high=0xffffU;
-		uint16_t				_stream;
+		MSBBitReader<ForwardInputStream>	_reader;
 	};
+
+	void decompressASC(Buffer &rawData,ForwardInputStream &inputStream);
+	void decompressHSC(Buffer &rawData,ForwardInputStream &inputStream);
 
 	const Buffer					&_packedData;
 	bool						_isHSC;

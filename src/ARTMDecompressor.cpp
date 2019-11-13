@@ -1,71 +1,9 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "ARTMDecompressor.hpp"
+#include "RangeDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-
-ARTMDecompressor::ArithDecoder::ArithDecoder(ForwardInputStream &inputStream) :
-	_bitReader(inputStream)
-{
-	_stream=0;
-	for (uint32_t i=0;i<16;i++) _stream=(_stream<<1)|_bitReader.readBits8(1);
-}
-
-ARTMDecompressor::ArithDecoder::~ArithDecoder()
-{
-	// nothing needed
-}
-
-uint16_t ARTMDecompressor::ArithDecoder::decode(uint16_t length)
-{
-	return ((uint32_t(_stream-_low)+1)*length-1)/(uint32_t(_high-_low)+1);
-}
-
-void ARTMDecompressor::ArithDecoder::scale(uint16_t newLow,uint16_t newHigh,uint16_t newRange)
-{
-	auto readBit=[&]()->uint32_t
-	{
-		return _bitReader.readBits8(1);
-	};
-
-	uint32_t range=uint32_t(_high-_low)+1;
-	_high=(range*newHigh)/newRange+_low-1;
-	_low=(range*newLow)/newRange+_low;
-
-	for (;;)
-	{
-		auto doubleContext=[&](uint16_t decr)
-		{
-			_low-=decr;
-			_high-=decr;
-			_stream-=decr;
-			_low<<=1;
-			_high=(_high<<1)|1U;
-			_stream=(_stream<<1)|readBit();
-		};
-
-		if (_high<0x8000U)
-		{
-			doubleContext(0U);
-			continue;
-		}
-		
-		if (_low>=0x8000U)
-		{
-			doubleContext(0x8000U);
-			continue;
-		}
-
-		if (_low>=0x4000U && _high<0xC000U)
-		{
-			doubleContext(0x4000U);
-			continue;
-		}
-
-		break;
-	}
-}
-
 
 bool ARTMDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -96,16 +34,43 @@ const std::string &ARTMDecompressor::getSubName() const noexcept
 	return name;
 }
 
-// Apart from the peculiar ArithDecoder above there really is not much to see here.
+// There really is not much to see here.
 // Except maybe for the fact that there is extra symbol defined but never used.
 // It is used in the original implementation as a terminator. In here it is considered as an error.
 // Logically it would decode into null-character (practically it would be instant buffer overflow)
 void ARTMDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
+	class BitReader : public RangeDecoder::BitReader
+	{
+	public:
+		BitReader(ForwardInputStream &stream) :
+			_reader(stream)
+		{
+			// nothing needed
+		}
+
+		virtual ~BitReader()
+		{
+			// nothing needed
+		}
+
+		virtual uint32_t readBit() override final
+		{
+			return _reader.readBits8(1);
+		}
+
+	private:
+		LSBBitReader<ForwardInputStream>	_reader;
+	};
+
+
 	ForwardInputStream inputStream(_packedData,0,_packedData.size(),true);
 	ForwardOutputStream outputStream(rawData,0,rawData.size());
+	BitReader bitReader(inputStream);
 
-	ArithDecoder decoder(inputStream);
+	uint16_t initialValue=0;
+	for (uint32_t i=0;i<16;i++) initialValue=(initialValue<<1)|bitReader.readBit();
+	RangeDecoder decoder(bitReader,initialValue);
 
 	uint8_t characters[256];
 	uint16_t frequencies[256];

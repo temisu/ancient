@@ -1,16 +1,16 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef ARTMDECOMPRESSOR_HPP
-#define ARTMDECOMPRESSOR_HPP
+#ifndef LZCBDECOMPRESSOR_HPP
+#define LZCBDECOMPRESSOR_HPP
 
 #include "XPKDecompressor.hpp"
 
-class ARTMDecompressor : public XPKDecompressor
+class LZCBDecompressor : public XPKDecompressor
 {
 public:
-	ARTMDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
+	LZCBDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
 
-	virtual ~ARTMDecompressor();
+	virtual ~LZCBDecompressor();
 
 	virtual const std::string &getSubName() const noexcept override final;
 
@@ -22,7 +22,7 @@ public:
 private:
 	const Buffer	&_packedData;
 
-	static XPKDecompressor::Registry<ARTMDecompressor> _XPKregistration;
+	static XPKDecompressor::Registry<LZCBDecompressor> _XPKregistration;
 };
 
 #endif

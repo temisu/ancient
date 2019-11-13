@@ -94,6 +94,7 @@ Decompression algorithms provided:
   * LIN3: Lino packer
   * LIN4: Lino packer
   * LZBS: CyberYAFA compressor
+  * LZCB: LZ-compressor
   * LZW2: CyberYAFA compressor
   * LZW3: CyberYAFA compressor
   * LZW4: CyberYAFA compressor
@@ -129,7 +130,7 @@ Some of the rare Lzh-compressors have been re-implemented by using Lhasa as a re
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
 
 Current work in progress
-* Completing XPK: DCMB, DMCU (maybe), LZCB, PPMQ
+* Completing XPK: DCMB, DMCU (maybe), PPMQ
 * Support for MMCMP, StoneCracker
 * Disk images support for Warp and DiskSqueeze
 

@@ -67,7 +67,7 @@ IMPDecompressor::IMPDecompressor(const Buffer &packedData,bool verify) :
 
 	_rawSize=packedData.readBE32(4);
 	_endOffset=packedData.readBE32(8);
-	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x32<packedData.size() ||
+	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x32>packedData.size() ||
 		!_rawSize || !_endOffset ||
 		_rawSize>getMaxRawSize() || _endOffset>getMaxPackedSize()) throw InvalidFormatError();
 	uint32_t checksum=packedData.readBE32(_endOffset+0x2e);
@@ -93,7 +93,7 @@ IMPDecompressor::IMPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buff
 
 	_rawSize=packedData.readBE32(4);
 	_endOffset=packedData.readBE32(8);
-	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x2e<packedData.size()) throw InvalidFormatError();
+	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x2e>packedData.size()) throw InvalidFormatError();
 	_isXPK=true;
 }
 

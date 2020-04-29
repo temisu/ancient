@@ -484,7 +484,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 			uint32_t count=readBits(countBits);
 			if (count)
 			{
-				uint8_t lengthBuffer[count];
+				uint8_t lengthBuffer[512];
 				// in order to speed up the deObsfuscation, do not send the hopeless
 				// data into slow CreateOrderlyHuffmanTable
 				uint64_t sum=0;

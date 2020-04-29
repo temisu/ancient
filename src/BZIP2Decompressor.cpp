@@ -231,7 +231,7 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 				// Create all tables
 				for (uint32_t i=0;i<huffmanGroups;i++)
 				{
-					uint8_t bitLengths[numHuffmanItems];
+					uint8_t bitLengths[258];
 
 					uint32_t currentBits=readBits(5);
 					for (uint32_t j=0;j<numHuffmanItems;j++)

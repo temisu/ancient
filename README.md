@@ -9,7 +9,7 @@ Even though most of these algorithms are still available for download, scavengin
 * Provide a clean BSD-style licensing - Original implementations or their ports might have strange license or no visible license at all. There are also implementations that have been ripped off from some other source thus their legality is questionable at best.
 * Provide a tested implementation - The code is no good if it does not work properly and the old code has a lot of corner cases. The implementation is tested using the cache of available files (~10k) that used these algorithms. Although it does not offer any guarantee especially when we are talking about undocumented formats, it gives hope that there are less "stupid errors" in the code.
 
-This code should compile cleanly on any C++14 capable compiler, and it is tested on clang. Since it does not use lot of C++14 features, you might have luck compiling it with C++11 capable compiler if it has some rudimentary C++14 support.
+This code should compile cleanly on most C++14 capable compilers, and it is tested on clang and MSVC. For MSVC please use https://github.com/tronkko/dirent or similar to compile to command line tool
 
 Currently there are no plans to add password protected file support nor any kind of decryption capability. (apart from some very basic password bypassing in some formats that can be done easily)
 

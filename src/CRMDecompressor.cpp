@@ -130,7 +130,7 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		{
 			uint32_t maxDepth=readBits(4);
 			if (!maxDepth) throw Decompressor::DecompressionError();
-			uint32_t lengthTable[maxDepth];
+			uint32_t lengthTable[15];
 			for (uint32_t i=0;i<maxDepth;i++)
 				lengthTable[i]=readBits(std::min(i+1,codeLength));
 			uint32_t code=0;

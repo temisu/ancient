@@ -12,6 +12,8 @@
 // For exception
 #include "Decompressor.hpp"
 
+#include "common/MemoryBuffer.hpp"
+
 template<typename T>
 struct HuffmanCode
 {
@@ -122,7 +124,8 @@ public:
 		uint8_t minDepth=32,maxDepth=0;
 		// some optimization: more tables
 		uint16_t firstIndex[33],lastIndex[33];
-		uint16_t nextIndex[bitTableLength];
+		MemoryBuffer nextIndexBuffer(bitTableLength*sizeof(uint16_t));
+		uint16_t *nextIndex=nextIndexBuffer.cast<uint16_t>();
 		for (uint32_t i=1;i<33;i++)
 			firstIndex[i]=0xffffU;
 
@@ -173,13 +176,10 @@ template<typename T>
 class OptionalHuffmanDecoder
 {
 public:
-	template<typename ...Args>
-	OptionalHuffmanDecoder(const Args&& ...args) :
+	OptionalHuffmanDecoder() :
 		_base()
 	{
-		const HuffmanCode<T> list[sizeof...(args)]={args...};
-		for (auto &item : list)
-			insert(item);
+		// nothing needed
 	}
 
 	~OptionalHuffmanDecoder()

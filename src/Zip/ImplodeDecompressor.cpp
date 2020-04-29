@@ -59,9 +59,9 @@ void ImplodeDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	auto createDecoder=[&](ImplodeHuffmanDecoder &dec,uint32_t maxValue)
 	{
 		uint32_t length=readBits(8)+1;
-		uint8_t bitLengths[length];
-		uint8_t counts[length];
-		uint8_t offsets[length];
+		uint8_t bitLengths[257];
+		uint8_t counts[257];
+		uint8_t offsets[257];
 		uint8_t minDepth=32,maxDepth=0;
 
 		for (uint32_t i=0;i<length;i++)

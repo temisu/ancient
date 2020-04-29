@@ -82,16 +82,6 @@ void LHXDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		// do not enable those formats either and the LH9+
 		// formats are nothing but hopes for "future work"
 		// that never materialized (until I'm proven wrong ofc)
-#if 0
-		// they would probably be something like this?
-		,
-		{0x1ffffU,24,5},	// LH9
-		{0x3ffffU,24,5},	// LHA
-		{0x7ffffU,24,5},	// LHB
-		{0xfffffU,24,5},	// LHC
-		{0,0,0},		// Hole for -lhd-
-		{0x1fffffU,24,5}	// LHE
-#endif
 	};
 
 	uint32_t blockRemaining=0;
@@ -104,7 +94,7 @@ void LHXDecompressor::decompressImpl(Buffer &rawData,bool verify)
 
 			auto createTable=[&](OptionalHuffmanDecoder<uint32_t> &dest,uint32_t count,uint32_t bits,bool enableHole)
 			{
-				uint8_t symbolBits[count];
+				uint8_t symbolBits[20];
 				uint32_t length=readBits(bits);
 				if (!length)
 				{

@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include <algorithm>
+
 #include "OutputStream.hpp"
 // for exceptions
 #include "Decompressor.hpp"

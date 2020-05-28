@@ -1,17 +1,17 @@
 # Ancient Format Decompressor
 
-This is a collection of decompression routines for ancient formats popular in the Amiga, Atari computers (and others) from 80's and 90's as well as including some current ones that were used in a some specific way in these systems.
+This is a collection of decompression routines for ancient formats popular in the Amiga, Atari computers and some other systems from 80's and 90's as well as some that are currently used which were used in a some specific way in these old systems.
 
 For simple usage both a simple command line application as well as a simple API to use the decompressors are provided. The compression algorithm is automatically detected in most cases, however there are some corner cases where it is not entirely reliable due to weaknesses in the old format used. Please see the main.cpp and Decompressor.hpp to get an idea.
 
 Even though most of these algorithms are still available for download, scavenging and using them might prove to be a challenge. Thus the purpose of this project is to:
 * Provide a clean, modern implementation of the algorithms - Typically the implementations were not meant to be used outside of the original systems they were made for. Some other ported implementations are incomplete, bad quality or direct translations from old M68K assembly code.
 * Provide a clean BSD-style licensing - Original implementations or their ports might have strange license or no visible license at all. There are also implementations that have been ripped off from some other source thus their legality is questionable at best.
-* Provide a tested implementation - The code is no good if it does not work properly and the old code has a lot of corner cases. The implementation is tested using the cache of available files (~10k) that used these algorithms. Although it does not offer any guarantee especially when we are talking about undocumented formats, it gives hope that there are less "stupid errors" in the code.
+* Provide a tested implementation - The code is no good if it does not work properly and the old code have a lot of corner cases. These implementations are tested using a cache of available files (~10k) that used these algorithms. Although it does not offer any guarantee especially when we are talking about undocumented formats, it gives hope that there are less "stupid errors" in the code.
 
 This code should compile cleanly on most C++14 capable compilers, and it is tested on clang and MSVC. For MSVC please use https://github.com/tronkko/dirent or similar to compile to command line tool
 
-Currently there are no plans to add password protected file support nor any kind of decryption capability. (apart from some very basic password bypassing in some formats that can be done easily)
+Currently there are no plans to add password protected file support nor any kind of decryption capability apart from some very basic password bypassing in some formats that can be done easily
 
 Decompression algorithms provided:
 * CrunchMania by Thomas Schwarz: supports both new (version 2) and old stream formats:
@@ -23,16 +23,16 @@ Decompression algorithms provided:
   * Supports all different compression methods (NONE,SIMPLE,QUICK,MEDIUM,DEEP,HEAVY1,HEAVY2)
   * Supports password bypassing
 * File Imploder (and most of its clones), specifically with following headers:
-  * IMP!
   * ATN!
   * BDPI
   * CHFI
-  * Dupa (verification missing)
-  * EDAM (verification missing)
+  * EDAM
+  * IMP!
+  * M.H.
+  * RDC9
   * FLT! (verification missing)
-  * M.H. (verification missing)
+  * Dupa (verification missing)
   * PARA (verification missing)
-  * RDC9 (verification missing)
 * PowerPacker
   * PP 1.1 (verification missing)
   * PP 2.0

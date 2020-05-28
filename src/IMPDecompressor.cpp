@@ -9,8 +9,10 @@ static bool readIMPHeader(uint32_t hdr,uint32_t &addition) noexcept
 {
 	switch (hdr)
 	{
-		case FourCC('IMP!'):
 		case FourCC('ATN!'):
+		case FourCC('EDAM'):
+		case FourCC('IMP!'):
+		case FourCC('M.H.'):
 		addition=7;
 		return true;
 
@@ -22,13 +24,12 @@ static bool readIMPHeader(uint32_t hdr,uint32_t &addition) noexcept
 		addition=0xfe4;
 		return true;
 
+		case FourCC('RDC9'):	// Files do not contain checksum
+
 		// I haven't got these files to be sure what is the addition
 		case FourCC('Dupa'):
-		case FourCC('EDAM'):
 		case FourCC('FLT!'):
-		case FourCC('M.H.'):
 		case FourCC('PARA'):
-		case FourCC('RDC9'):
 		addition=0; 		// disable checksum for now
 		return true;
 

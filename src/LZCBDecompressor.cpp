@@ -137,11 +137,14 @@ private:
 	uint16_t					_tree[size()];
 };
 
+#if __cplusplus < 201703L
+// difference on semantics on C++14 / C++17
 template<size_t T>
 constexpr std::array<uint32_t,FrequencyTree<T>::levels()> FrequencyTree<T>::_levelOffsets;
 
 template<size_t T>
 constexpr std::array<uint32_t,FrequencyTree<T>::levels()> FrequencyTree<T>::_levelSizes;
+#endif
 
 template<size_t T>
 class FrequencyDecoder

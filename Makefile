@@ -2,9 +2,8 @@
 
 VPATH  := src src/Lzh src/Zip src/common
 
-CC	= clang
-CXX	= clang++
-COMMONFLAGS = -Os -Wall -Wsign-compare -Wshorten-64-to-32 -Wno-error=multichar -Wno-multichar -Isrc
+CXX	= c++
+COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Wno-error=multichar -Wno-multichar -Isrc
 CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti
 
@@ -32,9 +31,6 @@ all: $(PROG)
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
-
-.c.o:
-	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(PROG): $(OBJS)
 	$(CXX) $(CFLAGS) -o $(PROG) $(OBJS)

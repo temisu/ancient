@@ -63,7 +63,7 @@ int main(int argc,char **argv)
 	{
 		fprintf(stderr,"Usage: ancient identify packed_input_file\n");
 		fprintf(stderr," - identifies compression used in a file\n");
-		fprintf(stderr,"Usage: ancient verify packed_inout_file unpacked_comparison_file\n");
+		fprintf(stderr,"Usage: ancient verify packed_input_file unpacked_comparison_file\n");
 		fprintf(stderr," - verifies decompression against known good unpacked file\n");
 		fprintf(stderr,"Usage: ancient decompress packed_input_file output_file\n");
 		fprintf(stderr," - decompresses single file\n");

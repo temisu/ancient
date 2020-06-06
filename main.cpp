@@ -12,67 +12,14 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "common/Buffer.hpp"
+#include "common/MemoryBuffer.hpp"
 #include "common/SubBuffer.hpp"
 #include "Decompressor.hpp"
-
-class VectorBuffer : public Buffer
-{
-public:
-	VectorBuffer();
-
-	virtual ~VectorBuffer() override final;
-
-	virtual const uint8_t *data() const noexcept override final;
-	virtual uint8_t *data() override final;
-	virtual size_t size() const noexcept override final;
-
-	virtual bool isResizable() const noexcept override final;
-	virtual void resize(size_t newSize) override final;
-
-private:
-	std::vector<uint8_t>  _data;
-};
-
-VectorBuffer::VectorBuffer()
-{
-	// nothing needed
-}
-
-VectorBuffer::~VectorBuffer()
-{
-	// nothing needed
-}
-
-const uint8_t *VectorBuffer::data() const noexcept
-{
-	return _data.data();
-}
-
-uint8_t *VectorBuffer::data()
-{
-	return _data.data();
-}
-
-size_t VectorBuffer::size() const noexcept
-{
-	return _data.size();
-}
-
-bool VectorBuffer::isResizable() const noexcept
-{
-	return true;
-}
-
-void VectorBuffer::resize(size_t newSize) 
-{
-	return _data.resize(newSize);
-}
 
 std::unique_ptr<Buffer> readFile(const std::string &fileName)
 {
 
-	std::unique_ptr<Buffer> ret=std::make_unique<VectorBuffer>();
+	std::unique_ptr<Buffer> ret=std::make_unique<MemoryBuffer>(0);
 	std::ifstream file(fileName.c_str(),std::ios::in|std::ios::binary);
 	bool success=false;
 	if (file.is_open())
@@ -83,12 +30,12 @@ std::unique_ptr<Buffer> readFile(const std::string &fileName)
 		ret->resize(length);
 		file.read(reinterpret_cast<char*>(ret->data()),length);
 		success=bool(file);
-		if (!success) ret->resize(0);
 		file.close();
 	}
 	if (!success)
 	{
 		fprintf(stderr,"Could not read file %s\n",fileName.c_str());
+		return std::unique_ptr<Buffer>();
 	}
 	return ret;
 }
@@ -97,7 +44,8 @@ bool writeFile(const std::string &fileName,const Buffer &content)
 {
 	bool ret=false;
 	std::ofstream file(fileName.c_str(),std::ios::out|std::ios::binary|std::ios::trunc);
-	if (file.is_open()) {
+	if (file.is_open())
+	{
 		file.write(reinterpret_cast<const char*>(content.data()),content.size());
 		ret=bool(file);
 		file.close();
@@ -113,13 +61,13 @@ int main(int argc,char **argv)
 {
 	auto usage=[]()
 	{
-		fprintf(stderr,"Usage: <prog> identify input_packed\n");
+		fprintf(stderr,"Usage: ancient identify packed_input_file\n");
 		fprintf(stderr," - identifies compression used in a file\n");
-		fprintf(stderr,"Usage: <prog> verify input_packed input_unpacked\n");
+		fprintf(stderr,"Usage: ancient verify packed_input_file unpacked_comparison_file\n");
 		fprintf(stderr," - verifies decompression against known good unpacked file\n");
-		fprintf(stderr,"Usage: <prog> decompress input_packed output_raw\n");
+		fprintf(stderr,"Usage: ancient decompress packed_input_file output_file\n");
 		fprintf(stderr," - decompresses single file\n");
-		fprintf(stderr,"Usage: <prog> scan input_dir output_dir\n");
+		fprintf(stderr,"Usage: ancient scan input_dir output_dir\n");
 		fprintf(stderr," - scans input directory recursively and stores all found\n"
 			       " - known compressed streams to separate files in output directory\n");
 	};
@@ -171,8 +119,7 @@ int main(int argc,char **argv)
 			return -1;
 		}
 
-		std::unique_ptr<Buffer> raw=std::make_unique<VectorBuffer>();
-		raw->resize((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
+		std::unique_ptr<Buffer> raw=std::make_unique<MemoryBuffer>((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
 		try
 		{
 			decompressor->decompress(*raw,true);
@@ -212,6 +159,7 @@ int main(int argc,char **argv)
 					return -1;
 				}
 			}
+			printf("Files match!\n");
 			return 0;
 		}
 	}
@@ -253,8 +201,7 @@ int main(int argc,char **argv)
 							try
 							{
 								auto decompressor{Decompressor::create(scanBuffer,false,true)};
-								std::unique_ptr<Buffer> raw=std::make_unique<VectorBuffer>();
-								raw->resize((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
+								std::unique_ptr<Buffer> raw=std::make_unique<MemoryBuffer>((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
 								// for formats that do not encode packed size.
 								// we will get it from decompressor
 								if (!decompressor->getPackedSize())

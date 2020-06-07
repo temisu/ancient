@@ -17,14 +17,15 @@ OBJS	= Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o CRC16.o CRC32
 	FRLEDecompressor.o HFMNDecompressor.o HUFFDecompressor.o ILZRDecompressor.o \
 	IMPDecompressor.o LHLBDecompressor.o LIN1Decompressor.o LIN2Decompressor.o \
 	LZBSDecompressor.o LZCBDecompressor.o LZW2Decompressor.o LZW4Decompressor.o \
-	LZW5Decompressor.o LZXDecompressor.o MASHDecompressor.o NONEDecompressor.o \
-	NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o RDCNDecompressor.o \
-	RLENDecompressor.o RNCDecompressor.o SDHCDecompressor.o SHR3Decompressor.o \
-	SHRIDecompressor.o SLZ3Decompressor.o SMPLDecompressor.o SQSHDecompressor.o \
-	SXSCDecompressor.o TDCSDecompressor.o TPWMDecompressor.o ZENODecompressor.o \
-	LH1Decompressor.o LH2Decompressor.o LH3Decompressor.o LHXDecompressor.o \
-	LZ5Decompressor.o LZSDecompressor.o PMDecompressor.o LZHDecompressor.o \
-	ImplodeDecompressor.o ReduceDecompressor.o ShrinkDecompressor.o ZIPDecompressor.o \
+	LZW5Decompressor.o LZXDecompressor.o MASHDecompressor.o MMCMPDecompressor.o \
+	NONEDecompressor.o NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o \
+	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SDHCDecompressor.o \
+	SHR3Decompressor.o SHRIDecompressor.o SLZ3Decompressor.o SMPLDecompressor.o \
+	SQSHDecompressor.o SXSCDecompressor.o TDCSDecompressor.o TPWMDecompressor.o \
+	ZENODecompressor.o LH1Decompressor.o LH2Decompressor.o LH3Decompressor.o \
+	LHXDecompressor.o LZ5Decompressor.o LZSDecompressor.o PMDecompressor.o \
+	LZHDecompressor.o ImplodeDecompressor.o ReduceDecompressor.o ShrinkDecompressor.o \
+	ZIPDecompressor.o \
 	main.o
 
 all: $(PROG)

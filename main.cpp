@@ -14,6 +14,7 @@
 
 #include "common/MemoryBuffer.hpp"
 #include "common/SubBuffer.hpp"
+#include "common/StaticBuffer.hpp"
 #include "Decompressor.hpp"
 
 std::unique_ptr<Buffer> readFile(const std::string &fileName)
@@ -35,7 +36,7 @@ std::unique_ptr<Buffer> readFile(const std::string &fileName)
 	if (!success)
 	{
 		fprintf(stderr,"Could not read file %s\n",fileName.c_str());
-		return std::unique_ptr<Buffer>();
+		return std::make_unique<StaticBuffer<0>>();
 	}
 	return ret;
 }

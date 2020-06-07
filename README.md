@@ -14,7 +14,7 @@ This code should compile cleanly on most C++14 capable compilers, and it is test
 Currently there are no plans to add password protected file support nor any kind of decryption capability apart from some very basic password bypassing in some formats that can be done easily
 
 Decompression algorithms provided:
-* CrunchMania by Thomas Schwarz: supports both new (version 2) and old stream formats:
+* CrunchMania by Thomas Schwarz
   * CrM!: Crunch-Mania standard-mode
   * Crm!: Crunch-Mania standard-mode, sampled
   * CrM2: Crunch-Mania LZH-mode
@@ -22,7 +22,7 @@ Decompression algorithms provided:
 * Disk Masher System a.k.a. DMS
   * Supports all different compression methods (NONE,SIMPLE,QUICK,MEDIUM,DEEP,HEAVY1,HEAVY2)
   * Supports password bypassing
-* File Imploder (and most of its clones), specifically with following headers:
+* File Imploder (and most of its clones)
   * ATN!
   * BDPI
   * CHFI
@@ -36,20 +36,20 @@ Decompression algorithms provided:
 * PowerPacker
   * PP 1.1 (verification missing)
   * PP 2.0
-* Rob Northen compressors. supports all 3 known formats:
+* Rob Northen compressors.
   * RNC1: Both old and formats utilizing the same header. heuristics for detecting the current one
   * RNC2: RNC version 2 stream
 * Turbo Packer by Wolfgang Mayerle.
 * Standard gzip
 * Standard bzip2, both normal and randomized
-* Zip decompressor backend (decompressor only, no Zip file format reading yet) with following methods
+* Zip decompressor backend (decompressor only, no Zip file format reading yet)
   * Shrink
   * Reduce
   * Implode
   * Deflate
   * Deflate64
   * Bzip2
-* Lha/Lzh decompressor backend (decompressor only, no Lha file format reading yet) with following methods
+* Lha/Lzh decompressor backend (decompressor only, no Lha file format reading yet)
   * LH0: Null compressor
   * LH1: LZRW-compressor with 4kB window
   * LH2: LZRW-compressor with Dynamic Huffman Encoding (experimental)
@@ -66,7 +66,8 @@ Decompression algorithms provided:
   * PM0: Null compressor
   * PM1: LZ-compressor
   * PM2: LZ-compressor
-* Supports opening XPK-encapsulated files. XPK decompressors supported are:
+* MMCMP: Music Module Compressor
+* XPK-encapsulated files
   * ACCA: Andre's Code Compression Algorithm
   * ARTM: Arithmetic encoding compressor
   * BLZW: LZW-compressor
@@ -131,7 +132,7 @@ I'm slowly adding new stuff. If your favorite is not listed contact me and maybe
 
 Current work in progress
 * Completing XPK: DCMB, DMCU (maybe), PPMQ
-* Support for MMCMP, StoneCracker
+* Support for StoneCracker
 * Disk images support for Warp and DiskSqueeze
 
 Not planned:

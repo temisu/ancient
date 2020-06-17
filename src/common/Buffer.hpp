@@ -3,8 +3,8 @@
 #ifndef BUFFER_HPP
 #define BUFFER_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <exception>
 

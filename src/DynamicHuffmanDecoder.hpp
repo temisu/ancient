@@ -3,8 +3,8 @@
 #ifndef DYNAMICHUFFMANDECODER_HPP
 #define DYNAMICHUFFMANDECODER_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 // For exception
 #include "Decompressor.hpp"

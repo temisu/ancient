@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "Buffer.hpp"
 

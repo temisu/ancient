@@ -4,8 +4,8 @@
 
 #include <memory>
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #include <fstream>
 #include <vector>
@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <functional>
 
-#include <stdio.h>
+#include <cstdio>
 #include <dirent.h>
 #include <sys/stat.h>
 
@@ -500,7 +500,7 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 	stream[17]=chunkCount;
 
 	dest.resize(stream.size());
-	::memcpy(dest.data(),stream.data(),stream.size());
+	std::memcpy(dest.data(),stream.data(),stream.size());
 }
 
 

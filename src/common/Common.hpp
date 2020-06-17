@@ -3,7 +3,7 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <string>
 #include <vector>

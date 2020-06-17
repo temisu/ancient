@@ -1,7 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #include "DMSDecompressor.hpp"
 
@@ -244,7 +244,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 	};
 
 	// fill unused tracks with zeros
-	::memset(rawData.data(),0,_rawSize);
+	std::memset(rawData.data(),0,_rawSize);
 
 	auto checksum=[](const uint8_t *src,uint32_t srcLength)->uint16_t
 	{
@@ -328,7 +328,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 	{
 		if (doInitContext)
 		{
-			if (_contextBufferSize) ::memset(contextBuffer.data(),0,_contextBufferSize);
+			if (_contextBufferSize) std::memset(contextBuffer.data(),0,_contextBufferSize);
 			quickContextLocation=251;
 			mediumContextLocation=16318;
 			deepContextLocation=16324;

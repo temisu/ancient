@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
+#include <cstring>
 
 #include "common/SubBuffer.hpp"
 #include "SDHCDecompressor.hpp"
@@ -51,7 +51,7 @@ void SDHCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		master.decompress(rawData,verify);
 	} else {
 		if (src.size()!=rawData.size()) throw Decompressor::DecompressionError();
-		::memcpy(rawData.data(),src.data(),src.size());
+		std::memcpy(rawData.data(),src.data(),src.size());
 	}
 
 	size_t length=rawData.size()&~3U;

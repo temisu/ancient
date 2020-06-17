@@ -3,7 +3,7 @@
 #ifndef RANGEDECODER_HPP
 #define RANGEDECODER_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 // used by too many compressors...
 class RangeDecoder

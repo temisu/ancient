@@ -3,8 +3,8 @@
 #ifndef SUBBUFFER_HPP
 #define SUBBUFFER_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "Buffer.hpp"
 

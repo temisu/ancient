@@ -1,7 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #include "ImplodeDecompressor.hpp"
 #include "../InputStream.hpp"

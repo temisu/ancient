@@ -3,7 +3,7 @@
 #ifndef SXSCDECOMPRESSOR_HPP
 #define SXSCDECOMPRESSOR_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "XPKDecompressor.hpp"
 #include "InputStream.hpp"

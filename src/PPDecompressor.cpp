@@ -91,8 +91,8 @@ PPDecompressor::PPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer
 
 	_rawSize=tmp>>8;
 	_startShift=tmp&0xff;
-	if (!_rawSize || _startShift>=0x20 ||
-		_rawSize>getMaxRawSize()) throw InvalidFormatError(); 
+	if (!_rawSize || _startShift>=0x20 || _rawSize>getMaxRawSize())
+		throw InvalidFormatError();
 
 	_isXPK=true;
 }

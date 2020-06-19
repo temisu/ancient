@@ -67,6 +67,15 @@ Decompression algorithms provided:
   * PM1: LZ-compressor
   * PM2: LZ-compressor
 * MMCMP: Music Module Compressor
+* StoneCracker
+  * SC: StoneCracker v2.69 - v2.81
+  * SC: StoneCracker v2.92, v2.99
+  * S300: StoneCracker v3.00
+  * S310: StoneCracker v3.10, v3.11b
+  * S400: StoneCracker pre v4.00
+  * S401: StoneCracker v4.01
+  * S403: StoneCracker v4.02a
+  * S404: StoneCracker v4.10
 * XPK-encapsulated files
   * ACCA: Andre's Code Compression Algorithm
   * ARTM: Arithmetic encoding compressor
@@ -132,7 +141,6 @@ I'm slowly adding new stuff. If your favorite is not listed contact me and maybe
 
 Current work in progress
 * Completing XPK: DCMB, DMCU (maybe), PPMQ
-* Support for StoneCracker
 * Disk images support for Warp and DiskSqueeze
 
 Not planned:

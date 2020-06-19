@@ -86,7 +86,7 @@ public:
 	}
 
 	template<typename F>
-	T decode(F bitReader) const
+	const T &decode(F bitReader) const
 	{
 		if (!_table.size()) throw Decompressor::DecompressionError();
 		uint32_t i=0;

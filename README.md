@@ -1,6 +1,6 @@
-# Ancient Format Decompressor
+# Ancient - Modern decompressor for old data compression formats
 
-This is a collection of decompression routines for ancient formats popular in the Amiga, Atari computers and some other systems from 80's and 90's as well as some that are currently used which were used in a some specific way in these old systems.
+This is a collection of decompression routines for old formats popular in the Amiga, Atari computers and some other systems from 80's and 90's as well as some that are currently used which were used in a some specific way in these old systems.
 
 For simple usage both a simple command line application as well as a simple API to use the decompressors are provided. The compression algorithm is automatically detected in most cases, however there are some corner cases where it is not entirely reliable due to weaknesses in the old format used. Please see the main.cpp and Decompressor.hpp to get an idea.
 

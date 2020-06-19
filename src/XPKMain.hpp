@@ -1,18 +1,18 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef XPKMASTER_HPP
-#define XPKMASTER_HPP
+#ifndef XPKMAIN_HPP
+#define XPKMAIN_HPP
 
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
-class XPKMaster : public Decompressor
+class XPKMain : public Decompressor
 {
 friend class XPKDecompressor;
 public:
-	XPKMaster(const Buffer &packedData,bool verify,uint32_t recursionLevel);
+	XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel);
 
-	virtual ~XPKMaster();
+	virtual ~XPKMain();
 
 	virtual const std::string &getName() const noexcept override final;
 	virtual size_t getPackedSize() const noexcept override final;
@@ -45,7 +45,7 @@ private:
 
 	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool)>> *_XPKDecompressors;
 
-	static Decompressor::Registry<XPKMaster> _registration;
+	static Decompressor::Registry<XPKMain> _registration;
 };
 
 #endif

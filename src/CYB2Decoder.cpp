@@ -4,7 +4,7 @@
 
 #include "common/SubBuffer.hpp"
 #include "CYB2Decoder.hpp"
-#include "XPKMaster.hpp"
+#include "XPKMain.hpp"
 
 bool CYB2Decoder::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -31,7 +31,7 @@ CYB2Decoder::CYB2Decoder(uint32_t hdr,uint32_t recursionLevel,const Buffer &pack
 		// trigger child checks...
 		ConstSubBuffer blockData(_packedData,10,_packedData.size()-10);
 		std::unique_ptr<XPKDecompressor::State> state;
-		auto sub=XPKMaster::createDecompressor(_blockHeader,_recursionLevel+1,blockData,state,true);
+		auto sub=XPKMain::createDecompressor(_blockHeader,_recursionLevel+1,blockData,state,true);
 	}
 }
 
@@ -50,7 +50,7 @@ void CYB2Decoder::decompressImpl(Buffer &rawData,const Buffer &previousData,bool
 {
 	ConstSubBuffer blockData(_packedData,10,_packedData.size()-10);
 	std::unique_ptr<XPKDecompressor::State> state;
-	auto sub=XPKMaster::createDecompressor(_blockHeader,_recursionLevel+1,blockData,state,verify);
+	auto sub=XPKMain::createDecompressor(_blockHeader,_recursionLevel+1,blockData,state,verify);
 	sub->decompressImpl(rawData,previousData,verify);
 }
 

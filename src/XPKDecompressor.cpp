@@ -1,7 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "XPKDecompressor.hpp"
-#include "XPKMaster.hpp"
+#include "XPKMain.hpp"
 
 XPKDecompressor::State::~State()
 {
@@ -21,5 +21,5 @@ XPKDecompressor::~XPKDecompressor()
 
 void XPKDecompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool))
 {
-	XPKMaster::registerDecompressor(detect,create);
+	XPKMain::registerDecompressor(detect,create);
 }

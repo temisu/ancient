@@ -9,7 +9,7 @@ CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti
 
 PROG	= ancient
 OBJS	= Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o CRC16.o CRC32.o \
-	Decompressor.o XPKDecompressor.o XPKMaster.o \
+	Decompressor.o XPKDecompressor.o XPKMain.o \
 	OutputStream.o InputStream.o RangeDecoder.o \
 	ACCADecompressor.o ARTMDecompressor.o BLZWDecompressor.o BZIP2Decompressor.o \
 	CBR0Decompressor.o CRMDecompressor.o CYB2Decoder.o DEFLATEDecompressor.o \

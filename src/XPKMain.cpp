@@ -6,22 +6,22 @@
 
 #include "common/SubBuffer.hpp"
 
-#include "XPKMaster.hpp"
+#include "XPKMain.hpp"
 #include "XPKDecompressor.hpp"
 
-bool XPKMaster::detectHeader(uint32_t hdr) noexcept
+bool XPKMain::detectHeader(uint32_t hdr) noexcept
 {
 	return hdr==FourCC('XPKF');
 }
 
-std::unique_ptr<Decompressor> XPKMaster::create(const Buffer &packedData,bool verify,bool exactSizeKnown)
+std::unique_ptr<Decompressor> XPKMain::create(const Buffer &packedData,bool verify,bool exactSizeKnown)
 {
-	return std::make_unique<XPKMaster>(packedData,verify,0);
+	return std::make_unique<XPKMain>(packedData,verify,0);
 }
 
-std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool)>> *XPKMaster::_XPKDecompressors=nullptr;
+std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool)>> *XPKMain::_XPKDecompressors=nullptr;
 
-void XPKMaster::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool))
+void XPKMain::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool))
 {
 	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<XPKDecompressor>(*)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool)>> _list;
 	if (!_XPKDecompressors) _XPKDecompressors=&_list;
@@ -29,7 +29,7 @@ void XPKMaster::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPK
 }
 
 
-XPKMaster::XPKMaster(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
+XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 	_packedData(packedData)
 {
 	if (packedData.size()<44) throw Decompressor::InvalidFormatError();
@@ -112,12 +112,12 @@ XPKMaster::XPKMaster(const Buffer &packedData,bool verify,uint32_t recursionLeve
 	}
 }
 
-XPKMaster::~XPKMaster()
+XPKMain::~XPKMain()
 {
 	// nothing needed
 }
 
-const std::string &XPKMaster::getName() const noexcept
+const std::string &XPKMain::getName() const noexcept
 {
 	std::unique_ptr<XPKDecompressor> sub;
 	std::unique_ptr<XPKDecompressor::State> state;
@@ -141,17 +141,17 @@ const std::string &XPKMaster::getName() const noexcept
 	return (sub)?sub->getSubName():invName;
 }
 
-size_t XPKMaster::getPackedSize() const noexcept
+size_t XPKMain::getPackedSize() const noexcept
 {
 	return _packedSize+8;
 }
 
-size_t XPKMaster::getRawSize() const noexcept
+size_t XPKMain::getRawSize() const noexcept
 {
 	return _rawSize;
 }
 
-void XPKMaster::decompressImpl(Buffer &rawData,bool verify)
+void XPKMain::decompressImpl(Buffer &rawData,bool verify)
 {
 	if (rawData.size()<_rawSize) throw Decompressor::DecompressionError();
 
@@ -203,7 +203,7 @@ void XPKMaster::decompressImpl(Buffer &rawData,bool verify)
 	}
 }
 
-std::unique_ptr<XPKDecompressor> XPKMaster::createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
+std::unique_ptr<XPKDecompressor> XPKMain::createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
 {
 	// since this method is used externally, better check recursion level
 	if (recursionLevel>=getMaxRecursionLevel()) throw Decompressor::InvalidFormatError();
@@ -215,7 +215,7 @@ std::unique_ptr<XPKDecompressor> XPKMaster::createDecompressor(uint32_t type,uin
 }
 
 template <typename F>
-void XPKMaster::forEachChunk(F func) const
+void XPKMain::forEachChunk(F func) const
 {
 	uint32_t currentOffset=0,rawSize,packedSize;
 	bool isLast=false;
@@ -255,4 +255,4 @@ void XPKMaster::forEachChunk(F func) const
 	}
 }
 
-Decompressor::Registry<XPKMaster> XPKMaster::_registration;
+Decompressor::Registry<XPKMain> XPKMain::_registration;

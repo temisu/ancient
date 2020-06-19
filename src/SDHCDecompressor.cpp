@@ -4,7 +4,7 @@
 
 #include "common/SubBuffer.hpp"
 #include "SDHCDecompressor.hpp"
-#include "XPKMaster.hpp"
+#include "XPKMain.hpp"
 #include "DLTADecode.hpp"
 
 bool SDHCDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
@@ -27,7 +27,7 @@ SDHCDecompressor::SDHCDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	if (verify && (_mode&0x8000U))
 	{
 		ConstSubBuffer src(_packedData,2,_packedData.size()-2);
-		XPKMaster master(src,_recursionLevel+1,true);
+		XPKMain main(src,_recursionLevel+1,true);
 	}
 }
 
@@ -47,8 +47,8 @@ void SDHCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	ConstSubBuffer src(_packedData,2,_packedData.size()-2);
 	if (_mode&0x8000U)
 	{
-		XPKMaster master(src,_recursionLevel+1,false);
-		master.decompress(rawData,verify);
+		XPKMain main(src,_recursionLevel+1,false);
+		main.decompress(rawData,verify);
 	} else {
 		if (src.size()!=rawData.size()) throw Decompressor::DecompressionError();
 		::memcpy(rawData.data(),src.data(),src.size());

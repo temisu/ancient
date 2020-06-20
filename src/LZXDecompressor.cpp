@@ -1,7 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #include "LZXDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
@@ -75,7 +75,7 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 	if (!_isCompressed)
 	{
 		if (_packedSize!=_rawSize) throw Decompressor::DecompressionError();
-		::memcpy(rawData.data(),_packedData.data()+_packedOffset,_rawSize);
+		std::memcpy(rawData.data(),_packedData.data()+_packedOffset,_rawSize);
 		return;
 	}
 

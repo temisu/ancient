@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
+#include <cstring>
 
 #include "NUKEDecompressor.hpp"
 #include "DLTADecode.hpp"

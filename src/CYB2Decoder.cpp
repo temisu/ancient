@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
+#include <cstring>
 
 #include "common/SubBuffer.hpp"
 #include "CYB2Decoder.hpp"

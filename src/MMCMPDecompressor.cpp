@@ -1,5 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
+#include <cstring>
+
 #include "MMCMPDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
@@ -64,7 +66,7 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	if (rawData.size()<_rawSize) throw DecompressionError();
 	// MMCMP allows gaps in data. Although not used in practice still we memset before decompressing to be sure
-	::memset(rawData.data(),0,rawData.size());
+	std::memset(rawData.data(),0,rawData.size());
 
 	uint8_t *rawDataPtr=rawData.data();
 	for (uint32_t i=0;i<_blocks;i++)

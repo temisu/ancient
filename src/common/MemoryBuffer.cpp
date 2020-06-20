@@ -1,14 +1,14 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
 
 #include <memory>
 
 #include "MemoryBuffer.hpp"
 
 MemoryBuffer::MemoryBuffer(size_t size) :
-	_data(reinterpret_cast<uint8_t*>(::malloc(size))),
+	_data(reinterpret_cast<uint8_t*>(std::malloc(size))),
 	_size(size)
 {
 	if (!_data) throw OutOfMemoryError();
@@ -18,13 +18,13 @@ MemoryBuffer::MemoryBuffer(const Buffer &src,size_t offset,size_t size) :
 	MemoryBuffer(size)
 {
 	if(offset+size>src.size()) throw InvalidOperationError();
-	::memcpy(_data,src.data()+offset,size);
+	std::memcpy(_data,src.data()+offset,size);
 }
 
 
 MemoryBuffer::~MemoryBuffer()
 {
-	::free(_data);
+	std::free(_data);
 }
 
 const uint8_t *MemoryBuffer::data() const noexcept
@@ -49,7 +49,7 @@ bool MemoryBuffer::isResizable() const noexcept
 
 void MemoryBuffer::resize(size_t newSize) 
 {
-	_data=reinterpret_cast<uint8_t*>(::realloc(_data,newSize));
+	_data=reinterpret_cast<uint8_t*>(std::realloc(_data,newSize));
 	_size=newSize;
 	if (!_data)
 	{

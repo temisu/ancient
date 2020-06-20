@@ -195,7 +195,7 @@ void SXSCDecompressor::decompressASC(Buffer &rawData,ForwardInputStream &inputSt
 			outputStream.writeByte(twoStepArithDecoder(litInitial,litDynamic,litThreshold,1000,1,8));
 		} else {
 			// copy
-			while (outputStream.getOffset()>(1<<distanceIndex) && distanceIndex<15)
+			while (outputStream.getOffset()>size_t(1<<distanceIndex) && distanceIndex<15)
 				updateTable(distanceCodes,6000,++distanceIndex,24);
 			uint16_t distanceValue=arithDecoder.decode(tableSize(distanceCodes));
 			uint16_t distanceBits=decodeSymbol(distanceCodes,distanceValue);

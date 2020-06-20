@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <memory>
 #include <fstream>
@@ -8,7 +8,7 @@
 #include <string>
 #include <functional>
 
-#include <stdio.h>
+#include <cstdio>
 #include <dirent.h>
 #include <sys/stat.h>
 

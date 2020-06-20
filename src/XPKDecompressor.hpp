@@ -3,8 +3,8 @@
 #ifndef XPKDECOMPRESSOR_HPP
 #define XPKDECOMPRESSOR_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <string>
 

@@ -3,8 +3,8 @@
 #ifndef HUFFMANDECODER_HPP
 #define HUFFMANDECODER_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <vector>
 #include <utility>

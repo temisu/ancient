@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
+#include <cstring>
 
 #include "NONEDecompressor.hpp"
 
@@ -36,7 +36,7 @@ void NONEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 {
 	if (rawData.size()!=_packedData.size()) throw Decompressor::DecompressionError();
 
-	::memcpy(rawData.data(),_packedData.data(),_packedData.size());
+	std::memcpy(rawData.data(),_packedData.data(),_packedData.size());
 }
 
 XPKDecompressor::Registry<NONEDecompressor> NONEDecompressor::_XPKregistration;

@@ -31,7 +31,7 @@ public:
 		for (uint32_t i=_levels-2;;i--)
 		{
 			uint16_t tmp=_tree[_levelOffsets[i]+symbol];
-			if (symbol+1<_levelSizes[i] && value>=tmp)
+			if (uint32_t(symbol+1)<_levelSizes[i] && value>=tmp)
 			{
 				symbol++;
 				low+=tmp;

@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
+#include <cstring>
 #include <memory>
 #include <algorithm>
 
@@ -168,7 +168,7 @@ void XPKMain::decompressImpl(Buffer &rawData,bool verify)
 		{
 			case 0:
 			if (rawChunkSize!=chunk.size()) throw Decompressor::DecompressionError();;
-			::memcpy(DestBuffer.data(),chunk.data(),rawChunkSize);
+			std::memcpy(DestBuffer.data(),chunk.data(),rawChunkSize);
 			break;
 
 			case 1:
@@ -199,7 +199,7 @@ void XPKMain::decompressImpl(Buffer &rawData,bool verify)
 
 	if (verify)
 	{
-		if (::memcmp(_packedData.data()+16,rawData.data(),std::min(_rawSize,16U))) throw Decompressor::DecompressionError();
+		if (std::memcmp(_packedData.data()+16,rawData.data(),std::min(_rawSize,16U))) throw Decompressor::DecompressionError();
 	}
 }
 

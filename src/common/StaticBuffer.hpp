@@ -3,8 +3,8 @@
 #ifndef STATICBUFFER_HPP
 #define STATICBUFFER_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "Buffer.hpp"
 

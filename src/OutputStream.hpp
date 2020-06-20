@@ -3,8 +3,8 @@
 #ifndef OUTPUTSTREAM_HPP
 #define OUTPUTSTREAM_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "common/Buffer.hpp"
 

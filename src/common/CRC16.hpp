@@ -3,7 +3,7 @@
 #ifndef CRC16_HPP
 #define CRC16_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "Buffer.hpp"
 

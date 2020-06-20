@@ -80,7 +80,7 @@ void LIN1Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 					} else count+=7;
 				} else count+=4;
 			}
-			uint32_t distance;
+			uint32_t distance = 0;
 			switch (readBits(2))
 			{
 				case 0:

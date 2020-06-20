@@ -1,7 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #include "ZIPDecompressor.hpp"
 
@@ -48,7 +48,7 @@ void ZIPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	{
 		case 0:
 		if (rawData.size()!=_packedData.size()) throw DecompressionError();
-		::memcpy(rawData.data(),_packedData.data(),rawData.size());
+		std::memcpy(rawData.data(),_packedData.data(),rawData.size());
 		break;
 
 		case 1:

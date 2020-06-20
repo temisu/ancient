@@ -5,7 +5,7 @@ VPATH  := src src/Lzh src/Zip src/common
 CXX	= c++
 COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Wno-error=multichar -Wno-multichar -Isrc
 CFLAGS	= $(COMMONFLAGS)
-CXXFLAGS = $(COMMONFLAGS) -std=c++14 -fno-rtti
+CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti
 
 PROG	= ancient
 OBJS	= Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o CRC16.o CRC32.o \

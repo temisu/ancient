@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 
@@ -82,7 +82,7 @@ const uint8_t *ForwardOutputStream::history(size_t distance) const
 void ForwardOutputStream::produce(const uint8_t *src,size_t bytes)
 {
 	if (_currentOffset+bytes>_endOffset) throw Decompressor::DecompressionError();
-	::memcpy(&_bufPtr[_currentOffset],src,bytes);
+	std::memcpy(&_bufPtr[_currentOffset],src,bytes);
 	_currentOffset+=bytes;
 }
 

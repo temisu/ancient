@@ -1,7 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #include <map>
 
@@ -94,7 +94,7 @@ void LZHDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		case Compressor::LZ4:
 		case Compressor::PM0:
 		if (rawData.size()!=_packedData.size()) throw DecompressionError();
-		::memcpy(rawData.data(),_packedData.data(),rawData.size());
+		std::memcpy(rawData.data(),_packedData.data(),rawData.size());
 		break;
 
 		case Compressor::LH1:

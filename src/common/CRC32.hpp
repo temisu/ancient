@@ -3,7 +3,7 @@
 #ifndef CRC32_HPP
 #define CRC32_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "Buffer.hpp"
 

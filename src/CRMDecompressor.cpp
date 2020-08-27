@@ -48,7 +48,7 @@ CRMDecompressor::CRMDecompressor(const Buffer &packedData,uint32_t recursionLeve
 	_packedSize=packedData.readBE32(10);
 	if (!_rawSize || !_packedSize ||
 		_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize() ||
-		_packedSize+14>packedData.size()) throw Decompressor::InvalidFormatError();
+		size_t(_packedSize)+14>packedData.size()) throw Decompressor::InvalidFormatError();
 	if (((hdr>>8)&0xff)=='m') _isSampled=true;
 	if ((hdr&0xff)=='2') _isLZH=true;
 }

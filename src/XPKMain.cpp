@@ -53,7 +53,7 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 		_headerSize=36;
 	}
 
-	if (_packedSize+8>packedData.size()) throw Decompressor::InvalidFormatError();
+	if (size_t(_packedSize)+8>packedData.size()) throw Decompressor::InvalidFormatError();
 
 	bool found=false;
 	for (auto &it : *_XPKDecompressors)
@@ -159,7 +159,7 @@ void XPKMain::decompressImpl(Buffer &rawData,bool verify)
 	std::unique_ptr<XPKDecompressor::State> state;
 	forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
-		if (destOffset+rawChunkSize>rawData.size()) throw Decompressor::DecompressionError();
+		if (size_t(destOffset)+size_t(rawChunkSize)>rawData.size()) throw Decompressor::DecompressionError();
 		if (!rawChunkSize) return true;
 
 		ConstSubBuffer previousBuffer(rawData,0,destOffset);

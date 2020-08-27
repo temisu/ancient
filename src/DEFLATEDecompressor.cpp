@@ -108,7 +108,7 @@ DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,bool exactSize
 	if (flags&2) currentOffset+=2;		// FHCRC, not using that since it is only for header
 	_packedOffset=currentOffset;
 
-	if (currentOffset+8>_packedData.size()) throw InvalidFormatError();
+	if (size_t(currentOffset)+8>_packedData.size()) throw InvalidFormatError();
 
 	if (_exactSizeKnown)
 	{

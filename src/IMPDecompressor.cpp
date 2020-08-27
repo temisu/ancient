@@ -94,7 +94,7 @@ IMPDecompressor::IMPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buff
 
 	_rawSize=packedData.readBE32(4);
 	_endOffset=packedData.readBE32(8);
-	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x2e>packedData.size()) throw InvalidFormatError();
+	if ((_endOffset&1) || _endOffset<0xc || size_t(_endOffset)+0x2e>packedData.size()) throw InvalidFormatError();
 	_isXPK=true;
 }
 

@@ -46,7 +46,7 @@ LIN2Decompressor::LIN2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	// add 6 bytes to point to correct place
 
 	tmp=packedData.readBE32(4);
-	if (_endStreamOffset+midStreamOffset<tmp+10 || tmp<midStreamOffset) throw Decompressor::InvalidFormatError();
+	if (size_t(_endStreamOffset)+size_t(midStreamOffset)<size_t(tmp)+10 || tmp<midStreamOffset) throw Decompressor::InvalidFormatError();
 	_midStreamOffset=_endStreamOffset-tmp+midStreamOffset;
 }
 

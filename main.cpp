@@ -120,7 +120,15 @@ int main(int argc,char **argv)
 			return -1;
 		}
 
-		std::unique_ptr<Buffer> raw=std::make_unique<MemoryBuffer>((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
+		std::unique_ptr<Buffer> raw;
+		try
+		{
+			raw=std::make_unique<MemoryBuffer>((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
+		} catch (const Buffer::Error&) {
+			fprintf(stderr,"Out of memory\n");
+			return -1;
+		}
+
 		try
 		{
 			decompressor->decompress(*raw,true);
@@ -202,7 +210,16 @@ int main(int argc,char **argv)
 							try
 							{
 								auto decompressor{Decompressor::create(scanBuffer,false,true)};
-								std::unique_ptr<Buffer> raw=std::make_unique<MemoryBuffer>((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
+
+								std::unique_ptr<Buffer> raw;
+								try
+								{
+									raw=std::make_unique<MemoryBuffer>((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
+								} catch (const Buffer::Error&) {
+									fprintf(stderr,"Out of memory\n");
+									i++;
+									continue;
+								}
 								// for formats that do not encode packed size.
 								// we will get it from decompressor
 								if (!decompressor->getPackedSize())

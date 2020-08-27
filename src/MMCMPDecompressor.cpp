@@ -25,14 +25,14 @@ MMCMPDecompressor::MMCMPDecompressor(const Buffer &packedData,bool exactSizeKnow
 	_blocks=packedData.readLE16(12U);
 	_blocksOffset=packedData.readLE32(18U);
 	_rawSize=packedData.readLE32(14U);
-	if (_blocksOffset+_blocks*4U>packedData.size())
+	if (size_t(_blocksOffset)+size_t(_blocks)*4U>packedData.size())
 		throw InvalidFormatError();
 
 	_packedSize=0;
 	for (uint32_t i=0;i<_blocks;i++)
 	{
 		uint32_t blockAddr=packedData.readLE32(_blocksOffset+i*4U);
-		if (blockAddr+20U>=packedData.size())
+		if (size_t(blockAddr)+20U>=packedData.size())
 			throw InvalidFormatError();
 		uint32_t blockSize=packedData.readLE32(blockAddr+4U)+uint32_t(packedData.readLE16(blockAddr+12U))*8U+20U;
 		_packedSize=std::max(_packedSize,blockAddr+blockSize);
@@ -99,7 +99,7 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				throw DecompressionError();
 			outputOffset=_packedData.readLE32(blockAddr+currentSubBlock*8U+20U);
 			outputSize=_packedData.readLE32(blockAddr+currentSubBlock*8U+24U);
-			if (outputOffset+outputSize>_rawSize)
+			if (size_t(outputOffset)+size_t(outputSize)>size_t(_rawSize))
 				throw DecompressionError();
 			currentSubBlock++;
 		};

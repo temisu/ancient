@@ -67,7 +67,7 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 	} else throw InvalidFormatError();
 
 	size_t hdrSize=(_ver==Version::RNC1Old)?12:18;
-	if (_packedSize+hdrSize>packedData.size()) throw InvalidFormatError();
+	if (size_t(_packedSize)+size_t(hdrSize)>packedData.size()) throw InvalidFormatError();
 
 	if (_ver!=Version::RNC1Old)
 	{

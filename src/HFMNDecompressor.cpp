@@ -24,7 +24,7 @@ HFMNDecompressor::HFMNDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	uint16_t tmp=packedData.readBE16(0);
 	if (tmp&3) throw Decompressor::InvalidFormatError();	// header is being written in 4 byte chunks
 	_headerSize=size_t(tmp&0x1ff);				// the top 7 bits are flags. No definition what they are and they are ignored in decoder...
-	if (_headerSize+4>packedData.size()) throw Decompressor::InvalidFormatError();
+	if (size_t(_headerSize)+4>packedData.size()) throw Decompressor::InvalidFormatError();
 	tmp=packedData.readBE16(_headerSize+2);
 	_rawSize=size_t(tmp);
 	if (!_rawSize) throw Decompressor::InvalidFormatError();

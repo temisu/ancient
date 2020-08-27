@@ -76,7 +76,7 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 			_tmpBufferSize=std::max(_tmpBufferSize,uint32_t(_packedData.readBE16(offset+8)));
 		}
 		uint32_t packedChunkLength=packedData.readBE16(offset+6);
-		if (offset+20+packedChunkLength>packedData.size())
+		if (size_t(offset)+20+size_t(packedChunkLength)>packedData.size())
 			throw InvalidFormatError();
 		if (verify && CRC16(packedData,offset+20,packedChunkLength,0)!=packedData.readBE16(offset+16))
 			throw VerificationError();

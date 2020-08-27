@@ -130,7 +130,7 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 		size_t blockLength=readBits(8)<<16;
 		blockLength|=readBits(8)<<8;
 		blockLength|=readBits(8);
-		if (blockLength+outputStream.getOffset()>_rawSize) throw Decompressor::DecompressionError();
+		if (size_t(blockLength)+outputStream.getOffset()>size_t(_rawSize)) throw Decompressor::DecompressionError();
 
 		if (method!=1)
 		{

@@ -141,7 +141,13 @@ int main(int argc,char **argv)
 			fprintf(stderr,"Verify (raw) failed for %s\n",argv[2]);
 			return -1;
 		}
-		raw->resize(decompressor->getRawSize());
+		try
+		{
+			raw->resize(decompressor->getRawSize());
+		} catch (const Buffer::Error&) {
+			fprintf(stderr,"Out of memory\n");
+			return -1;
+		}
 
 		if (decompressor->getImageOffset() || decompressor->getImageSize())
 		{

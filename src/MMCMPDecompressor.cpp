@@ -107,7 +107,7 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		uint32_t checksum=0;
 		auto writeByte=[&](uint8_t value)
 		{
-			if (!outputSize) readNextSubBlock();
+			while (!outputSize) readNextSubBlock();
 			outputSize--;
 			rawDataPtr[outputOffset++]=value;
 			if (verify)

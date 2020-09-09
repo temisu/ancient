@@ -9,7 +9,7 @@
 
 bool SDHCDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('SDHC');
+	return hdr==FourCC("SDHC");
 }
 
 std::unique_ptr<XPKDecompressor> SDHCDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

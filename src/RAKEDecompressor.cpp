@@ -7,7 +7,7 @@
 
 bool RAKEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return (hdr==FourCC('FRHT') || hdr==FourCC('RAKE'));
+	return (hdr==FourCC("FRHT") || hdr==FourCC("RAKE"));
 }
 
 std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -18,7 +18,7 @@ std::unique_ptr<XPKDecompressor> RAKEDecompressor::create(uint32_t hdr,uint32_t 
 RAKEDecompressor::RAKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData),
-	_isRAKE(hdr==FourCC('RAKE'))
+	_isRAKE(hdr==FourCC("RAKE"))
 {
 	if (!detectHeaderXPK(hdr) || packedData.size()<4)
 		throw Decompressor::InvalidFormatError();

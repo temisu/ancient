@@ -8,7 +8,7 @@
 
 bool LHLBDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('LHLB');
+	return hdr==FourCC("LHLB");
 }
 
 std::unique_ptr<XPKDecompressor> LHLBDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

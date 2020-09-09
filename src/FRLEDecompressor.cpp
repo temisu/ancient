@@ -6,7 +6,7 @@
 
 bool FRLEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('FRLE');
+	return hdr==FourCC("FRLE");
 }
 
 std::unique_ptr<XPKDecompressor> FRLEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

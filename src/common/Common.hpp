@@ -8,10 +8,9 @@
 #include <string>
 #include <vector>
 
-constexpr uint32_t FourCC(uint32_t cc) noexcept
+constexpr uint32_t FourCC(const char (&cc)[5]) noexcept
 {
-	// return with something else if behavior is not same as in clang/gcc for multibyte literals
-	return cc;
+	return static_cast<uint32_t>((static_cast<uint8_t>(cc[0]) << 24) | (static_cast<uint8_t>(cc[1]) << 16) | (static_cast<uint8_t>(cc[2]) << 8) | static_cast<uint8_t>(cc[3]));
 }
 
 constexpr bool isValidSize(uint64_t &value) noexcept

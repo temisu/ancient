@@ -26,7 +26,7 @@ uint32_t SXSCDecompressor::SXSCReader::readBit()
 
 bool SXSCDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('SASC')||hdr==FourCC('SHSC');
+	return hdr==FourCC("SASC")||hdr==FourCC("SHSC");
 }
 
 std::unique_ptr<XPKDecompressor> SXSCDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -37,7 +37,7 @@ std::unique_ptr<XPKDecompressor> SXSCDecompressor::create(uint32_t hdr,uint32_t 
 SXSCDecompressor::SXSCDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData),
-	_isHSC(hdr==FourCC('SHSC'))
+	_isHSC(hdr==FourCC("SHSC"))
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }

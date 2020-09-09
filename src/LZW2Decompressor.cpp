@@ -6,7 +6,7 @@
 
 bool LZW2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('LZW2') || hdr==FourCC('LZW3');
+	return hdr==FourCC("LZW2") || hdr==FourCC("LZW3");
 }
 
 std::unique_ptr<XPKDecompressor> LZW2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -19,7 +19,7 @@ LZW2Decompressor::LZW2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
-	_ver=(hdr==FourCC('LZW2'))?2:3;
+	_ver=(hdr==FourCC("LZW2"))?2:3;
 }
 
 LZW2Decompressor::~LZW2Decompressor()

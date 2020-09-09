@@ -6,7 +6,7 @@
 
 bool ACCADecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('ACCA');
+	return hdr==FourCC("ACCA");
 }
 
 std::unique_ptr<XPKDecompressor> ACCADecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

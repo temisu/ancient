@@ -6,7 +6,7 @@
 
 bool FBR2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('FBR2');
+	return hdr==FourCC("FBR2");
 }
 
 std::unique_ptr<XPKDecompressor> FBR2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

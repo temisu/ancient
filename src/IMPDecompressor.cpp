@@ -9,27 +9,27 @@ static bool readIMPHeader(uint32_t hdr,uint32_t &addition) noexcept
 {
 	switch (hdr)
 	{
-		case FourCC('ATN!'):
-		case FourCC('EDAM'):
-		case FourCC('IMP!'):
-		case FourCC('M.H.'):
+		case FourCC("ATN!"):
+		case FourCC("EDAM"):
+		case FourCC("IMP!"):
+		case FourCC("M.H."):
 		addition=7;
 		return true;
 
-		case FourCC('BDPI'):
+		case FourCC("BDPI"):
 		addition=0x6e8;
 		return true;
 
-		case FourCC('CHFI'):
+		case FourCC("CHFI"):
 		addition=0xfe4;
 		return true;
 
-		case FourCC('RDC9'):	// Files do not contain checksum
+		case FourCC("RDC9"):	// Files do not contain checksum
 
 		// I haven't got these files to be sure what is the addition
-		case FourCC('Dupa'):
-		case FourCC('FLT!'):
-		case FourCC('PARA'):
+		case FourCC("Dupa"):
+		case FourCC("FLT!"):
+		case FourCC("PARA"):
 		addition=0; 		// disable checksum for now
 		return true;
 
@@ -46,7 +46,7 @@ bool IMPDecompressor::detectHeader(uint32_t hdr) noexcept
 
 bool IMPDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('IMPL');
+	return hdr==FourCC("IMPL");
 }
 
 std::unique_ptr<Decompressor> IMPDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)

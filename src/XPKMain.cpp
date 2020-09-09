@@ -11,7 +11,7 @@
 
 bool XPKMain::detectHeader(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('XPKF');
+	return hdr==FourCC("XPKF");
 }
 
 std::unique_ptr<Decompressor> XPKMain::create(const Buffer &packedData,bool verify,bool exactSizeKnown)

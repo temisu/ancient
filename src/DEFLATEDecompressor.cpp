@@ -32,7 +32,7 @@ bool DEFLATEDecompressor::detectHeader(uint32_t hdr) noexcept
 
 bool DEFLATEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return (hdr==FourCC('GZIP'));
+	return (hdr==FourCC("GZIP"));
 }
 
 std::unique_ptr<Decompressor> DEFLATEDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)

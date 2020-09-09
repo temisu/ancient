@@ -40,27 +40,27 @@ bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &
 	// From 3.00 and onwards we can be certain of the format
 	switch (hdr)
 	{
-		case FourCC('S300'):
+		case FourCC("S300"):
 		generation=3;
 		return true;
 
-		case FourCC('S310'):
+		case FourCC("S310"):
 		generation=4;
 		return true;
 
-		case FourCC('S400'):
+		case FourCC("S400"):
 		generation=5;
 		return true;
 
-		case FourCC('S401'):
+		case FourCC("S401"):
 		generation=6;
 		return true;
 
-		case FourCC('S403'):
+		case FourCC("S403"):
 		generation=7;
 		return true;
 
-		case FourCC('S404'):
+		case FourCC("S404"):
 		generation=8;
 		return true;
 

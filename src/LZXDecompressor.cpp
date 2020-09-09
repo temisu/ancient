@@ -12,7 +12,7 @@
 
 bool LZXDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('ELZX') || hdr==FourCC('SLZX');
+	return hdr==FourCC("ELZX") || hdr==FourCC("SLZX");
 }
 
 std::unique_ptr<XPKDecompressor> LZXDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -25,13 +25,13 @@ LZXDecompressor::LZXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buff
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
-	if (hdr==FourCC('SLZX')) _isSampled=true;
+	if (hdr==FourCC("SLZX")) _isSampled=true;
 	// There is no good spec on the LZX header content -> lots of unknowns here
 	if (_packedData.size()<41) throw Decompressor::InvalidFormatError();
 	// XPK LZX compression is embedded single file of LZX -> read first file. Ignore rest
 	// this will include flags, which need to be zero anyway
 	uint32_t streamHdr=_packedData.readBE32(0);
-	if (streamHdr!=FourCC('LZX\0')) throw Decompressor::InvalidFormatError();
+	if (streamHdr!=FourCC("LZX\0")) throw Decompressor::InvalidFormatError();
 
 	_rawSize=_packedData.readLE32(12);
 	_packedSize=_packedData.readLE32(16);

@@ -7,7 +7,7 @@
 
 bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('SQSH');
+	return hdr==FourCC("SQSH");
 }
 
 std::unique_ptr<XPKDecompressor> SQSHDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

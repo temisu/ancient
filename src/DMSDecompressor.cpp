@@ -15,7 +15,7 @@
 
 bool DMSDecompressor::detectHeader(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('DMS!');
+	return hdr==FourCC("DMS!");
 }
 
 std::unique_ptr<Decompressor> DMSDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
@@ -629,7 +629,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 					inputUnObsfuscator.setCode(restartPosition);
 					limitedDecompress=8;
 					processBlock(doRLE,func,params...);
-					if ((rawData.readBE32(0)&0xffff'ff00U)!=FourCC('DOS\0')) continue;
+					if ((rawData.readBE32(0)&0xffff'ff00U)!=FourCC("DOS\0")) continue;
 
 					// now see if the candidate is any good
 					doInitContext=true;

@@ -2,7 +2,7 @@
 
 VPATH  := src src/Lzh src/Zip src/common
 
-CXX	= c++
+CXX	?= c++
 COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Wno-error=multichar -Wno-multichar -Isrc
 CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti

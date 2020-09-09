@@ -10,7 +10,7 @@
 
 bool RNCDecompressor::detectHeader(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('RNC\001') || hdr==FourCC('RNC\002');
+	return hdr==FourCC("RNC\001") || hdr==FourCC("RNC\002");
 }
 
 std::unique_ptr<Decompressor> RNCDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
@@ -28,7 +28,7 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 		_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) throw InvalidFormatError();
 
 	bool verified=false;
-	if (hdr==FourCC('RNC\001'))
+	if (hdr==FourCC("RNC\001"))
 	{
 		// now detect between old and new version
 		// since the old and the new version share the same id, there is no foolproof way
@@ -62,7 +62,7 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 				verified=true;
 			} else _ver=Version::RNC1Old;
 		}
-	} else if (hdr==FourCC('RNC\002')) {
+	} else if (hdr==FourCC("RNC\002")) {
 		_ver=Version::RNC2;
 	} else throw InvalidFormatError();
 

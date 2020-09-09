@@ -196,7 +196,7 @@ private:
 
 bool LZCBDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('LZCB');
+	return hdr==FourCC("LZCB");
 }
 
 std::unique_ptr<XPKDecompressor> LZCBDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

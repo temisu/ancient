@@ -10,10 +10,10 @@ bool CRMDecompressor::detectHeader(uint32_t hdr) noexcept
 {
 	switch (hdr)
 	{
-		case FourCC('CrM!'):
-		case FourCC('CrM2'):
-		case FourCC('Crm!'):
-		case FourCC('Crm2'):
+		case FourCC("CrM!"):
+		case FourCC("CrM2"):
+		case FourCC("Crm!"):
+		case FourCC("Crm2"):
 		return true;
 
 		default:
@@ -23,7 +23,7 @@ bool CRMDecompressor::detectHeader(uint32_t hdr) noexcept
 
 bool CRMDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('CRM2') || hdr==FourCC('CRMS');
+	return hdr==FourCC("CRM2") || hdr==FourCC("CRMS");
 }
 
 std::unique_ptr<Decompressor> CRMDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
@@ -56,7 +56,7 @@ CRMDecompressor::CRMDecompressor(const Buffer &packedData,uint32_t recursionLeve
 CRMDecompressor::CRMDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	CRMDecompressor(packedData,recursionLevel,verify)
 {
-	_isXPKDelta=(hdr==FourCC('CRMS'));
+	_isXPKDelta=(hdr==FourCC("CRMS"));
 }
 
 CRMDecompressor::~CRMDecompressor()

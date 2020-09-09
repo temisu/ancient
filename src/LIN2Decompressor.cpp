@@ -7,7 +7,7 @@
 
 bool LIN2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('LIN2') || hdr==FourCC('LIN4');
+	return hdr==FourCC("LIN2") || hdr==FourCC("LIN4");
 }
 
 std::unique_ptr<XPKDecompressor> LIN2Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -20,7 +20,7 @@ LIN2Decompressor::LIN2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
-	_ver=(hdr==FourCC('LIN2'))?2:4;
+	_ver=(hdr==FourCC("LIN2"))?2:4;
 	if (packedData.size()<10) throw Decompressor::InvalidFormatError();
 
 	uint32_t tmp=packedData.readBE32(0);

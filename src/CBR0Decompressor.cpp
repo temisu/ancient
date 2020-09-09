@@ -7,7 +7,7 @@
 bool CBR0Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	// CBR1 is practical joke: it is the same as CBR0 but with ID changed
-	return hdr==FourCC('CBR0') || hdr==FourCC('CBR1');
+	return hdr==FourCC("CBR0") || hdr==FourCC("CBR1");
 }
 
 std::unique_ptr<XPKDecompressor> CBR0Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -18,7 +18,7 @@ std::unique_ptr<XPKDecompressor> CBR0Decompressor::create(uint32_t hdr,uint32_t 
 CBR0Decompressor::CBR0Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor(recursionLevel),
 	_packedData(packedData),
-	_isCBR0(hdr==FourCC('CBR0'))
+	_isCBR0(hdr==FourCC("CBR0"))
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
 }

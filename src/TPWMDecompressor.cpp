@@ -6,7 +6,7 @@
 
 bool TPWMDecompressor::detectHeader(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('TPWM');
+	return hdr==FourCC("TPWM");
 }
 
 std::unique_ptr<Decompressor> TPWMDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)

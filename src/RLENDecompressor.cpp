@@ -6,7 +6,7 @@
 
 bool RLENDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('RLEN');
+	return hdr==FourCC("RLEN");
 }
 
 std::unique_ptr<XPKDecompressor> RLENDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

@@ -12,12 +12,12 @@
 
 bool BZIP2Decompressor::detectHeader(uint32_t hdr) noexcept
 {
-	return ((hdr&0xffff'ff00U)==FourCC('BZh\0') && (hdr&0xffU)>='1' && (hdr&0xffU)<='9');
+	return ((hdr&0xffff'ff00U)==FourCC("BZh\0") && (hdr&0xffU)>='1' && (hdr&0xffU)<='9');
 }
 
 bool BZIP2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return (hdr==FourCC('BZP2'));
+	return (hdr==FourCC("BZP2"));
 }
 
 std::unique_ptr<Decompressor> BZIP2Decompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)

@@ -16,7 +16,7 @@ SHR3Decompressor::SHR3State::~SHR3State()
 
 bool SHR3Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('SHR3');
+	return hdr==FourCC("SHR3");
 }
 
 std::unique_ptr<XPKDecompressor> SHR3Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

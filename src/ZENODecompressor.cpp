@@ -6,7 +6,7 @@
 
 bool ZENODecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('ZENO');
+	return hdr==FourCC("ZENO");
 }
 
 std::unique_ptr<XPKDecompressor> ZENODecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

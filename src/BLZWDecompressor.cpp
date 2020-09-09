@@ -6,7 +6,7 @@
 
 bool BLZWDecompressor::detectHeaderXPK(uint32_t hdr)
 {
-	return hdr==FourCC('BLZW');
+	return hdr==FourCC("BLZW");
 }
 
 std::unique_ptr<XPKDecompressor> BLZWDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)

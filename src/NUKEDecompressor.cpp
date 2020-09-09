@@ -9,7 +9,7 @@
 
 bool NUKEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('NUKE') || hdr==FourCC('DUKE');
+	return hdr==FourCC("NUKE") || hdr==FourCC("DUKE");
 }
 
 std::unique_ptr<XPKDecompressor> NUKEDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
@@ -22,7 +22,7 @@ NUKEDecompressor::NUKEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
-	if (hdr==FourCC('DUKE')) _isDUKE=true;
+	if (hdr==FourCC("DUKE")) _isDUKE=true;
 }
 
 NUKEDecompressor::~NUKEDecompressor()

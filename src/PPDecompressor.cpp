@@ -17,12 +17,12 @@ PPDecompressor::PPState::~PPState()
 
 bool PPDecompressor::detectHeader(uint32_t hdr) noexcept
 {
-	return (hdr==FourCC('PP11') || hdr==FourCC('PP20'));
+	return (hdr==FourCC("PP11") || hdr==FourCC("PP20"));
 }
 
 bool PPDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('PWPK');
+	return hdr==FourCC("PWPK");
 }
 
 std::unique_ptr<Decompressor> PPDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)

@@ -1,6 +1,6 @@
 # Copyright (C) Teemu Suutari
 
-VPATH  := src src/Lzh src/Zip src/common
+VPATH  := src src/Lzh src/Zip src/common fuzzing
 
 CXX	?= c++
 COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Wno-error=multichar -Wno-multichar -Isrc
@@ -8,6 +8,7 @@ CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti
 
 PROG	= ancient
+MAIN	?= main.o
 OBJS	= Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o CRC16.o CRC32.o \
 	Decompressor.o XPKDecompressor.o XPKMain.o \
 	OutputStream.o InputStream.o RangeDecoder.o \
@@ -25,18 +26,17 @@ OBJS	= Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o CRC16.o CRC32
 	TPWMDecompressor.o  ZENODecompressor.o LH1Decompressor.o LH2Decompressor.o \
 	LH3Decompressor.o LHXDecompressor.o LZ5Decompressor.o LZSDecompressor.o \
 	PMDecompressor.o LZHDecompressor.o ImplodeDecompressor.o ReduceDecompressor.o \
-	ShrinkDecompressor.o ZIPDecompressor.o \
-	main.o
+	ShrinkDecompressor.o ZIPDecompressor.o
 
 all: $(PROG)
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
-$(PROG): $(OBJS)
-	$(CXX) $(CFLAGS) -o $(PROG) $(OBJS)
+$(PROG): $(OBJS) $(MAIN)
+	$(CXX) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f $(OBJS) $(PROG) *~ src/*~
+	rm -f $(OBJS) $(MAIN) $(PROG) *~ src/*~
 
 .PHONY:

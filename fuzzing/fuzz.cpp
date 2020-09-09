@@ -6,10 +6,10 @@
 #include <fstream>
 #include <string>
 
-#include "src/common/MemoryBuffer.hpp"
-#include "src/common/SubBuffer.hpp"
-#include "src/common/StaticBuffer.hpp"
-#include "src/Decompressor.hpp"
+#include "common/MemoryBuffer.hpp"
+#include "common/SubBuffer.hpp"
+#include "common/StaticBuffer.hpp"
+#include "Decompressor.hpp"
 
 std::unique_ptr<Buffer> readFile(const std::string &fileName)
 {

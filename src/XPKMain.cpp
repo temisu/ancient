@@ -241,7 +241,7 @@ void XPKMain::forEachChunk(F func) const
 			uint32_t tmp;
 			readDualValue(4,4,tmp);
 			tmp=((tmp+3U)&~3U);
-			if (size_t(tmp)+size_t(currentOffset)>packedSize)
+			if (size_t(tmp)+size_t(currentOffset)+chunkHeaderLen>_packedSize)
 				throw InvalidFormatError();
 			currentOffset+=chunkHeaderLen+tmp;
 		}

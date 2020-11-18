@@ -131,20 +131,11 @@ private:
 
 	static constexpr uint32_t			_size=size();
 	static constexpr uint32_t			_levels=levels();
-	static constexpr std::array<uint32_t,levels()>	_levelOffsets=makeArray(makeLevelOffsetSequence(std::make_integer_sequence<uint32_t,levels()>{}));
-	static constexpr std::array<uint32_t,levels()>	_levelSizes=makeArray(makeLevelSizeSequence(std::make_integer_sequence<uint32_t,levels()>{}));
+	static constexpr std::array<uint32_t,_levels>	_levelOffsets=makeArray(makeLevelOffsetSequence(std::make_integer_sequence<uint32_t,levels()>{}));
+	static constexpr std::array<uint32_t,_levels>	_levelSizes=makeArray(makeLevelSizeSequence(std::make_integer_sequence<uint32_t,levels()>{}));
 
 	uint16_t					_tree[size()];
 };
-
-#if __cplusplus < 201703L
-// difference on semantics on C++14 / C++17
-template<size_t T>
-constexpr std::array<uint32_t,FrequencyTree<T>::levels()> FrequencyTree<T>::_levelOffsets;
-
-template<size_t T>
-constexpr std::array<uint32_t,FrequencyTree<T>::levels()> FrequencyTree<T>::_levelSizes;
-#endif
 
 template<size_t T>
 class FrequencyDecoder

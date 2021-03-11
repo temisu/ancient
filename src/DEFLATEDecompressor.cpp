@@ -227,10 +227,10 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				for (uint32_t i=0;i<8;i++) llDecoder.insert(HuffmanCode<int32_t>{8,i+0xc0,int32_t(i+280)});
 				for (uint32_t i=0;i<112;i++) llDecoder.insert(HuffmanCode<int32_t>{9,i+0x190,int32_t(i+144)});
 
-				for (uint32_t i=0;i<30;i++) distanceDecoder.insert(HuffmanCode<int32_t>{5,i,int32_t(i)});
+				for (uint32_t i=0;i<32;i++) distanceDecoder.insert(HuffmanCode<int32_t>{5,i,int32_t(i)});
 			} else {
 				uint32_t hlit=readBits(5)+257;
-				// lets just error here, it is simpler (possibly deflate64 stream)
+				// lets just error here, it is simpler
 				if (hlit>=287) throw DecompressionError();
 				uint32_t hdist=readBits(5)+1;
 				uint32_t hclen=readBits(4)+4;
@@ -250,10 +250,8 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				// specification does not say and treats the two almost as combined.
 				// So let previous code flow
 
-				uint8_t llTableBits[287];
-				for (uint32_t i=0;i<287;i++) llTableBits[i]=0;
+				uint8_t llTableBits[286];
 				uint8_t distanceTableBits[32];
-				for (uint32_t i=0;i<32;i++) distanceTableBits[i]=0;
 
 				uint8_t prevValue=0;
 				uint32_t i=0;

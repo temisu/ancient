@@ -118,54 +118,49 @@ void LHXDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				} else throw DecompressionError();
 			};
 
-			// not strictly needed as a lambda, but cleaner this way
-			auto createDecoderTable=[&]()
+			OptionalHuffmanDecoder<uint32_t> tmpDecoder;
+			createTable(tmpDecoder,19,5,true);
+
+			decoder.reset();
+
+			uint8_t symbolBits[511];
+			uint32_t length=readBits(9);
+			if (!length)
 			{
-				OptionalHuffmanDecoder<uint32_t> tmpDecoder;
-				createTable(tmpDecoder,19,5,true);
-
-				decoder.reset();
-
-				uint8_t symbolBits[511];
-				uint32_t length=readBits(9);
-				if (!length)
+				decoder.setEmpty(readBits(9));
+			} else {
+				for (uint32_t i=0;i<length;)
 				{
-					decoder.setEmpty(readBits(9));
-				} else if (length<=511) {
-					for (uint32_t i=0;i<length;)
+					uint32_t value=tmpDecoder.decode(readBit);
+					uint32_t rep;
+					switch (value)
 					{
-						uint32_t value=tmpDecoder.decode(readBit);
-						uint32_t rep;
-						switch (value)
-						{
-							case 0:
-							value=0;
-							rep=1;
-							break;
+						case 0:
+						value=0;
+						rep=1;
+						break;
 
-							case 1:
-							value=0;
-							rep=readBits(4)+3;
-							break;
+						case 1:
+						value=0;
+						rep=readBits(4)+3;
+						break;
 
-							case 2:
-							value=0;
-							rep=readBits(9)+20;
-							break;
+						case 2:
+						value=0;
+						rep=readBits(9)+20;
+						break;
 
-							default:
-							value-=2;
-							rep=1;
-							break;
-						}
-						if (i+rep>length) throw DecompressionError();
-						for (uint32_t j=0;j<rep;j++) symbolBits[i++]=value;
+						default:
+						value-=2;
+						rep=1;
+						break;
 					}
-					decoder.createOrderlyHuffmanTable(symbolBits,length);
-				} else throw DecompressionError();
-			};
+					if (i+rep>length) throw DecompressionError();
+					for (uint32_t j=0;j<rep;j++) symbolBits[i++]=value;
+				}
+				decoder.createOrderlyHuffmanTable(symbolBits,length);
+			}
 
-			createDecoderTable();
 			distanceDecoder.reset();
 			createTable(distanceDecoder,methodTable[_method].distanceTableSize,methodTable[_method].distanceBits,false);
 		}

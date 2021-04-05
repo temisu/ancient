@@ -2,6 +2,9 @@
 
 #include "DLTADecode.hpp"
 
+#include "common/OverflowCheck.hpp"
+
+
 bool DLTADecode::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC("DLTA");
@@ -32,8 +35,8 @@ const std::string &DLTADecode::getSubName() const noexcept
 
 void DLTADecode::decode(Buffer &bufferDest,const Buffer &bufferSrc,size_t offset,size_t size)
 {
-	if (bufferSrc.size()<offset+size) throw Buffer::OutOfBoundsError();
-	if (bufferDest.size()<offset+size) throw Buffer::OutOfBoundsError();;
+	if (OverflowCheck::sum(offset,size)>bufferSrc.size()) throw Buffer::OutOfBoundsError();
+	if (OverflowCheck::sum(offset,size)>bufferDest.size()) throw Buffer::OutOfBoundsError();
 	const uint8_t *src=bufferSrc.data()+offset;
 	uint8_t *dest=bufferDest.data()+offset;
 

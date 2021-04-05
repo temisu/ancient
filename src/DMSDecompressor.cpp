@@ -12,6 +12,7 @@
 
 #include "common/MemoryBuffer.hpp"
 #include "common/CRC16.hpp"
+#include "common/OverflowCheck.hpp"
 
 bool DMSDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -76,7 +77,7 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 			_tmpBufferSize=std::max(_tmpBufferSize,uint32_t(_packedData.readBE16(offset+8)));
 		}
 		uint32_t packedChunkLength=packedData.readBE16(offset+6);
-		if (size_t(offset)+20+size_t(packedChunkLength)>packedData.size())
+		if (OverflowCheck::sum(offset,20U,packedChunkLength)>packedData.size())
 			throw InvalidFormatError();
 		if (verify && CRC16(packedData,offset+20,packedChunkLength,0)!=packedData.readBE16(offset+16))
 			throw VerificationError();
@@ -96,6 +97,8 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 	}
 	uint32_t trackSize=(_isHD)?22528:11264;
 	_rawOffset=minTrack*trackSize;
+	if (minTrack>=numTracks)
+		throw InvalidFormatError();
 	_minTrack=minTrack;
 	_rawSize=(numTracks-minTrack)*trackSize+lastTrackSize;
 	_imageSize=trackSize*80;
@@ -202,7 +205,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 		void setObsfuscate(bool obsfuscate) { _obsfuscate=obsfuscate; }
 		bool eof() const { return _inputStream.getOffset()==_inputStream.getEndOffset(); }
 
-		// not cool, but works
+		// not cool, but works (does not need wraparound check)
 		bool eofMinus1() const { return _inputStream.getOffset()+1==_inputStream.getEndOffset(); }
 		bool eofMinus1Plus() const { return _inputStream.getOffset()+1>=_inputStream.getEndOffset(); }
 		bool eofMinus2Plus() const { return _inputStream.getOffset()+2>=_inputStream.getEndOffset(); }
@@ -218,7 +221,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 	MSBBitReader<UnObsfuscator> bitReader(inputUnObsfuscator);
 	auto initInputStream=[&](const Buffer &buffer,uint32_t start,uint32_t length,bool obsfuscate)
 	{
-		inputStream=ForwardInputStream(buffer,start,start+length);
+		inputStream=ForwardInputStream(buffer,start,OverflowCheck::sum(start,length));
 		inputUnObsfuscator.setObsfuscate(obsfuscate);
 		bitReader.reset();
 	};
@@ -240,7 +243,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 	ForwardOutputStream outputStream(rawData,0,0);
 	auto initOutputStream=[&](Buffer &buffer,uint32_t start,uint32_t length)
 	{
-		outputStream=ForwardOutputStream(buffer,start,start+length);
+		outputStream=ForwardOutputStream(buffer,start,OverflowCheck::sum(start,length));
 	};
 
 	// fill unused tracks with zeros
@@ -545,7 +548,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 
 
 	uint32_t trackLength=(_isHD)?22528:11264;
-	for (uint32_t packedOffset=56,packedChunkLength=0;packedOffset!=_packedSize;packedOffset+=20+packedChunkLength)
+	for (uint32_t packedOffset=56,packedChunkLength=0;packedOffset!=_packedSize;packedOffset=OverflowCheck::sum(packedOffset,20U,packedChunkLength))
 	{
 		// There are some info tracks, at -1 or 80. ignore those (if still present)
 		uint16_t trackNo=_packedData.readBE16(packedOffset+2);

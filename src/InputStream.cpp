@@ -4,6 +4,9 @@
 // for exceptions
 #include "Decompressor.hpp"
 
+#include "common/OverflowCheck.hpp"
+
+
 ForwardInputStream::ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun) :
 	_bufPtr(buffer.data()),
 	_currentOffset(startOffset),
@@ -36,7 +39,7 @@ uint8_t ForwardInputStream::readByte()
 
 const uint8_t *ForwardInputStream::consume(size_t bytes,uint8_t *buffer)
 {
-	if (_currentOffset+bytes>_endOffset)
+	if (OverflowCheck::sum(_currentOffset,bytes)>_endOffset)
 	{
 		if (_allowOverrun && buffer)
 		{
@@ -87,7 +90,7 @@ uint8_t BackwardInputStream::readByte()
 
 const uint8_t *BackwardInputStream::consume(size_t bytes,uint8_t *buffer)
 {
-	if (_currentOffset<_endOffset+bytes)
+	if (_currentOffset<OverflowCheck::sum(_endOffset,bytes))
 	{
 		if (_allowOverrun && buffer)
 		{

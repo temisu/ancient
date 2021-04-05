@@ -5,6 +5,8 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 
+#include "common/OverflowCheck.hpp"
+
 bool HFMNDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC("HFMN");
@@ -22,11 +24,10 @@ HFMNDecompressor::HFMNDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	if (!detectHeaderXPK(hdr) || packedData.size()<4)
 		throw Decompressor::InvalidFormatError();
 	uint16_t tmp=packedData.readBE16(0);
-	if (tmp&3) throw Decompressor::InvalidFormatError();	// header is being written in 4 byte chunks
-	_headerSize=size_t(tmp&0x1ff);				// the top 7 bits are flags. No definition what they are and they are ignored in decoder...
-	if (size_t(_headerSize)+4>packedData.size()) throw Decompressor::InvalidFormatError();
-	tmp=packedData.readBE16(_headerSize+2);
-	_rawSize=size_t(tmp);
+	if (tmp&3U) throw Decompressor::InvalidFormatError();	// header is being written in 4 byte chunks
+	_headerSize=tmp&0x1ffU;					// the top 7 bits are flags. No definition what they are and they are ignored in decoder...
+	if (OverflowCheck::sum(_headerSize,4U)>packedData.size()) throw Decompressor::InvalidFormatError();
+	_rawSize=packedData.readBE16(_headerSize+2U);
 	if (!_rawSize) throw Decompressor::InvalidFormatError();
 	_headerSize+=4;
 }

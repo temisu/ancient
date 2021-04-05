@@ -7,6 +7,7 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "common/CRC16.hpp"
+#include "common/OverflowCheck.hpp"
 
 bool RNCDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -66,8 +67,8 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 		_ver=Version::RNC2;
 	} else throw InvalidFormatError();
 
-	size_t hdrSize=(_ver==Version::RNC1Old)?12:18;
-	if (size_t(_packedSize)+size_t(hdrSize)>packedData.size()) throw InvalidFormatError();
+	uint32_t hdrSize=(_ver==Version::RNC1Old)?12:18;
+	if (OverflowCheck::sum(_packedSize,hdrSize)>packedData.size()) throw InvalidFormatError();
 
 	if (_ver!=Version::RNC1Old)
 	{

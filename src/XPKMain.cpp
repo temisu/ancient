@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "common/SubBuffer.hpp"
+#include "common/OverflowCheck.hpp"
 
 #include "XPKMain.hpp"
 #include "XPKDecompressor.hpp"
@@ -53,7 +54,7 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 		_headerSize=36;
 	}
 
-	if (size_t(_packedSize)+8>packedData.size()) throw InvalidFormatError();
+	if (OverflowCheck::sum(_packedSize,8U)>packedData.size()) throw InvalidFormatError();
 
 	bool found=false;
 	for (auto &it : *_XPKDecompressors)
@@ -71,7 +72,7 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 
 	auto headerChecksum=[](const Buffer &buffer,size_t offset,size_t len)->bool
 	{
-		if (!len || offset+len>buffer.size()) return false;
+		if (!len || OverflowCheck::sum(offset,len)>buffer.size()) return false;
 		const uint8_t *ptr=buffer.data()+offset;
 		uint8_t tmp=0;
 		for (size_t i=0;i<len;i++)
@@ -82,7 +83,7 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 	// this implementation assumes align padding is zeros
 	auto chunkChecksum=[](const Buffer &buffer,size_t offset,size_t len,uint16_t checkValue)->bool
 	{
-		if (!len || offset+len>buffer.size()) return false;
+		if (!len || OverflowCheck::sum(offset,len)>buffer.size()) return false;
 		const uint8_t *ptr=buffer.data()+offset;
 		uint8_t tmp[2]={0,0};
 		for (size_t i=0;i<len;i++)
@@ -159,7 +160,7 @@ void XPKMain::decompressImpl(Buffer &rawData,bool verify)
 	std::unique_ptr<XPKDecompressor::State> state;
 	forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 	{
-		if (size_t(destOffset)+size_t(rawChunkSize)>rawData.size()) throw DecompressionError();
+		if (OverflowCheck::sum(destOffset,rawChunkSize)>rawData.size()) throw DecompressionError();
 		if (!rawChunkSize) return true;
 
 		ConstSubBuffer previousBuffer(rawData,0,destOffset);
@@ -241,7 +242,7 @@ void XPKMain::forEachChunk(F func) const
 			uint32_t tmp;
 			readDualValue(4,4,tmp);
 			tmp=((tmp+3U)&~3U);
-			if (size_t(tmp)+size_t(currentOffset)+chunkHeaderLen>_packedSize)
+			if (OverflowCheck::sum(tmp,currentOffset,chunkHeaderLen)>_packedSize)
 				throw InvalidFormatError();
 			currentOffset+=chunkHeaderLen+tmp;
 		}

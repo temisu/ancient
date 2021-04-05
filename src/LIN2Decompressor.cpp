@@ -5,6 +5,8 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 
+#include "common/OverflowCheck.hpp"
+
 bool LIN2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC("LIN2") || hdr==FourCC("LIN4");
@@ -46,7 +48,7 @@ LIN2Decompressor::LIN2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	// add 6 bytes to point to correct place
 
 	tmp=packedData.readBE32(4);
-	if (size_t(_endStreamOffset)+size_t(midStreamOffset)<size_t(tmp)+10 || tmp<midStreamOffset) throw Decompressor::InvalidFormatError();
+	if (OverflowCheck::sum(_endStreamOffset,midStreamOffset)<OverflowCheck::sum(tmp,10U) || tmp<midStreamOffset) throw Decompressor::InvalidFormatError();
 	_midStreamOffset=_endStreamOffset-tmp+midStreamOffset;
 }
 

@@ -8,10 +8,11 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "common/CRC32.hpp"
+#include "common/OverflowCheck.hpp"
 
 static uint32_t Adler32(const Buffer &buffer,size_t offset,size_t len)
 {
-	if (!len || offset+len>buffer.size()) throw Buffer::OutOfBoundsError();
+	if (!len || OverflowCheck::sum(offset,len)>buffer.size()) throw Buffer::OutOfBoundsError();
 	const uint8_t *ptr=buffer.data()+offset;
 
 	uint32_t s1=1,s2=0;
@@ -108,7 +109,7 @@ DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,bool exactSize
 	if (flags&2) currentOffset+=2;		// FHCRC, not using that since it is only for header
 	_packedOffset=currentOffset;
 
-	if (size_t(currentOffset)+8>_packedData.size()) throw InvalidFormatError();
+	if (OverflowCheck::sum(currentOffset,8U)>_packedData.size()) throw InvalidFormatError();
 
 	if (_exactSizeKnown)
 	{
@@ -346,11 +347,11 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	if (!_rawSize) _rawSize=outputStream.getOffset();
 	if (_type==Type::GZIP)
 	{
-		if (inputStream.getOffset()+8>packedSize) throw DecompressionError();
+		if (OverflowCheck::sum(inputStream.getOffset(),8U)>packedSize) throw DecompressionError();
 		if (!_packedSize)
 			_packedSize=inputStream.getOffset()+8;
 	} else if (_type==Type::ZLib) {
-		if (inputStream.getOffset()+4>packedSize) throw DecompressionError();
+		if (OverflowCheck::sum(inputStream.getOffset(),4U)>packedSize) throw DecompressionError();
 		if (!_packedSize)
 			_packedSize=inputStream.getOffset()+4;
 	} else {

@@ -6,6 +6,8 @@
 #include <memory>
 
 #include "MemoryBuffer.hpp"
+#include "OverflowCheck.hpp"
+
 
 MemoryBuffer::MemoryBuffer(size_t size) :
 	_data(reinterpret_cast<uint8_t*>(std::malloc(size))),
@@ -17,7 +19,7 @@ MemoryBuffer::MemoryBuffer(size_t size) :
 MemoryBuffer::MemoryBuffer(const Buffer &src,size_t offset,size_t size) :
 	MemoryBuffer(size)
 {
-	if(offset+size>src.size()) throw InvalidOperationError();
+	if(OverflowCheck::sum(offset,size)>src.size()) throw InvalidOperationError();
 	std::memcpy(_data,src.data()+offset,size);
 }
 

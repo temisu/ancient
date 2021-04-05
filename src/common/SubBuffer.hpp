@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "Buffer.hpp"
+#include "OverflowCheck.hpp"
 
 // helpers to splice Buffer
 
@@ -23,7 +24,7 @@ public:
 		_length(length)
 	{
 		// if the sub-buffer is invalid, we set both _start and _length to 0
-		if (start+length>_base.size())
+		if (OverflowCheck::sum(start,length)>_base.size())
 		{
 			_start=0;
 			_length=0;
@@ -52,7 +53,7 @@ public:
 	// can only make the buffer smaller, can't run away from the current bounds
 	void adjust(size_t start,size_t length)
 	{
-		if (start<_start || start+length>_start+_length) throw OutOfBoundsError();
+		if (start<_start || OverflowCheck::sum(start,length)>_start+_length) throw OutOfBoundsError();
 		_start=start;
 		_length=length;
 	}

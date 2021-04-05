@@ -5,6 +5,7 @@
 #include "MMCMPDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/OverflowCheck.hpp"
 
 bool MMCMPDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -25,17 +26,17 @@ MMCMPDecompressor::MMCMPDecompressor(const Buffer &packedData,bool exactSizeKnow
 	_blocks=packedData.readLE16(12U);
 	_blocksOffset=packedData.readLE32(18U);
 	_rawSize=packedData.readLE32(14U);
-	if (size_t(_blocksOffset)+size_t(_blocks)*4U>packedData.size())
+	if (OverflowCheck::sum(_blocksOffset,uint32_t(_blocks)*4U)>packedData.size())
 		throw InvalidFormatError();
 
 	_packedSize=0;
 	for (uint32_t i=0;i<_blocks;i++)
 	{
-		uint32_t blockAddr=packedData.readLE32(_blocksOffset+i*4U);
-		if (size_t(blockAddr)+20U>=packedData.size())
+		uint32_t blockAddr=packedData.readLE32(OverflowCheck::sum(_blocksOffset,i*4U));
+		if (OverflowCheck::sum(blockAddr,20U)>=packedData.size())
 			throw InvalidFormatError();
 		uint32_t blockSize=packedData.readLE32(blockAddr+4U)+uint32_t(packedData.readLE16(blockAddr+12U))*8U+20U;
-		_packedSize=std::max(_packedSize,blockAddr+blockSize);
+		_packedSize=std::max(_packedSize,OverflowCheck::sum(blockAddr,blockSize));
 	}
 	if (_packedSize>packedData.size())
 		throw InvalidFormatError();
@@ -84,7 +85,7 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			throw DecompressionError();
 		uint16_t bitCount=_packedData.readLE16(blockAddr+18U);
 
-		ForwardInputStream inputStream(_packedData,blockAddr+subBlocks*8U+20U+packTableSize,blockAddr+subBlocks*8U+20U+packedBlockSize);
+		ForwardInputStream inputStream(_packedData,OverflowCheck::sum(blockAddr,subBlocks*8U,20U,packTableSize),OverflowCheck::sum(blockAddr,subBlocks*8U,20U,packedBlockSize));
 		LSBBitReader<ForwardInputStream> bitReader(inputStream);
 		auto readBits=[&](uint32_t count)->uint32_t
 		{
@@ -99,7 +100,7 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				throw DecompressionError();
 			outputOffset=_packedData.readLE32(blockAddr+currentSubBlock*8U+20U);
 			outputSize=_packedData.readLE32(blockAddr+currentSubBlock*8U+24U);
-			if (size_t(outputOffset)+size_t(outputSize)>size_t(_rawSize))
+			if (OverflowCheck::sum(outputOffset,outputSize)>_rawSize)
 				throw DecompressionError();
 			currentSubBlock++;
 		};

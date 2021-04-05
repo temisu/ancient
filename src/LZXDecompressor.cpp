@@ -10,6 +10,8 @@
 #include "OutputStream.hpp"
 #include "common/CRC32.hpp"
 
+#include "common/OverflowCheck.hpp"
+
 bool LZXDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC("ELZX") || hdr==FourCC("SLZX");
@@ -43,8 +45,8 @@ LZXDecompressor::LZXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buff
 	if (tmp && tmp!=2) throw Decompressor::InvalidFormatError();
 	if (tmp==2) _isCompressed=true;
 
-	_packedOffset=41+size_t(_packedData.read8(40));
-	_packedOffset+=size_t(_packedData.read8(24));
+	_packedOffset=41U+_packedData.read8(40U);
+	_packedOffset+=_packedData.read8(24U);
 	_packedSize+=_packedOffset;
 
 	if (_packedSize>_packedData.size()) throw Decompressor::InvalidFormatError();
@@ -130,7 +132,7 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 		size_t blockLength=readBits(8)<<16;
 		blockLength|=readBits(8)<<8;
 		blockLength|=readBits(8);
-		if (size_t(blockLength)+outputStream.getOffset()>size_t(_rawSize)) throw Decompressor::DecompressionError();
+		if (OverflowCheck::sum(blockLength,outputStream.getOffset())>_rawSize) throw Decompressor::DecompressionError();
 
 		if (method!=1)
 		{

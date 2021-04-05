@@ -103,7 +103,7 @@ public:
 		uint32_t i=0,length=uint32_t(_table.size());
 		for (int32_t currentBit=code.length;currentBit>=0;currentBit--)
 		{
-			uint32_t codeBit=(currentBit && (size_t(code.code)&(1<<(currentBit-1))))?1:0;
+			uint32_t codeBit=(currentBit && ((code.code>>(currentBit-1U))&1U))?1U:0;
 			if (i!=length)
 			{
 				if (!currentBit || (!_table[i].sub[0] && !_table[i].sub[1])) throw Decompressor::DecompressionError();

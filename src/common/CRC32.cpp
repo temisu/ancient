@@ -3,6 +3,8 @@
 #include <cstdint>
 
 #include "Buffer.hpp"
+#include "OverflowCheck.hpp"
+
 
 static const uint32_t CRC32Table[256]={
 	0x00000000U,0x77073096U,0xee0e612cU,0x990951baU,0x076dc419U,0x706af48fU,0xe963a535U,0x9e6495a3U,
@@ -41,7 +43,7 @@ static const uint32_t CRC32Table[256]={
 uint32_t CRC32(const Buffer &buffer,size_t offset,size_t len,uint32_t accumulator)
 {
 
-	if (!len || offset+len>buffer.size()) throw Buffer::OutOfBoundsError();
+	if (!len || OverflowCheck::sum(offset,len)>buffer.size()) throw Buffer::OutOfBoundsError();
 	const uint8_t *ptr=buffer.data()+offset;
 	accumulator=~accumulator;
 	for (size_t i=0;i<len;i++)
@@ -94,7 +96,7 @@ static const uint32_t CRC32RevTable[256]={
 uint32_t CRC32Rev(const Buffer &buffer,size_t offset,size_t len,uint32_t accumulator)
 {
 
-	if (!len || offset+len>buffer.size()) throw Buffer::OutOfBoundsError();
+	if (!len || OverflowCheck::sum(offset,len)>buffer.size()) throw Buffer::OutOfBoundsError();
 	const uint8_t *ptr=buffer.data()+offset;
 	accumulator=~accumulator;
 	for (size_t i=0;i<len;i++)

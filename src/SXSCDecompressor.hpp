@@ -9,6 +9,9 @@
 #include "InputStream.hpp"
 #include "RangeDecoder.hpp"
 
+namespace ancient
+{
+
 class SXSCDecompressor : public XPKDecompressor
 {
 public:
@@ -44,5 +47,7 @@ private:
 
 	static XPKDecompressor::Registry<SXSCDecompressor> _XPKregistration;
 };
+
+}
 
 #endif

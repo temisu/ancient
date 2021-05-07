@@ -8,9 +8,12 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 
-#include "common/Common.hpp"
-#include "common/Buffer.hpp"
+#include "Buffer.hpp"
+
+namespace ancient
+{
 
 class Decompressor
 {
@@ -88,7 +91,7 @@ public:
 	// This does not guarantee the data is decompressable though, only signature is read
 	static bool detect(const Buffer &packedData) noexcept;
 
-	// Registering new decompressors, not really part of public API
+protected:
 	template<class T>
 	class Registry
 	{
@@ -104,7 +107,6 @@ public:
 		}
 	};
 
-protected:
 	virtual void decompressImpl(Buffer &rawData,bool verify)=0;
 
 private:
@@ -113,5 +115,6 @@ private:
 	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> *_decompressors;
 };
 
+}
 
 #endif

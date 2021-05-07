@@ -3,7 +3,10 @@
 #ifndef ZIPDECOMPRESSOR_HPP
 #define ZIPDECOMPRESSOR_HPP
 
-#include "../Decompressor.hpp"
+#include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class ZIPDecompressor : public Decompressor
 {
@@ -24,5 +27,7 @@ private:
 	uint32_t	_method;
 	uint32_t	_flags;
 };
+
+}
 
 #endif

@@ -6,6 +6,9 @@
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
 class BZIP2Decompressor : public Decompressor, public XPKDecompressor
 {
 public:
@@ -38,5 +41,7 @@ private:
 	static Decompressor::Registry<BZIP2Decompressor> _registration;
 	static XPKDecompressor::Registry<BZIP2Decompressor> _XPKregistration;
 };
+
+}
 
 #endif

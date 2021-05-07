@@ -8,7 +8,10 @@
 
 #include <algorithm>
 
-#include "common/Buffer.hpp"
+#include "Buffer.hpp"
+
+namespace ancient
+{
 
 class BackwardInputStream;
 
@@ -227,5 +230,7 @@ private:
 	uint32_t		_bufContent=0;
 	uint8_t			_bufLength=0;
 };
+
+}
 
 #endif

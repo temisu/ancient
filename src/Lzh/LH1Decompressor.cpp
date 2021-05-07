@@ -7,6 +7,9 @@
 #include "../InputStream.hpp"
 #include "../OutputStream.hpp"
 
+namespace ancient
+{
+
 LH1Decompressor::LH1Decompressor(const Buffer &packedData) :
 	_packedData(packedData)
 {
@@ -82,4 +85,6 @@ void LH1Decompressor::decompressImpl(Buffer &rawData,bool verify)
 			outputStream.copy(distance,count,0x20);
 		}
 	}
+}
+
 }

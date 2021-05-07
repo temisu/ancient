@@ -13,6 +13,11 @@
 #include "common/MemoryBuffer.hpp"
 #include "common/CRC16.hpp"
 #include "common/OverflowCheck.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool DMSDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -711,3 +716,5 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 }
 
 Decompressor::Registry<DMSDecompressor> DMSDecompressor::_registration;
+
+}

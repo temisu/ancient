@@ -6,6 +6,11 @@
 #include "RangeDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 template<size_t T>
 class FrequencyTree
@@ -319,3 +324,5 @@ void LZCBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<LZCBDecompressor> LZCBDecompressor::_XPKregistration;
+
+}

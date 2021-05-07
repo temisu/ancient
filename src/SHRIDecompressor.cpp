@@ -3,6 +3,11 @@
 #include "SHRIDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 SHRIDecompressor::SHRIState::SHRIState() noexcept
 {
@@ -331,3 +336,5 @@ void SHRIDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<SHRIDecompressor> SHRIDecompressor::_XPKregistration;
+
+}

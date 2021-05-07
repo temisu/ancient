@@ -3,6 +3,11 @@
 #include "PPDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 PPDecompressor::PPState::PPState(uint32_t mode) :
 	_cachedMode(mode)
@@ -186,3 +191,5 @@ void PPDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,b
 
 Decompressor::Registry<PPDecompressor> PPDecompressor::_registration;
 XPKDecompressor::Registry<PPDecompressor> PPDecompressor::_XPKregistration;
+
+}

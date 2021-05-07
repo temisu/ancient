@@ -5,6 +5,9 @@
 
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
 class ZENODecompressor : public XPKDecompressor
 {
 public:
@@ -27,5 +30,7 @@ private:
 
 	static XPKDecompressor::Registry<ZENODecompressor> _XPKregistration;
 };
+
+}
 
 #endif

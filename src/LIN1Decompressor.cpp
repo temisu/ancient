@@ -4,6 +4,11 @@
 
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool LIN1Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -116,3 +121,5 @@ void LIN1Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<LIN1Decompressor> LIN1Decompressor::_XPKregistration;
+
+}

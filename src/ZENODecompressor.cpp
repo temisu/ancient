@@ -3,6 +3,11 @@
 #include "ZENODecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool ZENODecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -123,3 +128,5 @@ void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<ZENODecompressor> ZENODecompressor::_XPKregistration;
+
+}

@@ -6,6 +6,9 @@
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
 class XPKMain : public Decompressor
 {
 friend class XPKDecompressor;
@@ -47,5 +50,7 @@ private:
 
 	static Decompressor::Registry<XPKMain> _registration;
 };
+
+}
 
 #endif

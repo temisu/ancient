@@ -3,6 +3,11 @@
 #include "BLZWDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool BLZWDecompressor::detectHeaderXPK(uint32_t hdr)
 {
@@ -120,3 +125,5 @@ void BLZWDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<BLZWDecompressor> BLZWDecompressor::_XPKregistration;
+
+}

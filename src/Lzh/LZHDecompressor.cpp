@@ -15,6 +15,10 @@
 #include "LZSDecompressor.hpp"
 #include "PMDecompressor.hpp"
 
+
+namespace ancient
+{
+
 LZHDecompressor::LZHDecompressor(const Buffer &packedData,const std::string &method) :
 	_packedData(packedData),
 	_method(method)
@@ -158,4 +162,6 @@ void LZHDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		}
 		break;
 	}
+}
+
 }

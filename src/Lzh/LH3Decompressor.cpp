@@ -6,6 +6,10 @@
 #include "../InputStream.hpp"
 #include "../OutputStream.hpp"
 
+
+namespace ancient
+{
+
 LH3Decompressor::LH3Decompressor(const Buffer &packedData) :
 	_packedData(packedData)
 {
@@ -140,4 +144,6 @@ void LH3Decompressor::decompressImpl(Buffer &rawData,bool verify)
 			outputStream.copy(distance,count,0x20);
 		}
 	}
+}
+
 }

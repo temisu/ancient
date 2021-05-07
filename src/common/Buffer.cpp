@@ -4,6 +4,9 @@
 #include "OverflowCheck.hpp"
 
 
+namespace ancient
+{
+
 Buffer::Buffer() noexcept
 {
 	// nothing needed
@@ -72,4 +75,6 @@ uint8_t Buffer::read8(size_t offset) const
 	if (offset>=size()) throw OutOfBoundsError();
 	const uint8_t *ptr=reinterpret_cast<const uint8_t*>(data())+offset;
 	return ptr[0];
+}
+
 }

@@ -6,6 +6,11 @@
 #include "OutputStream.hpp"
 #include "DLTADecode.hpp"
 #include "common/MemoryBuffer.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 SXSCDecompressor::SXSCReader::SXSCReader(ForwardInputStream &stream) :
 	_reader(stream)
@@ -822,3 +827,5 @@ void SXSCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<SXSCDecompressor> SXSCDecompressor::_XPKregistration;
+
+}

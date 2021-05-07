@@ -7,9 +7,12 @@
 #include "OutputStream.hpp"
 // for exceptions
 #include "Decompressor.hpp"
-
+#include "common/Common.hpp"
 #include "common/OverflowCheck.hpp"
 
+
+namespace ancient
+{
 
 ForwardOutputStream::ForwardOutputStream(Buffer &buffer,size_t startOffset,size_t endOffset) :
 	_bufPtr(buffer.data()),
@@ -116,4 +119,6 @@ uint8_t BackwardOutputStream::copy(size_t distance,size_t count)
 	for (size_t i=0;i<count;i++,--_currentOffset)
 		ret=_bufPtr[_currentOffset-1]=_bufPtr[_currentOffset+distance-1];
 	return ret;
+}
+
 }

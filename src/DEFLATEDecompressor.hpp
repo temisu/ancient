@@ -6,6 +6,9 @@
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
 class DEFLATEDecompressor : public Decompressor, public XPKDecompressor
 {
 public:
@@ -51,5 +54,7 @@ private:
 	static Decompressor::Registry<DEFLATEDecompressor> _registration;
 	static XPKDecompressor::Registry<DEFLATEDecompressor> _XPKregistration;
 };
+
+}
 
 #endif

@@ -6,7 +6,10 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "common/Buffer.hpp"
+#include "Buffer.hpp"
+
+namespace ancient
+{
 
 class ForwardOutputStream
 {
@@ -52,5 +55,7 @@ private:
 	size_t		_currentOffset;
 	size_t		_endOffset;
 };
+
+}
 
 #endif

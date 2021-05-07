@@ -8,8 +8,10 @@
 
 #include <string>
 
-#include "common/Buffer.hpp"
 #include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class XPKDecompressor
 {
@@ -58,5 +60,7 @@ private:
 protected:
 	uint32_t	_recursionLevel;
 };
+
+}
 
 #endif

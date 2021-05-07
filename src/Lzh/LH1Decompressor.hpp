@@ -3,7 +3,10 @@
 #ifndef LH1DECOMPRESSOR_HPP
 #define LH1DECOMPRESSOR_HPP
 
-#include "../Decompressor.hpp"
+#include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class LH1Decompressor : public Decompressor
 {
@@ -21,5 +24,7 @@ public:
 private:
 	const Buffer	&_packedData;
 };
+
+}
 
 #endif

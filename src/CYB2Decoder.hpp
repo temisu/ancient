@@ -5,6 +5,9 @@
 
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
 class CYB2Decoder : public XPKDecompressor
 {
 public:
@@ -26,5 +29,7 @@ private:
 
 	static XPKDecompressor::Registry<CYB2Decoder> _XPKregistration;
 };
+
+}
 
 #endif

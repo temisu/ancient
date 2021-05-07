@@ -14,6 +14,9 @@
 
 #include "common/MemoryBuffer.hpp"
 
+namespace ancient
+{
+
 template<typename T>
 struct HuffmanCode
 {
@@ -219,5 +222,7 @@ private:
 	HuffmanDecoder<T>	_base;
 	T			_emptyValue;
 };
+
+}
 
 #endif

@@ -5,6 +5,9 @@
 
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
 class LIN1Decompressor : public XPKDecompressor
 {
 public:
@@ -26,5 +29,7 @@ private:
 
 	static XPKDecompressor::Registry<LIN1Decompressor> _XPKregistration;
 };
+
+}
 
 #endif

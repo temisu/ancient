@@ -9,8 +9,12 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "common/CRC32.hpp"
-
+#include "common/Common.hpp"
 #include "common/OverflowCheck.hpp"
+
+
+namespace ancient
+{
 
 bool LZXDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -239,3 +243,5 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 }
 
 XPKDecompressor::Registry<LZXDecompressor> LZXDecompressor::_XPKregistration;
+
+}

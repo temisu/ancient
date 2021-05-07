@@ -3,6 +3,11 @@
 #include "RDCNDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool RDCNDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -94,3 +99,5 @@ void RDCNDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<RDCNDecompressor> RDCNDecompressor::_XPKregistration;
+
+}

@@ -6,6 +6,9 @@
 #include "OverflowCheck.hpp"
 
 
+namespace ancient
+{
+
 static const uint32_t CRC32Table[256]={
 	0x00000000U,0x77073096U,0xee0e612cU,0x990951baU,0x076dc419U,0x706af48fU,0xe963a535U,0x9e6495a3U,
 	0x0edb8832U,0x79dcb8a4U,0xe0d5e91eU,0x97d2d988U,0x09b64c2bU,0x7eb17cbdU,0xe7b82d07U,0x90bf1d91U,
@@ -107,4 +110,6 @@ uint32_t CRC32Rev(const Buffer &buffer,size_t offset,size_t len,uint32_t accumul
 uint32_t CRC32RevByte(uint8_t ch,uint32_t &accumulator) noexcept
 {
 	return ~((~accumulator<<8)^CRC32RevTable[(~accumulator>>24)^ch]);
+}
+
 }

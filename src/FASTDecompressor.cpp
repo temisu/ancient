@@ -3,6 +3,11 @@
 #include "FASTDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool FASTDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -71,3 +76,5 @@ void FASTDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<FASTDecompressor> FASTDecompressor::_XPKregistration;
+
+}

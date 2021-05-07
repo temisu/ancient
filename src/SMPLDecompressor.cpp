@@ -4,6 +4,11 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "HuffmanDecoder.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool SMPLDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -71,3 +76,5 @@ void SMPLDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<SMPLDecompressor> SMPLDecompressor::_XPKregistration;
+
+}

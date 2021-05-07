@@ -5,6 +5,9 @@
 
 #include "Decompressor.hpp"
 
+namespace ancient
+{
+
 class TPWMDecompressor : public Decompressor
 {
 public:
@@ -29,5 +32,7 @@ private:
 
 	static Decompressor::Registry<TPWMDecompressor> _registration;
 };
+
+}
 
 #endif

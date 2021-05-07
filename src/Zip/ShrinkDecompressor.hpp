@@ -3,7 +3,10 @@
 #ifndef SHRINKDECOMPRESSOR_HPP
 #define SHRINKDECOMPRESSOR_HPP
 
-#include "../Decompressor.hpp"
+#include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class ShrinkDecompressor : public Decompressor
 {
@@ -21,5 +24,7 @@ public:
 private:
 	const Buffer	&_packedData;
 };
+
+}
 
 #endif

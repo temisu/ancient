@@ -5,6 +5,9 @@
 
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
 class SHRIDecompressor : public XPKDecompressor
 {
 private:
@@ -43,5 +46,7 @@ private:
 
 	static XPKDecompressor::Registry<SHRIDecompressor> _XPKregistration;
 };
+
+}
 
 #endif

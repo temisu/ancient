@@ -4,6 +4,11 @@
 #include "HuffmanDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool RAKEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -140,3 +145,5 @@ void RAKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<RAKEDecompressor> RAKEDecompressor::_XPKregistration;
+
+}

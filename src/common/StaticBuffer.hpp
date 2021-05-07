@@ -8,6 +8,9 @@
 
 #include "Buffer.hpp"
 
+namespace ancient
+{
+
 template<size_t N>
 class StaticBuffer : public Buffer
 {
@@ -63,5 +66,7 @@ private:
 	const uint8_t 	*_data;
 	size_t		_length;
 };
+
+}
 
 #endif

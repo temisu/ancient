@@ -6,9 +6,14 @@
 
 #include "common/SubBuffer.hpp"
 #include "common/OverflowCheck.hpp"
-
+#include "common/Common.hpp"
+#include "common/Common.hpp"
 #include "XPKMain.hpp"
 #include "XPKDecompressor.hpp"
+
+
+namespace ancient
+{
 
 bool XPKMain::detectHeader(uint32_t hdr) noexcept
 {
@@ -261,3 +266,5 @@ void XPKMain::forEachChunk(F func) const
 }
 
 Decompressor::Registry<XPKMain> XPKMain::_registration;
+
+}

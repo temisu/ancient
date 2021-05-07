@@ -6,6 +6,11 @@
 #include "DLTADecode.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool NUKEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -124,3 +129,5 @@ void NUKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<NUKEDecompressor> NUKEDecompressor::_XPKregistration;
+
+}

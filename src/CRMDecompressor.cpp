@@ -6,6 +6,11 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "common/OverflowCheck.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool CRMDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -239,3 +244,5 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 
 Decompressor::Registry<CRMDecompressor> CRMDecompressor::_registration;
 XPKDecompressor::Registry<CRMDecompressor> CRMDecompressor::_XPKregistration;
+
+}

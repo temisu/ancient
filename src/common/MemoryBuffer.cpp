@@ -9,6 +9,9 @@
 #include "OverflowCheck.hpp"
 
 
+namespace ancient
+{
+
 MemoryBuffer::MemoryBuffer(size_t size) :
 	_data(reinterpret_cast<uint8_t*>(std::malloc(size))),
 	_size(size)
@@ -58,4 +61,6 @@ void MemoryBuffer::resize(size_t newSize)
 		_size=0;
 		throw OutOfMemoryError();
 	}
+}
+
 }

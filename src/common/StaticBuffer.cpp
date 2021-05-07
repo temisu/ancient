@@ -3,6 +3,9 @@
 #include "StaticBuffer.hpp"
 
 
+namespace ancient
+{
+
 ConstStaticBuffer::ConstStaticBuffer(const uint8_t *data,size_t length) :
 	_data(data),
 	_length(length)
@@ -33,4 +36,6 @@ size_t ConstStaticBuffer::size() const noexcept
 bool ConstStaticBuffer::isResizable() const noexcept
 {
 	return false;
+}
+
 }

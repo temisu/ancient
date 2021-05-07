@@ -3,6 +3,11 @@
 #include "ACCADecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool ACCADecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -105,3 +110,5 @@ void ACCADecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<ACCADecompressor> ACCADecompressor::_XPKregistration;
+
+}

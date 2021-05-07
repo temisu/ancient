@@ -4,6 +4,11 @@
 #include "RangeDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool ARTMDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -115,3 +120,5 @@ void ARTMDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<ARTMDecompressor> ARTMDecompressor::_XPKregistration;
+
+}

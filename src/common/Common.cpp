@@ -2,6 +2,10 @@
 
 #include "Common.hpp"
 
+
+namespace ancient
+{
+
 uint32_t rotateBits(uint32_t value,uint32_t count)
 {
 	static const uint8_t rotateNibble[16]={
@@ -19,4 +23,6 @@ uint32_t rotateBits(uint32_t value,uint32_t count)
 	}
 	ret>>=(4-count)&3;
 	return ret;
+}
+
 }

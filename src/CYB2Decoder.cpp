@@ -5,6 +5,11 @@
 #include "common/SubBuffer.hpp"
 #include "CYB2Decoder.hpp"
 #include "XPKMain.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool CYB2Decoder::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -55,3 +60,5 @@ void CYB2Decoder::decompressImpl(Buffer &rawData,const Buffer &previousData,bool
 }
 
 XPKDecompressor::Registry<CYB2Decoder> CYB2Decoder::_XPKregistration;
+
+}

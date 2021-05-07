@@ -8,6 +8,10 @@
 #include "../OutputStream.hpp"
 #include "../HuffmanDecoder.hpp"
 
+
+namespace ancient
+{
+
 ImplodeDecompressor::ImplodeDecompressor(const Buffer &packedData,uint32_t flags) :
 	_packedData(packedData),
 	_flags(flags)
@@ -121,4 +125,6 @@ void ImplodeDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			outputStream.copy(distance,count,0);
 		}
 	}
+}
+
 }

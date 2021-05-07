@@ -3,7 +3,10 @@
 #ifndef PMDECOMPRESSOR_HPP
 #define PMDECOMPRESSOR_HPP
 
-#include "../Decompressor.hpp"
+#include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class PMDecompressor : public Decompressor
 {
@@ -30,5 +33,7 @@ private:
 
 	uint32_t	_version;
 };
+
+}
 
 #endif

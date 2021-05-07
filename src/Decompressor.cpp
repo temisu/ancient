@@ -2,6 +2,9 @@
 
 #include "Decompressor.hpp"
 
+namespace ancient
+{
+
 std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> *Decompressor::_decompressors=nullptr;
 
 Decompressor::~Decompressor()
@@ -64,4 +67,6 @@ size_t Decompressor::getImageSize() const noexcept
 size_t Decompressor::getImageOffset() const noexcept
 {
 	return 0;
+}
+
 }

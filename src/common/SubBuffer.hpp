@@ -9,6 +9,9 @@
 #include "Buffer.hpp"
 #include "OverflowCheck.hpp"
 
+namespace ancient
+{
+
 // helpers to splice Buffer
 
 template <typename T>
@@ -66,5 +69,7 @@ private:
 
 typedef GenericSubBuffer<Buffer> SubBuffer;
 typedef GenericSubBuffer<const Buffer> ConstSubBuffer;
+
+}
 
 #endif

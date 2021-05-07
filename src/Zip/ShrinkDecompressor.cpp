@@ -7,6 +7,10 @@
 #include "../InputStream.hpp"
 #include "../OutputStream.hpp"
 
+
+namespace ancient
+{
+
 ShrinkDecompressor::ShrinkDecompressor(const Buffer &packedData) :
 	_packedData(packedData)
 {
@@ -127,4 +131,6 @@ void ShrinkDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			prevCode=code;
 		}
 	}
+}
+
 }

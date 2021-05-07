@@ -8,6 +8,11 @@
 #include "OutputStream.hpp"
 #include "common/CRC16.hpp"
 #include "common/OverflowCheck.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool RNCDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -442,3 +447,5 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 }
 
 Decompressor::Registry<RNCDecompressor> RNCDecompressor::_registration;
+
+}

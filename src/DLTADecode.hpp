@@ -5,6 +5,10 @@
 
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
+
 class DLTADecode : public XPKDecompressor
 {
 public:
@@ -27,5 +31,7 @@ private:
 
 	static XPKDecompressor::Registry<DLTADecode> _XPKregistration;
 };
+
+}
 
 #endif

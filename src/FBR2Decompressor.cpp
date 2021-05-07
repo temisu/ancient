@@ -3,6 +3,11 @@
 #include "FBR2Decompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool FBR2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -91,3 +96,5 @@ void FBR2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<FBR2Decompressor> FBR2Decompressor::_XPKregistration;
+
+}

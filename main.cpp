@@ -17,6 +17,8 @@
 #include "common/StaticBuffer.hpp"
 #include "Decompressor.hpp"
 
+using namespace ancient;
+
 std::unique_ptr<Buffer> readFile(const std::string &fileName)
 {
 

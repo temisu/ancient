@@ -4,6 +4,11 @@
 #include "HuffmanDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool MASHDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -114,3 +119,5 @@ void MASHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<MASHDecompressor> MASHDecompressor::_XPKregistration;
+
+}

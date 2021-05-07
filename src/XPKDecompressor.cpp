@@ -3,6 +3,9 @@
 #include "XPKDecompressor.hpp"
 #include "XPKMain.hpp"
 
+namespace ancient
+{
+
 XPKDecompressor::State::~State()
 {
 	// nothing needed
@@ -22,4 +25,6 @@ XPKDecompressor::~XPKDecompressor()
 void XPKDecompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool))
 {
 	XPKMain::registerDecompressor(detect,create);
+}
+
 }

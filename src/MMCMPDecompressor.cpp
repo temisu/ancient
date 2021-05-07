@@ -6,6 +6,11 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "common/OverflowCheck.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool MMCMPDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -231,3 +236,5 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 }
 
 Decompressor::Registry<MMCMPDecompressor> MMCMPDecompressor::_registration;
+
+}

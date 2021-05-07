@@ -6,6 +6,10 @@
 #include "../InputStream.hpp"
 #include "../OutputStream.hpp"
 
+
+namespace ancient
+{
+
 LHXDecompressor::LHXDecompressor(const Buffer &packedData) :
 	_packedData(packedData),
 	_method(0)
@@ -182,4 +186,6 @@ void LHXDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			outputStream.copy(distance,count,0x20);
 		}
 	}
+}
+
 }

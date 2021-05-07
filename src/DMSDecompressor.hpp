@@ -7,6 +7,10 @@
 
 #include "common/MemoryBuffer.hpp"
 
+namespace ancient
+{
+
+
 class DMSDecompressor : public Decompressor
 {
 public:
@@ -48,5 +52,7 @@ private:
 
 	static Decompressor::Registry<DMSDecompressor> _registration;
 };
+
+}
 
 #endif

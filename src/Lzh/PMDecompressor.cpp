@@ -6,6 +6,10 @@
 #include "../InputStream.hpp"
 #include "../OutputStream.hpp"
 
+
+namespace ancient
+{
+
 PMDecompressor::PMDecompressor(const Buffer &packedData,uint32_t version) :
 	_packedData(packedData),
 	_version(version)
@@ -415,4 +419,6 @@ void PMDecompressor::decompressImplPM2(Buffer &rawData,bool verify)
 				processOutput(offset+i,block[i]);
 		}
 	}
+}
+
 }

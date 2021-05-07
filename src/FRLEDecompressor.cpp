@@ -3,6 +3,11 @@
 #include "FRLEDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool FRLEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -60,3 +65,5 @@ void FRLEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<FRLEDecompressor> FRLEDecompressor::_XPKregistration;
+
+}

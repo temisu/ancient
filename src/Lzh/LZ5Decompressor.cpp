@@ -7,6 +7,10 @@
 #include "../InputStream.hpp"
 #include "../OutputStream.hpp"
 
+
+namespace ancient
+{
+
 LZ5Decompressor::LZ5Decompressor(const Buffer &packedData) :
 	_packedData(packedData)
 {
@@ -77,4 +81,6 @@ void LZ5Decompressor::decompressImpl(Buffer &rawData,bool verify)
 			outputStream.copy(distance,count,prevBuffer);
 		}
 	}
+}
+
 }

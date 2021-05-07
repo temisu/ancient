@@ -3,7 +3,10 @@
 #ifndef IMPLODEDECOMPRESSOR_HPP
 #define IMPLODEDECOMPRESSOR_HPP
 
-#include "../Decompressor.hpp"
+#include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class ImplodeDecompressor : public Decompressor
 {
@@ -23,5 +26,7 @@ private:
 
 	uint32_t	_flags;
 };
+
+}
 
 #endif

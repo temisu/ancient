@@ -5,6 +5,11 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "DynamicHuffmanDecoder.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool LHLBDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -101,3 +106,5 @@ void LHLBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<LHLBDecompressor> LHLBDecompressor::_XPKregistration;
+
+}

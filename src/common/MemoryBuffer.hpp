@@ -7,6 +7,9 @@
 
 #include "Buffer.hpp"
 
+namespace ancient
+{
+
 class MemoryBuffer : public Buffer
 {
 public:
@@ -25,5 +28,7 @@ private:
 	uint8_t*			_data;
 	size_t				_size;
 };
+
+}
 
 #endif

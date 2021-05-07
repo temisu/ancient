@@ -7,6 +7,10 @@
 #include "../InputStream.hpp"
 #include "../OutputStream.hpp"
 
+
+namespace ancient
+{
+
 ReduceDecompressor::ReduceDecompressor(const Buffer &packedData,uint32_t mode) :
 	_packedData(packedData),
 	_mode(mode)
@@ -106,4 +110,6 @@ void ReduceDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			}
 		}
 	}
+}
+
 }

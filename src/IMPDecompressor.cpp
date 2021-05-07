@@ -4,8 +4,12 @@
 #include "HuffmanDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-
+#include "common/Common.hpp"
 #include "common/OverflowCheck.hpp"
+
+
+namespace ancient
+{
 
 static bool readIMPHeader(uint32_t hdr,uint32_t &addition) noexcept
 {
@@ -289,3 +293,5 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 
 Decompressor::Registry<IMPDecompressor> IMPDecompressor::_registration;
 XPKDecompressor::Registry<IMPDecompressor> IMPDecompressor::_XPKregistration;
+
+}

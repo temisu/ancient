@@ -3,7 +3,10 @@
 #ifndef REDUCEDECOMPRESSOR_HPP
 #define REDUCEDECOMPRESSOR_HPP
 
-#include "../Decompressor.hpp"
+#include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class ReduceDecompressor : public Decompressor
 {
@@ -23,5 +26,7 @@ private:
 
 	uint32_t	_mode;
 };
+
+}
 
 #endif

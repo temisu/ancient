@@ -3,6 +3,11 @@
 #include "CBR0Decompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool CBR0Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -57,3 +62,5 @@ void CBR0Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<CBR0Decompressor> CBR0Decompressor::_XPKregistration;
+
+}

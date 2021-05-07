@@ -5,6 +5,9 @@
 
 #include "Decompressor.hpp"
 
+namespace ancient
+{
+
 class StoneCrackerDecompressor : public Decompressor
 {
 public:
@@ -45,5 +48,7 @@ private:
 
 	static Decompressor::Registry<StoneCrackerDecompressor> _registration;
 };
+
+}
 
 #endif

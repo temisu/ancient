@@ -3,6 +3,11 @@
 #include "SHR3Decompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 SHR3Decompressor::SHR3State::SHR3State() noexcept
 {
@@ -319,3 +324,5 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<SHR3Decompressor> SHR3Decompressor::_XPKregistration;
+
+}

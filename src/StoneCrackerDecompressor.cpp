@@ -4,6 +4,11 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "HuffmanDecoder.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &generation) noexcept
 {
@@ -685,3 +690,5 @@ void StoneCrackerDecompressor::decompressImpl(Buffer &rawData,bool verify)
 }
 
 Decompressor::Registry<StoneCrackerDecompressor> StoneCrackerDecompressor::_registration;
+
+}

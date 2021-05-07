@@ -8,6 +8,9 @@
 
 #include <exception>
 
+namespace ancient
+{
+
 class Buffer
 {
 protected:
@@ -70,5 +73,7 @@ public:
 
 	uint8_t read8(size_t offset) const;
 };
+
+}
 
 #endif

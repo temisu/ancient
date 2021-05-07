@@ -2,6 +2,10 @@
 
 #include "RangeDecoder.hpp"
 
+
+namespace ancient
+{
+
 RangeDecoder::BitReader::BitReader()
 {
 	// nothing needed
@@ -56,4 +60,6 @@ void RangeDecoder::scale(uint16_t newLow,uint16_t newHigh,uint16_t newRange)
 			doubleContext(0x4000U);
 		} else break;
 	}
+}
+
 }

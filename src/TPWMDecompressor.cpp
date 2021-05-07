@@ -3,6 +3,11 @@
 #include "TPWMDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool TPWMDecompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -85,3 +90,5 @@ void TPWMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 }
 
 Decompressor::Registry<TPWMDecompressor> TPWMDecompressor::_registration;
+
+}

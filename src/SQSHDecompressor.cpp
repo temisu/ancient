@@ -4,6 +4,11 @@
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "HuffmanDecoder.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -211,3 +216,5 @@ void SQSHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<SQSHDecompressor> SQSHDecompressor::_XPKregistration;
+
+}

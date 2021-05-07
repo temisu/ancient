@@ -5,6 +5,9 @@
 
 #include "Decompressor.hpp"
 
+namespace ancient
+{
+
 class RNCDecompressor : public Decompressor
 {
 public:
@@ -44,5 +47,7 @@ private:
 
 	static Decompressor::Registry<RNCDecompressor> _registration;
 };
+
+}
 
 #endif

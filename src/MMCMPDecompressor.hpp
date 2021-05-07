@@ -5,6 +5,9 @@
 
 #include "Decompressor.hpp"
 
+namespace ancient
+{
+
 class MMCMPDecompressor : public Decompressor
 {
 public:
@@ -31,5 +34,7 @@ private:
 
 	static Decompressor::Registry<MMCMPDecompressor> _registration;
 };
+
+}
 
 #endif

@@ -5,6 +5,9 @@
 
 #include "Buffer.hpp"
 
+namespace ancient
+{
+
 class OverflowCheck
 {
 public:
@@ -23,5 +26,7 @@ public:
 		return sum(sum(a,b),args...);
 	}
 };
+
+}
 
 #endif

@@ -3,7 +3,10 @@
 #ifndef LZHDECOMPRESSOR_HPP
 #define LZHDECOMPRESSOR_HPP
 
-#include "../Decompressor.hpp"
+#include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class LZHDecompressor : public Decompressor
 {
@@ -23,5 +26,7 @@ private:
 
 	std::string	_method;
 };
+
+}
 
 #endif

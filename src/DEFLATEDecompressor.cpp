@@ -9,6 +9,11 @@
 #include "OutputStream.hpp"
 #include "common/CRC32.hpp"
 #include "common/OverflowCheck.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 static uint32_t Adler32(const Buffer &buffer,size_t offset,size_t len)
 {
@@ -380,3 +385,5 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousD
 
 Decompressor::Registry<DEFLATEDecompressor> DEFLATEDecompressor::_registration;
 XPKDecompressor::Registry<DEFLATEDecompressor> DEFLATEDecompressor::_XPKregistration;
+
+}

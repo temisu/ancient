@@ -5,6 +5,9 @@
 
 #include "XPKDecompressor.hpp"
 
+namespace ancient
+{
+
 class NUKEDecompressor : public XPKDecompressor
 {
 public:
@@ -26,5 +29,7 @@ private:
 
 	static XPKDecompressor::Registry<NUKEDecompressor> _XPKregistration;
 };
+
+}
 
 #endif

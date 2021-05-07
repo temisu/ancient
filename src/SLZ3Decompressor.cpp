@@ -3,6 +3,11 @@
 #include "SLZ3Decompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool SLZ3Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -64,3 +69,5 @@ void SLZ3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<SLZ3Decompressor> SLZ3Decompressor::_XPKregistration;
+
+}

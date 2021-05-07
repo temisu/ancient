@@ -5,6 +5,9 @@
 
 #include <cstdint>
 
+namespace ancient
+{
+
 // used by too many compressors...
 class RangeDecoder
 {
@@ -31,5 +34,7 @@ private:
 	uint16_t			_high=0xffffU;
 	uint16_t			_stream;
 };
+
+}
 
 #endif

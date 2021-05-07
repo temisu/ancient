@@ -3,6 +3,11 @@
 #include "TDCSDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool TDCSDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -89,3 +94,5 @@ void TDCSDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<TDCSDecompressor> TDCSDecompressor::_XPKregistration;
+
+}

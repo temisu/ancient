@@ -4,8 +4,12 @@
 #include "HuffmanDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-
 #include "common/OverflowCheck.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool HFMNDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -85,3 +89,5 @@ void HFMNDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<HFMNDecompressor> HFMNDecompressor::_XPKregistration;
+
+}

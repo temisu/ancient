@@ -3,7 +3,11 @@
 #include "DLTADecode.hpp"
 
 #include "common/OverflowCheck.hpp"
+#include "common/Common.hpp"
 
+
+namespace ancient
+{
 
 bool DLTADecode::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -56,3 +60,5 @@ void DLTADecode::decompressImpl(Buffer &rawData,const Buffer &previousData,bool 
 }
 
 XPKDecompressor::Registry<DLTADecode> DLTADecode::_XPKregistration;
+
+}

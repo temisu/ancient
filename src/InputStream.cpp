@@ -3,9 +3,11 @@
 #include "InputStream.hpp"
 // for exceptions
 #include "Decompressor.hpp"
-
 #include "common/OverflowCheck.hpp"
 
+
+namespace ancient
+{
 
 ForwardInputStream::ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun) :
 	_bufPtr(buffer.data()),
@@ -106,4 +108,6 @@ const uint8_t *BackwardInputStream::consume(size_t bytes,uint8_t *buffer)
 	_currentOffset-=bytes;
 	if (_linkedInputStream) _linkedInputStream->setOffset(_currentOffset);
 	return &_bufPtr[_currentOffset];
+}
+
 }

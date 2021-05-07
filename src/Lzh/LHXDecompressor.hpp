@@ -3,7 +3,10 @@
 #ifndef LHXDECOMPRESSOR_HPP
 #define LHXDECOMPRESSOR_HPP
 
-#include "../Decompressor.hpp"
+#include "Decompressor.hpp"
+
+namespace ancient
+{
 
 class LHXDecompressor : public Decompressor
 {
@@ -25,5 +28,7 @@ private:
 
 	uint32_t	_method;
 };
+
+}
 
 #endif

@@ -9,6 +9,11 @@
 #include "OutputStream.hpp"
 #include "common/MemoryBuffer.hpp"
 #include "common/CRC32.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool BZIP2Decompressor::detectHeader(uint32_t hdr) noexcept
 {
@@ -393,3 +398,5 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousDat
 
 Decompressor::Registry<BZIP2Decompressor> BZIP2Decompressor::_registration;
 XPKDecompressor::Registry<BZIP2Decompressor> BZIP2Decompressor::_XPKregistration;
+
+}

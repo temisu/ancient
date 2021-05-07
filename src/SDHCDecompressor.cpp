@@ -6,6 +6,11 @@
 #include "SDHCDecompressor.hpp"
 #include "XPKMain.hpp"
 #include "DLTADecode.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool SDHCDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -119,3 +124,5 @@ void SDHCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<SDHCDecompressor> SDHCDecompressor::_XPKregistration;
+
+}

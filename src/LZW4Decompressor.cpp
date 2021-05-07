@@ -3,6 +3,11 @@
 #include "LZW4Decompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool LZW4Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -65,3 +70,5 @@ void LZW4Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<LZW4Decompressor> LZW4Decompressor::_XPKregistration;
+
+}

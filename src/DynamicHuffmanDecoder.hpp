@@ -9,6 +9,9 @@
 // For exception
 #include "Decompressor.hpp"
 
+namespace ancient
+{
+
 template<uint32_t maxCount>
 class DynamicHuffmanDecoder
 {
@@ -217,5 +220,7 @@ private:
 	Node			_nodes[maxCount*2-1];
 	uint32_t		_codeMap[maxCount*2-1];
 };
+
+}
 
 #endif

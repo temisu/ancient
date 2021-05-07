@@ -3,6 +3,11 @@
 #include <cstring>
 
 #include "NONEDecompressor.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient
+{
 
 bool NONEDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
@@ -40,3 +45,5 @@ void NONEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 }
 
 XPKDecompressor::Registry<NONEDecompressor> NONEDecompressor::_XPKregistration;
+
+}

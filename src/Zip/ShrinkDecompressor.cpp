@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 #include "ShrinkDecompressor.hpp"
 #include "../InputStream.hpp"

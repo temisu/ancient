@@ -2,10 +2,60 @@
 
 #include "Decompressor.hpp"
 
+#include <memory>
+#include <vector>
+
 namespace ancient
 {
 
-std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> *Decompressor::_decompressors=nullptr;
+Decompressor::Error::Error() noexcept
+{
+	// nothing needed
+}
+
+Decompressor::Error::~Error()
+{
+	// nothing needed
+}
+
+Decompressor::InvalidFormatError::InvalidFormatError() noexcept
+{
+	// nothing needed
+}
+
+Decompressor::InvalidFormatError::~InvalidFormatError()
+{
+	// nothing needed
+}
+
+Decompressor::DecompressionError::DecompressionError() noexcept
+{
+	// nothing needed
+}
+
+Decompressor::DecompressionError::~DecompressionError()
+{
+	// nothing needed
+}
+
+Decompressor::VerificationError::VerificationError() noexcept
+{
+	// nothing needed
+}
+
+Decompressor::VerificationError::~VerificationError()
+{
+	// nothing needed
+}
+
+// ---
+
+static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> *decompressors=nullptr;
+
+Decompressor::Decompressor() noexcept
+{
+	// nothing needed
+}
 
 Decompressor::~Decompressor()
 {
@@ -17,7 +67,7 @@ std::unique_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool
 	try
 	{
 		uint32_t hdr=packedData.readBE32(0);
-		for (auto &it : *_decompressors)
+		for (auto &it : *decompressors)
 		{
 			if (it.first(hdr)) return it.second(packedData,exactSizeKnown,verify);
 		}
@@ -32,7 +82,7 @@ bool Decompressor::detect(const Buffer &packedData) noexcept
 	try
 	{
 		uint32_t hdr=packedData.readBE32(0);
-		for (auto &it : *_decompressors)
+		for (auto &it : *decompressors)
 			if (it.first(hdr)) return true;
 		return false;
 	} catch (const Buffer::Error&) {
@@ -43,8 +93,8 @@ bool Decompressor::detect(const Buffer &packedData) noexcept
 void Decompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool,bool))
 {
 	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> _list;
-	if (!_decompressors) _decompressors=&_list;
-	_decompressors->emplace_back(detect,create);
+	if (!decompressors) decompressors=&_list;
+	decompressors->emplace_back(detect,create);
 }
 
 void Decompressor::decompress(Buffer &rawData,bool verify)
@@ -67,6 +117,16 @@ size_t Decompressor::getImageSize() const noexcept
 size_t Decompressor::getImageOffset() const noexcept
 {
 	return 0;
+}
+
+size_t Decompressor::getMaxPackedSize() noexcept
+{
+	return 0x100'0000U;
+}
+
+size_t Decompressor::getMaxRawSize() noexcept
+{
+	return 0x100'0000U;
 }
 
 }

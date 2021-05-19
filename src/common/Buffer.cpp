@@ -7,6 +7,48 @@
 namespace ancient
 {
 
+Buffer::Error::Error() noexcept
+{
+	// nothing needed
+}
+
+Buffer::Error::~Error()
+{
+	// nothing needed
+}
+
+Buffer::OutOfBoundsError::OutOfBoundsError() noexcept
+{
+	// nothing needed
+}
+
+Buffer::OutOfBoundsError::~OutOfBoundsError()
+{
+	// nothing needed
+}
+
+Buffer::InvalidOperationError::InvalidOperationError() noexcept
+{
+	// nothing needed
+}
+
+Buffer::InvalidOperationError::~InvalidOperationError()
+{
+	// nothing needed
+}
+
+Buffer::OutOfMemoryError::OutOfMemoryError() noexcept
+{
+	// nothing needed
+}
+
+Buffer::OutOfMemoryError::~OutOfMemoryError()
+{
+	// nothing needed
+}
+
+// ---
+
 Buffer::Buffer() noexcept
 {
 	// nothing needed

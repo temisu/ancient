@@ -150,6 +150,9 @@ void StoneCrackerDecompressor::initialize(const Buffer &packedData,uint32_t hdr)
 		break;
 	}
 
+	if (_packedSize>getMaxPackedSize() || _rawSize>getMaxRawSize())
+		throw InvalidFormatError();
+
 	// Final sanity checks on old formats, especially on 2.71 which can still be false positive
 	// For a sanity check we assume the compressor is actually compressing, which is not a exactly wrong thing to do
 	// (of course there could be expanding files, but it is doubtful someone would actually used them)

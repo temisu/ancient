@@ -19,22 +19,30 @@ protected:
 public:
 	class Error : public std::exception
 	{
-		// nothing needed
+	public:
+		Error() noexcept;
+		virtual ~Error();
 	};
 
 	class OutOfBoundsError : public Error
 	{
-		// nothing needed
+	public:
+		OutOfBoundsError() noexcept;
+		virtual ~OutOfBoundsError();
 	};
 
 	class InvalidOperationError : public Error
 	{
-		// nothing needed
+	public:
+		InvalidOperationError() noexcept;
+		virtual ~InvalidOperationError();
 	};
 
 	class OutOfMemoryError : public Error
 	{
-		// nothing needed
+	public:
+		OutOfMemoryError() noexcept;
+		virtual ~OutOfMemoryError();
 	};
 
 	Buffer(const Buffer&)=delete;

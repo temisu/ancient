@@ -7,8 +7,6 @@
 #include <cstdint>
 
 #include <string>
-#include <memory>
-#include <vector>
 
 #include "Buffer.hpp"
 
@@ -17,29 +15,38 @@ namespace ancient
 
 class Decompressor
 {
+protected:
+	Decompressor() noexcept;
+
 public:
 	// just a base class to easily catch all the errors
 	class Error : public std::exception
 	{
-		// nothing needed
+	public:
+		Error() noexcept;
+		virtual ~Error();
 	};
 
 	class InvalidFormatError : public Error
 	{
-		// nothing needed
+	public:
+		InvalidFormatError() noexcept;
+		virtual ~InvalidFormatError();
 	};
 
 	class DecompressionError : public Error
 	{
-		// nothing needed
+	public:
+		DecompressionError() noexcept;
+		virtual ~DecompressionError();
 	};
 
 	class VerificationError : public Error
 	{
-		// nothing needed
+	public:
+		VerificationError() noexcept;
+		virtual ~VerificationError();
 	};
-
-	Decompressor()=default;
 
 	Decompressor(const Decompressor&)=delete;
 	Decompressor& operator=(const Decompressor&)=delete;
@@ -77,8 +84,8 @@ public:
 	// compressors can exclude header content for simplification)
 	// This entirely ok for the context of "old computers" and their files,
 	// for other usages these need to be tuned up
-	static constexpr size_t getMaxPackedSize() noexcept { return 0x100'0000U; }
-	static constexpr size_t getMaxRawSize() noexcept { return 0x100'0000U; }
+	static size_t getMaxPackedSize() noexcept;
+	static size_t getMaxRawSize() noexcept;
 
 	// Main entrypoint
 	// if verify=true then check the packedData for errors: CRC or other checksum if available
@@ -111,8 +118,6 @@ protected:
 
 private:
 	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool,bool));
-
-	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> *_decompressors;
 };
 
 }

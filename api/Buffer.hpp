@@ -3,6 +3,10 @@
 #ifndef BUFFER_HPP
 #define BUFFER_HPP
 
+#ifndef LIBRARY_VISIBILITY
+#define LIBRARY_VISIBILITY
+#endif
+
 #include <cstddef>
 #include <cstdint>
 
@@ -11,7 +15,7 @@
 namespace ancient
 {
 
-class Buffer
+class LIBRARY_VISIBILITY Buffer
 {
 protected:
 	Buffer() noexcept;

@@ -3,6 +3,10 @@
 #ifndef DECOMPRESSOR_HPP
 #define DECOMPRESSOR_HPP
 
+#ifndef LIBRARY_VISIBILITY
+#define LIBRARY_VISIBILITY
+#endif
+
 #include <cstddef>
 #include <cstdint>
 
@@ -13,7 +17,7 @@
 namespace ancient
 {
 
-class Decompressor
+class LIBRARY_VISIBILITY Decompressor
 {
 protected:
 	Decompressor() noexcept;

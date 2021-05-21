@@ -1,7 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef BUFFER_HPP
-#define BUFFER_HPP
+#ifndef ANCIENT_BUFFER_HPP
+#define ANCIENT_BUFFER_HPP
 
 #ifndef ANCIENT_LIBRARY_VISIBILITY
 #define ANCIENT_LIBRARY_VISIBILITY

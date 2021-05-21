@@ -21,28 +21,28 @@ protected:
 	Buffer() noexcept;
 
 public:
-	class Error : public std::exception
+	class ANCIENT_LIBRARY_VISIBILITY Error : public std::exception
 	{
 	public:
 		Error() noexcept;
 		virtual ~Error();
 	};
 
-	class OutOfBoundsError : public Error
+	class ANCIENT_LIBRARY_VISIBILITY OutOfBoundsError : public Error
 	{
 	public:
 		OutOfBoundsError() noexcept;
 		virtual ~OutOfBoundsError();
 	};
 
-	class InvalidOperationError : public Error
+	class ANCIENT_LIBRARY_VISIBILITY InvalidOperationError : public Error
 	{
 	public:
 		InvalidOperationError() noexcept;
 		virtual ~InvalidOperationError();
 	};
 
-	class OutOfMemoryError : public Error
+	class ANCIENT_LIBRARY_VISIBILITY OutOfMemoryError : public Error
 	{
 	public:
 		OutOfMemoryError() noexcept;

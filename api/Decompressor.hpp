@@ -25,28 +25,28 @@ protected:
 
 public:
 	// just a base class to easily catch all the errors
-	class Error : public std::exception
+	class ANCIENT_LIBRARY_VISIBILITY Error : public std::exception
 	{
 	public:
 		Error() noexcept;
 		virtual ~Error();
 	};
 
-	class InvalidFormatError : public Error
+	class ANCIENT_LIBRARY_VISIBILITY InvalidFormatError : public Error
 	{
 	public:
 		InvalidFormatError() noexcept;
 		virtual ~InvalidFormatError();
 	};
 
-	class DecompressionError : public Error
+	class ANCIENT_LIBRARY_VISIBILITY DecompressionError : public Error
 	{
 	public:
 		DecompressionError() noexcept;
 		virtual ~DecompressionError();
 	};
 
-	class VerificationError : public Error
+	class ANCIENT_LIBRARY_VISIBILITY VerificationError : public Error
 	{
 	public:
 		VerificationError() noexcept;

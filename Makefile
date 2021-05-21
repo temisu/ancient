@@ -3,11 +3,16 @@
 VPATH  := src src/Lzh src/Zip src/common fuzzing
 
 CXX	?= c++
-COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Wno-error=multichar -Wno-multichar -Isrc -Iapi
+COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Wno-error=multichar -Wno-multichar -Isrc -Iapi -Iapi/ancient
 CFLAGS	= $(COMMONFLAGS)
-CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti -fvisibility=hidden -DLIBRARY_VISIBILITY="__attribute__((visibility(\"default\")))"
+CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti -fvisibility=hidden -DANCIENT_API="__attribute__((visibility(\"default\")))"
 
+ifeq ($(BUILD_LIBRARY),1)
 LIB	= ancient.dylib
+else
+LIB	=
+endif
+
 PROG	= ancient
 MAIN	?= main.o
 OBJS	= Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o CRC16.o CRC32.o \
@@ -34,12 +39,17 @@ all: $(PROG) $(LIB)
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
+ifeq ($(BUILD_LIBRARY),1)
 $(LIB): $(OBJS)
 	$(CXX) -Wl,-dylib -Wl,-install_name,@executable_path/$@ -shared -o $@ $^
 	strip -X $@
 
 $(PROG): $(MAIN) $(LIB) MemoryBuffer.o SubBuffer.o
 	$(CXX) $(CFLAGS) -o $@ $(MAIN) MemoryBuffer.o SubBuffer.o ancient.dylib
+else
+$(PROG): $(OBJS) $(MAIN)
+	$(CXX) $(CFLAGS) -o $@ $^
+endif
 
 clean:
 	rm -f $(OBJS) $(MAIN) $(PROG) $(LIB) *~ src/*~

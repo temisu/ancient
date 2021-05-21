@@ -1,10 +1,10 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef BUFFER_HPP
-#define BUFFER_HPP
+#ifndef ANCIENT_BUFFER_HPP
+#define ANCIENT_BUFFER_HPP
 
-#ifndef LIBRARY_VISIBILITY
-#define LIBRARY_VISIBILITY
+#ifndef ANCIENT_API
+#define ANCIENT_API
 #endif
 
 #include <cstddef>
@@ -15,34 +15,34 @@
 namespace ancient
 {
 
-class LIBRARY_VISIBILITY Buffer
+class ANCIENT_API Buffer
 {
 protected:
 	Buffer() noexcept;
 
 public:
-	class Error : public std::exception
+	class ANCIENT_API Error : public std::exception
 	{
 	public:
 		Error() noexcept;
 		virtual ~Error();
 	};
 
-	class OutOfBoundsError : public Error
+	class ANCIENT_API OutOfBoundsError : public Error
 	{
 	public:
 		OutOfBoundsError() noexcept;
 		virtual ~OutOfBoundsError();
 	};
 
-	class InvalidOperationError : public Error
+	class ANCIENT_API InvalidOperationError : public Error
 	{
 	public:
 		InvalidOperationError() noexcept;
 		virtual ~InvalidOperationError();
 	};
 
-	class OutOfMemoryError : public Error
+	class ANCIENT_API OutOfMemoryError : public Error
 	{
 	public:
 		OutOfMemoryError() noexcept;

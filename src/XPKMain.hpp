@@ -6,6 +6,8 @@
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
+#include <vector>
+
 namespace ancient
 {
 

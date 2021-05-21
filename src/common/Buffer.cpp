@@ -37,16 +37,6 @@ Buffer::InvalidOperationError::~InvalidOperationError()
 	// nothing needed
 }
 
-Buffer::OutOfMemoryError::OutOfMemoryError() noexcept
-{
-	// nothing needed
-}
-
-Buffer::OutOfMemoryError::~OutOfMemoryError()
-{
-	// nothing needed
-}
-
 // ---
 
 Buffer::Buffer() noexcept

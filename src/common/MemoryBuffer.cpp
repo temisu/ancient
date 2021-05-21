@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 #include <memory>
+#include <new>
 
 #include "MemoryBuffer.hpp"
 #include "OverflowCheck.hpp"
@@ -16,7 +17,7 @@ MemoryBuffer::MemoryBuffer(size_t size) :
 	_data(reinterpret_cast<uint8_t*>(std::malloc(size))),
 	_size(size)
 {
-	if (!_data) throw OutOfMemoryError();
+	if (!_data) throw std::bad_alloc();
 }
 
 MemoryBuffer::MemoryBuffer(const Buffer &src,size_t offset,size_t size) :
@@ -59,7 +60,7 @@ void MemoryBuffer::resize(size_t newSize)
 	if (!_data)
 	{
 		_size=0;
-		throw OutOfMemoryError();
+		throw std::bad_alloc();
 	}
 }
 

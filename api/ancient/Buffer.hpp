@@ -42,13 +42,6 @@ public:
 		virtual ~InvalidOperationError();
 	};
 
-	class ANCIENT_API OutOfMemoryError : public Error
-	{
-	public:
-		OutOfMemoryError() noexcept;
-		virtual ~OutOfMemoryError();
-	};
-
 	Buffer(const Buffer&)=delete;
 	Buffer& operator=(const Buffer&)=delete;
 

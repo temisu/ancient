@@ -57,7 +57,7 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 	uint32_t prevTrack=0;
 	while (offset+20<packedData.size())
 	{
-		if (_packedData.readBE16(offset)!='TR')
+		if (_packedData.readBE16(offset)!=MultiChar2("TR"))
 		{
 			// secondary exit criteria, should not be like this, if the header would be trustworthy
 			if (!accountedSize) throw InvalidFormatError();

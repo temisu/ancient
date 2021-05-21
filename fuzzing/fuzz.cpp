@@ -9,7 +9,7 @@
 #include "common/MemoryBuffer.hpp"
 #include "common/SubBuffer.hpp"
 #include "common/StaticBuffer.hpp"
-#include "Decompressor.hpp"
+#include "ancient/Decompressor.hpp"
 
 std::unique_ptr<Buffer> readFile(const std::string &fileName)
 {

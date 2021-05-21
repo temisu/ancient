@@ -15,7 +15,7 @@
 #include "common/MemoryBuffer.hpp"
 #include "common/SubBuffer.hpp"
 #include "common/StaticBuffer.hpp"
-#include "Decompressor.hpp"
+#include "ancient/Decompressor.hpp"
 
 using namespace ancient;
 

@@ -5,7 +5,7 @@ VPATH  := src src/Lzh src/Zip src/common fuzzing
 CXX	?= c++
 COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Wno-error=multichar -Wno-multichar -Isrc -Iapi -Iapi/ancient
 CFLAGS	= $(COMMONFLAGS)
-CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti -fvisibility=hidden -DANCIENT_LIBRARY_VISIBILITY="__attribute__((visibility(\"default\")))"
+CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti -fvisibility=hidden -DANCIENT_API="__attribute__((visibility(\"default\")))"
 
 ifeq ($(BUILD_LIBRARY),1)
 LIB	= ancient.dylib

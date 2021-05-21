@@ -3,8 +3,8 @@
 #ifndef ANCIENT_DECOMPRESSOR_HPP
 #define ANCIENT_DECOMPRESSOR_HPP
 
-#ifndef ANCIENT_LIBRARY_VISIBILITY
-#define ANCIENT_LIBRARY_VISIBILITY
+#ifndef ANCIENT_API
+#define ANCIENT_API
 #endif
 
 #include <cstddef>
@@ -18,35 +18,35 @@
 namespace ancient
 {
 
-class ANCIENT_LIBRARY_VISIBILITY Decompressor
+class ANCIENT_API Decompressor
 {
 protected:
 	Decompressor() noexcept;
 
 public:
 	// just a base class to easily catch all the errors
-	class ANCIENT_LIBRARY_VISIBILITY Error : public std::exception
+	class ANCIENT_API Error : public std::exception
 	{
 	public:
 		Error() noexcept;
 		virtual ~Error();
 	};
 
-	class ANCIENT_LIBRARY_VISIBILITY InvalidFormatError : public Error
+	class ANCIENT_API InvalidFormatError : public Error
 	{
 	public:
 		InvalidFormatError() noexcept;
 		virtual ~InvalidFormatError();
 	};
 
-	class ANCIENT_LIBRARY_VISIBILITY DecompressionError : public Error
+	class ANCIENT_API DecompressionError : public Error
 	{
 	public:
 		DecompressionError() noexcept;
 		virtual ~DecompressionError();
 	};
 
-	class ANCIENT_LIBRARY_VISIBILITY VerificationError : public Error
+	class ANCIENT_API VerificationError : public Error
 	{
 	public:
 		VerificationError() noexcept;

@@ -4,7 +4,24 @@
 #define ANCIENT_ANCIENT_HPP
 
 #ifndef ANCIENT_API
+#if defined(ANCIENT_API_DECLSPEC_DLLEXPORT)
+#define ANCIENT_API __declspec(dllexport)
+#endif
+#if defined(ANCIENT_API_DECLSPEC_DLLIMPORT)
+#define ANCIENT_API __declspec(dllimport)
+#endif
+#if defined(ANCIENT_API_VISIBILITY_DEFAULT_USED)
+#define ANCIENT_API __attribute__((visibility("default"))) __attribute__((used))
+#endif
+#if defined(ANCIENT_API_VISIBILITY_DEFAULT)
+#define ANCIENT_API __attribute__((visibility("default")))
+#endif
+#if defined(ANCIENT_API_VISIBILITY_HIDDEN)
+#define ANCIENT_API __attribute__((visibility("hidden")))
+#endif
+#ifndef ANCIENT_API
 #define ANCIENT_API
+#endif
 #endif
 
 #include <exception>

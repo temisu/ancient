@@ -111,9 +111,13 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		};
 
 		uint32_t checksum=0;
-		auto writeByte=[&](uint8_t value)
+		auto writeByte=[&](uint8_t value,bool allowOverrun=false)
 		{
-			while (!outputSize) readNextSubBlock();
+			while (!outputSize)
+			{
+				if (allowOverrun && currentSubBlock>=subBlocks) return;
+				readNextSubBlock();
+			}
 			outputSize--;
 			rawDataPtr[outputOffset++]=value;
 			if (verify)
@@ -215,17 +219,16 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 					value+=oldValue[chIndex];
 					oldValue[chIndex]=value;
 					if (flags&0x100U) chIndex^=1U;		// stereo
-				}
-				if (flags&0x200U) value^=0x8000U;		// abs16
+				} else if (!(flags&0x200U)) value^=0x8000U;	// abs16
 				if (flags&0x400U)
 				{
 					// big ending
 					writeByte(value>>8U);
-					writeByte(value);
+					writeByte(value,true);
 				} else {
 					// little endian
 					writeByte(value);
-					writeByte(value>>8U);
+					writeByte(value>>8U,true);
 				}
 				j+=2;
 			}

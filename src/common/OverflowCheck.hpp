@@ -5,7 +5,7 @@
 
 #include "Buffer.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class OverflowCheck

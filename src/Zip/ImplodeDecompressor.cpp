@@ -9,7 +9,7 @@
 #include "../HuffmanDecoder.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 ImplodeDecompressor::ImplodeDecompressor(const Buffer &packedData,uint32_t flags) :

@@ -1,11 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef ANCIENT_DECOMPRESSOR_HPP
-#define ANCIENT_DECOMPRESSOR_HPP
-
-#ifndef ANCIENT_API
-#define ANCIENT_API
-#endif
+#ifndef DECOMPRESSOR_HPP
+#define DECOMPRESSOR_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -13,45 +9,23 @@
 #include <memory>
 #include <string>
 
-#include "Buffer.hpp"
+#include "common/Buffer.hpp"
+#include "ancient.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
-class ANCIENT_API Decompressor
+class Decompressor
 {
 protected:
 	Decompressor() noexcept;
 
 public:
-	// just a base class to easily catch all the errors
-	class ANCIENT_API Error : public std::exception
-	{
-	public:
-		Error() noexcept;
-		virtual ~Error();
-	};
 
-	class ANCIENT_API InvalidFormatError : public Error
-	{
-	public:
-		InvalidFormatError() noexcept;
-		virtual ~InvalidFormatError();
-	};
-
-	class ANCIENT_API DecompressionError : public Error
-	{
-	public:
-		DecompressionError() noexcept;
-		virtual ~DecompressionError();
-	};
-
-	class ANCIENT_API VerificationError : public Error
-	{
-	public:
-		VerificationError() noexcept;
-		virtual ~VerificationError();
-	};
+	using Error = ancient::Error;
+	using InvalidFormatError = ancient::InvalidFormatError;
+	using DecompressionError = ancient::DecompressionError;
+	using VerificationError = ancient::VerificationError;
 
 	Decompressor(const Decompressor&)=delete;
 	Decompressor& operator=(const Decompressor&)=delete;

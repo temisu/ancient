@@ -1,28 +1,25 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <cstdint>
-
-#include <memory>
 #include <fstream>
-#include <vector>
-#include <string>
 #include <functional>
+#include <new>
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 
+#include <cstdint>
 #include <cstdio>
+
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "common/MemoryBuffer.hpp"
-#include "common/SubBuffer.hpp"
-#include "common/StaticBuffer.hpp"
-#include "ancient/Decompressor.hpp"
+#include "ancient/ancient.hpp"
 
-using namespace ancient;
-
-std::unique_ptr<Buffer> readFile(const std::string &fileName)
+std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 {
 
-	std::unique_ptr<Buffer> ret=std::make_unique<MemoryBuffer>(0);
+	std::unique_ptr<std::vector<uint8_t>> ret=std::make_unique<std::vector<uint8_t>>();
 	std::ifstream file(fileName.c_str(),std::ios::in|std::ios::binary);
 	bool success=false;
 	if (file.is_open())
@@ -38,18 +35,18 @@ std::unique_ptr<Buffer> readFile(const std::string &fileName)
 	if (!success)
 	{
 		fprintf(stderr,"Could not read file %s\n",fileName.c_str());
-		return std::make_unique<StaticBuffer<0>>();
+		return std::make_unique<std::vector<uint8_t>>();
 	}
 	return ret;
 }
 
-bool writeFile(const std::string &fileName,const Buffer &content)
+bool writeFile(const std::string &fileName,const uint8_t *data, size_t size)
 {
 	bool ret=false;
 	std::ofstream file(fileName.c_str(),std::ios::out|std::ios::binary|std::ios::trunc);
 	if (file.is_open())
 	{
-		file.write(reinterpret_cast<const char*>(content.data()),content.size());
+		file.write(reinterpret_cast<const char*>(data),size);
 		ret=bool(file);
 		file.close();
 	}
@@ -58,6 +55,11 @@ bool writeFile(const std::string &fileName,const Buffer &content)
 		fprintf(stderr,"Could not write file %s\n",fileName.c_str());
 	}
 	return ret;
+}
+
+bool writeFile(const std::string &fileName,const std::vector<uint8_t> &content)
+{
+	return writeFile(fileName,content.data(),content.size());
 }
 
 int main(int argc,char **argv)
@@ -90,16 +92,16 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		auto packed{readFile(argv[2])};
-		std::unique_ptr<Decompressor> decompressor;
+		std::optional<ancient::Decompressor> decompressor;
 		try
 		{
-			decompressor=Decompressor::create(*packed,true,true);
-		} catch (const Decompressor::InvalidFormatError&)
+			decompressor.emplace(*packed,true,true);
+			printf("Compression of %s is %s\n",argv[2],decompressor->getName().c_str());
+		} catch (const ancient::InvalidFormatError&)
 		{
 			fprintf(stderr,"Unknown or invalid compression format in file %s\n",argv[2]);
 			return -1;
 		}
-		printf("Compression of %s is %s\n",argv[2],decompressor->getName().c_str());
 		return 0;
 	} else if (cmd=="decompress" || cmd=="verify") {
 		if (argc!=4)
@@ -108,69 +110,57 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		auto packed{readFile(argv[2])};
-		std::unique_ptr<Decompressor> decompressor;
+		std::optional<ancient::Decompressor> decompressor;
 		try
 		{
-			decompressor=Decompressor::create(*packed,true,true);
-		} catch (const Decompressor::InvalidFormatError&)
+			decompressor.emplace(*packed,true,true);
+		} catch (const ancient::InvalidFormatError&)
 		{
 			fprintf(stderr,"Unknown or invalid compression format in file %s\n",argv[2]);
 			return -1;
-		} catch (const Decompressor::VerificationError&)
+		} catch (const ancient::VerificationError&)
 		{
 			fprintf(stderr,"Verify (packed) failed for %s\n",argv[2]);
 			return -1;
 		}
 
-		std::unique_ptr<Buffer> raw;
+		std::vector<uint8_t> raw;
 		try
 		{
-			raw=std::make_unique<MemoryBuffer>((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
-		} catch (const Buffer::Error&) {
-			fprintf(stderr,"Out of memory\n");
-			return -1;
-		}
-
-		try
-		{
-			decompressor->decompress(*raw,true);
-		} catch (const Decompressor::DecompressionError&)
+			raw=decompressor->decompress(true);
+		} catch (const ancient::DecompressionError&)
 		{
 			fprintf(stderr,"Decompression failed for %s\n",argv[2]);
 			return -1;
-		} catch (const Decompressor::VerificationError&)
+		} catch (const ancient::VerificationError&)
 		{
 			fprintf(stderr,"Verify (raw) failed for %s\n",argv[2]);
 			return -1;
-		}
-		try
-		{
-			raw->resize(decompressor->getRawSize());
-		} catch (const Buffer::Error&) {
+		} catch (const std::bad_alloc&) {
 			fprintf(stderr,"Out of memory\n");
 			return -1;
 		}
 
 		if (decompressor->getImageOffset() || decompressor->getImageSize())
 		{
-			printf("File %s is disk image, decompressed stream offset is %zu, full image size is %zu\n",argv[2],decompressor->getImageOffset(),decompressor->getImageSize());
+			printf("File %s is disk image, decompressed stream offset is %zu, full image size is %zu\n",argv[2],decompressor->getImageOffset().value(),decompressor->getImageSize().value());
 			printf("!!! Please note !!!\n!!! The destination will not be padded !!!\n\n");
 		}
 
 		if (cmd=="decompress")
 		{
-			writeFile(argv[3],*raw);
+			writeFile(argv[3],raw);
 			return 0;
 		} else {
 			auto verify{readFile(argv[3])};
-			if (raw->size()!=verify->size())
+			if (raw.size()!=verify->size())
 			{
 				fprintf(stderr,"Verify failed for %s and %s - sizes differ\n",argv[2],argv[3]);
 				return -1;
 			}
-			for (size_t i=0;i<raw->size();i++)
+			for (size_t i=0;i<raw.size();i++)
 			{
-				if (raw->data()[i]!=verify->data()[i])
+				if (raw.data()[i]!=verify->data()[i])
 				{
 					fprintf(stderr,"Verify failed for %s and %s - contents differ @ %zu\n",argv[2],argv[3],i);
 					return -1;
@@ -179,8 +169,7 @@ int main(int argc,char **argv)
 			printf("Files match!\n");
 			return 0;
 		}
-	}
-	 else if (cmd=="scan") {
+	} else if (cmd=="scan") {
 		if (argc!=4)
 		{
 			usage();
@@ -205,46 +194,57 @@ int main(int argc,char **argv)
 						processDir(name);
 					} else if (st.st_mode&S_IFREG) {
 						auto packed{readFile(name)};
-						ConstSubBuffer scanBuffer(*packed,0,packed->size());
+						size_t scanPos=0;
+						size_t scanSize=packed->size();
 						for (size_t i=0;i<packed->size();)
 						{
-							scanBuffer.adjust(i,packed->size()-i);
+							scanPos+=1;
+							scanSize-=1;
 							// We will detect first, before trying the format for real
-							if (!Decompressor::detect(scanBuffer))
+							if (!ancient::Decompressor::detect(packed->data()+scanPos,scanSize))
 							{
 								i++;
 								continue;
 							}
 							try
 							{
-								auto decompressor{Decompressor::create(scanBuffer,false,true)};
-
-								std::unique_ptr<Buffer> raw;
-								try
-								{
-									raw=std::make_unique<MemoryBuffer>((decompressor->getRawSize())?decompressor->getRawSize():Decompressor::getMaxRawSize());
-								} catch (const Buffer::Error&) {
-									fprintf(stderr,"Out of memory\n");
-									i++;
-									continue;
-								}
+								ancient::Decompressor decompressor{packed->data()+scanPos,scanSize,false,true};
 								// for formats that do not encode packed size.
 								// we will get it from decompressor
-								if (!decompressor->getPackedSize())
-									decompressor->decompress(*raw,true);
-								if (decompressor->getPackedSize())
+								if (!decompressor.getPackedSize())
+								{
+									try
+									{
+										decompressor.decompress(true);
+									} catch (const std::bad_alloc&) {
+										fprintf(stderr,"Out of memory\n");
+										i++;
+										continue;
+									}
+								}
+								if (decompressor.getPackedSize())
 								{
 									// final checks with the limited buffer and fresh decompressor
-									ConstSubBuffer finalBuffer(*packed,i,decompressor->getPackedSize());
-									auto decompressor2{Decompressor::create(finalBuffer,true,true)};
-									decompressor2->decompress(*raw,true);
+									const uint8_t *finalData=packed->data()+i;
+									size_t finalSize=decompressor.getPackedSize().value();
+									ancient::Decompressor decompressor2{finalData,finalSize,true,true};
+									try
+									{
+										decompressor2.decompress(true);
+									} catch (const std::bad_alloc&) {
+										fprintf(stderr,"Out of memory\n");
+										i++;
+										continue;
+									}
 									std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";
-									printf("Found compressed stream at %zu, size %zu in file %s with type '%s', storing it into %s\n",i,decompressor2->getPackedSize(),name.c_str(),decompressor2->getName().c_str(),outputName.c_str());
-									writeFile(outputName,finalBuffer);
-									i+=finalBuffer.size();
+									printf("Found compressed stream at %zu, size %zu in file %s with type '%s', storing it into %s\n",i,decompressor2.getPackedSize().value(),name.c_str(),decompressor2.getName().c_str(),outputName.c_str());
+									writeFile(outputName,finalData,finalSize);
+									i+=finalSize;
 									continue;
 								}
-							} catch (const Decompressor::Error&) {
+							} catch (const ancient::Error&) {
+								// full steam ahead (with next offset)
+							} catch (const std::bad_alloc&) {
 								// full steam ahead (with next offset)
 							}
 							i++;

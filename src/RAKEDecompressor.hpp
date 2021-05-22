@@ -5,7 +5,7 @@
 
 #include "XPKDecompressor.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class RAKEDecompressor : public XPKDecompressor

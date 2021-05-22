@@ -5,7 +5,7 @@
 
 #include "Decompressor.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class ReduceDecompressor : public Decompressor

@@ -9,7 +9,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 SXSCDecompressor::SXSCReader::SXSCReader(ForwardInputStream &stream) :

@@ -11,7 +11,7 @@
 #include "common/OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 ForwardOutputStream::ForwardOutputStream(Buffer &buffer,size_t startOffset,size_t endOffset) :

@@ -4,7 +4,7 @@
 #include "OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 Buffer::Error::Error() noexcept
@@ -33,16 +33,6 @@ Buffer::InvalidOperationError::InvalidOperationError() noexcept
 }
 
 Buffer::InvalidOperationError::~InvalidOperationError()
-{
-	// nothing needed
-}
-
-Buffer::OutOfMemoryError::OutOfMemoryError() noexcept
-{
-	// nothing needed
-}
-
-Buffer::OutOfMemoryError::~OutOfMemoryError()
 {
 	// nothing needed
 }

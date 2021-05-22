@@ -5,7 +5,7 @@
 
 #include "XPKDecompressor.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class LZXDecompressor : public XPKDecompressor

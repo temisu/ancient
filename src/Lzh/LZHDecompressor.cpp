@@ -16,7 +16,7 @@
 #include "PMDecompressor.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 LZHDecompressor::LZHDecompressor(const Buffer &packedData,const std::string &method) :

@@ -9,7 +9,7 @@
 #include "Buffer.hpp"
 #include "OverflowCheck.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 // helpers to splice Buffer

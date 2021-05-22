@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace ancient
+namespace ancient::internal
 {
 
 // used by too many compressors...

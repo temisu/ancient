@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace ancient
+namespace ancient::internal
 {
 
 constexpr uint16_t MultiChar2(const char (&cc)[3]) noexcept

@@ -14,7 +14,7 @@
 
 #include "common/MemoryBuffer.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 template<typename T>

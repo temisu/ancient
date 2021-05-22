@@ -6,7 +6,7 @@
 #include "OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 static const uint16_t CRC16Table[256]={

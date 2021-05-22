@@ -8,7 +8,7 @@
 
 #include <vector>
 
-namespace ancient
+namespace ancient::internal
 {
 
 class XPKMain : public Decompressor

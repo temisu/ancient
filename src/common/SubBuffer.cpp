@@ -3,7 +3,7 @@
 #include "SubBuffer.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 template <>

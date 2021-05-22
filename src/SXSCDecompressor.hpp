@@ -9,7 +9,7 @@
 #include "InputStream.hpp"
 #include "RangeDecoder.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class SXSCDecompressor : public XPKDecompressor

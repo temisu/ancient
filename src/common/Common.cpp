@@ -3,7 +3,7 @@
 #include "Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 uint32_t rotateBits(uint32_t value,uint32_t count)

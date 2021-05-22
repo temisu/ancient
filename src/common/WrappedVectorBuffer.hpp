@@ -1,21 +1,23 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef MEMORYBUFFER_HPP
-#define MEMORYBUFFER_HPP
+#ifndef WRAPPEDVECTORBUFFER_HPP
+#define WRAPPEDVECTORBUFFER_HPP
 
-#include <memory>
+#include <vector>
+
+#include <cstddef>
+#include <cstdint>
 
 #include "Buffer.hpp"
 
 namespace ancient::internal
 {
 
-class MemoryBuffer : public Buffer
+class WrappedVectorBuffer : public Buffer
 {
 public:
-	MemoryBuffer(size_t size);
-	MemoryBuffer(const Buffer &src,size_t offset,size_t size);
-	virtual ~MemoryBuffer() override final;
+	WrappedVectorBuffer(std::vector<uint8_t> &refdata);
+	virtual ~WrappedVectorBuffer() override final;
 
 	virtual const uint8_t *data() const noexcept override final;
 	virtual uint8_t *data() override final;
@@ -25,8 +27,7 @@ public:
 	virtual void resize(size_t newSize) override final;
 
 private:
-	uint8_t*			_data;
-	size_t				_size;
+	std::vector<uint8_t> & _refdata;
 };
 
 }

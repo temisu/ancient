@@ -7,7 +7,7 @@
 
 #include "common/MemoryBuffer.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 

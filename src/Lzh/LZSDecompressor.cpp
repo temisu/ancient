@@ -6,7 +6,7 @@
 #include "../OutputStream.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 LZSDecompressor::LZSDecompressor(const Buffer &packedData) :

@@ -3,7 +3,7 @@
 #include "XPKDecompressor.hpp"
 #include "XPKMain.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 XPKDecompressor::State::~State()

@@ -5,7 +5,7 @@
 
 #include "Decompressor.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class LZ5Decompressor : public Decompressor

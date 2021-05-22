@@ -8,7 +8,7 @@
 #include "../OutputStream.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 LZ5Decompressor::LZ5Decompressor(const Buffer &packedData) :

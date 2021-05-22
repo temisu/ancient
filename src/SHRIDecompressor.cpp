@@ -6,7 +6,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 SHRIDecompressor::SHRIState::SHRIState() noexcept

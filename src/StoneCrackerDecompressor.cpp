@@ -7,7 +7,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &generation) noexcept

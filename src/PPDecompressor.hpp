@@ -6,7 +6,7 @@
 #include "Decompressor.hpp"
 #include "XPKDecompressor.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class PPDecompressor : public Decompressor, public XPKDecompressor

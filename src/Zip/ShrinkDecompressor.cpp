@@ -9,7 +9,7 @@
 #include "../OutputStream.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 ShrinkDecompressor::ShrinkDecompressor(const Buffer &packedData) :

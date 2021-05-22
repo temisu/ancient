@@ -12,7 +12,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 bool BZIP2Decompressor::detectHeader(uint32_t hdr) noexcept

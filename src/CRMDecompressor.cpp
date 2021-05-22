@@ -9,7 +9,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 bool CRMDecompressor::detectHeader(uint32_t hdr) noexcept

@@ -15,7 +15,7 @@ endif
 
 PROG	= ancient
 MAIN	?= main.o
-OBJS	= Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o CRC16.o CRC32.o \
+OBJS	= API.o Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o WrappedVectorBuffer.o CRC16.o CRC32.o \
 	Decompressor.o XPKDecompressor.o XPKMain.o \
 	OutputStream.o InputStream.o RangeDecoder.o \
 	ACCADecompressor.o ARTMDecompressor.o BLZWDecompressor.o BZIP2Decompressor.o \

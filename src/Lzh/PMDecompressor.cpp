@@ -7,7 +7,7 @@
 #include "../OutputStream.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 PMDecompressor::PMDecompressor(const Buffer &packedData,uint32_t version) :

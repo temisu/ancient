@@ -8,7 +8,7 @@
 #include "common/OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 bool LIN2Decompressor::detectHeaderXPK(uint32_t hdr) noexcept

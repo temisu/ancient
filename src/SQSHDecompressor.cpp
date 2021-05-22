@@ -7,7 +7,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 bool SQSHDecompressor::detectHeaderXPK(uint32_t hdr) noexcept

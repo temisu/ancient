@@ -7,7 +7,7 @@
 #include "../OutputStream.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 LHXDecompressor::LHXDecompressor(const Buffer &packedData) :

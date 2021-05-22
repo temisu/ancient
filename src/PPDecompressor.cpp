@@ -6,7 +6,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 PPDecompressor::PPState::PPState(uint32_t mode) :

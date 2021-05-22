@@ -8,7 +8,7 @@
 
 #include "Buffer.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 template<size_t N>

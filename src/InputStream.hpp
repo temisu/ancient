@@ -8,9 +8,9 @@
 
 #include <algorithm>
 
-#include "Buffer.hpp"
+#include "common/Buffer.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class BackwardInputStream;

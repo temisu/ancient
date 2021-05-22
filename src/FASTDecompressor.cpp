@@ -6,7 +6,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 bool FASTDecompressor::detectHeaderXPK(uint32_t hdr) noexcept

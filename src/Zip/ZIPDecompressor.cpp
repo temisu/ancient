@@ -12,7 +12,7 @@
 #include "ShrinkDecompressor.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 ZIPDecompressor::ZIPDecompressor(const Buffer &packedData,uint32_t method,uint32_t flags) :

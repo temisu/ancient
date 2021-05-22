@@ -13,7 +13,7 @@
 #include "common/OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 bool LZXDecompressor::detectHeaderXPK(uint32_t hdr) noexcept

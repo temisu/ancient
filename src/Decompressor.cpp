@@ -5,48 +5,8 @@
 #include <memory>
 #include <vector>
 
-namespace ancient
+namespace ancient::internal
 {
-
-Decompressor::Error::Error() noexcept
-{
-	// nothing needed
-}
-
-Decompressor::Error::~Error()
-{
-	// nothing needed
-}
-
-Decompressor::InvalidFormatError::InvalidFormatError() noexcept
-{
-	// nothing needed
-}
-
-Decompressor::InvalidFormatError::~InvalidFormatError()
-{
-	// nothing needed
-}
-
-Decompressor::DecompressionError::DecompressionError() noexcept
-{
-	// nothing needed
-}
-
-Decompressor::DecompressionError::~DecompressionError()
-{
-	// nothing needed
-}
-
-Decompressor::VerificationError::VerificationError() noexcept
-{
-	// nothing needed
-}
-
-Decompressor::VerificationError::~VerificationError()
-{
-	// nothing needed
-}
 
 // ---
 

@@ -3,7 +3,7 @@
 #include "RangeDecoder.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 RangeDecoder::BitReader::BitReader()

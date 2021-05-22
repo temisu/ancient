@@ -12,7 +12,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 static uint32_t Adler32(const Buffer &buffer,size_t offset,size_t len)

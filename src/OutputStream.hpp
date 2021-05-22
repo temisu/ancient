@@ -6,9 +6,9 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "Buffer.hpp"
+#include "common/Buffer.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 class ForwardOutputStream

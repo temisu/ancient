@@ -1,41 +1,37 @@
 /* Copyright (C) Teemu Suutari */
 
-#ifndef ANCIENT_BUFFER_HPP
-#define ANCIENT_BUFFER_HPP
-
-#ifndef ANCIENT_API
-#define ANCIENT_API
-#endif
+#ifndef BUFFER_HPP
+#define BUFFER_HPP
 
 #include <cstddef>
 #include <cstdint>
 
 #include <exception>
 
-namespace ancient
+namespace ancient::internal
 {
 
-class ANCIENT_API Buffer
+class Buffer
 {
 protected:
 	Buffer() noexcept;
 
 public:
-	class ANCIENT_API Error : public std::exception
+	class Error : public std::exception
 	{
 	public:
 		Error() noexcept;
 		virtual ~Error();
 	};
 
-	class ANCIENT_API OutOfBoundsError : public Error
+	class OutOfBoundsError : public Error
 	{
 	public:
 		OutOfBoundsError() noexcept;
 		virtual ~OutOfBoundsError();
 	};
 
-	class ANCIENT_API InvalidOperationError : public Error
+	class InvalidOperationError : public Error
 	{
 	public:
 		InvalidOperationError() noexcept;

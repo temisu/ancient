@@ -6,7 +6,7 @@
 #include "common/Common.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 SHR3Decompressor::SHR3State::SHR3State() noexcept

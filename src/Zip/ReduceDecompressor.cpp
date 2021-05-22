@@ -8,7 +8,7 @@
 #include "../OutputStream.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 ReduceDecompressor::ReduceDecompressor(const Buffer &packedData,uint32_t mode) :

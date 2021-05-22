@@ -3,7 +3,7 @@
 #include "StaticBuffer.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 ConstStaticBuffer::ConstStaticBuffer(const uint8_t *data,size_t length) :

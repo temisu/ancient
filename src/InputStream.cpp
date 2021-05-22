@@ -6,7 +6,7 @@
 #include "common/OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 ForwardInputStream::ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun) :

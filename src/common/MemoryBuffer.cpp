@@ -10,7 +10,7 @@
 #include "OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 MemoryBuffer::MemoryBuffer(size_t size) :

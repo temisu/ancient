@@ -7,7 +7,7 @@
 #include "../OutputStream.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 LH3Decompressor::LH3Decompressor(const Buffer &packedData) :

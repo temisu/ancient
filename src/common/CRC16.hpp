@@ -7,7 +7,7 @@
 
 #include "Buffer.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 // The most common CRC16

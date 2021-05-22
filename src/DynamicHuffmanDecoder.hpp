@@ -9,7 +9,7 @@
 // For exception
 #include "Decompressor.hpp"
 
-namespace ancient
+namespace ancient::internal
 {
 
 template<uint32_t maxCount>

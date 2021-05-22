@@ -12,7 +12,7 @@
 #include "XPKDecompressor.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 bool XPKMain::detectHeader(uint32_t hdr) noexcept

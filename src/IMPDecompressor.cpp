@@ -8,7 +8,7 @@
 #include "common/OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 static bool readIMPHeader(uint32_t hdr,uint32_t &addition) noexcept

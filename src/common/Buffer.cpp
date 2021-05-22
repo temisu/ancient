@@ -4,7 +4,7 @@
 #include "OverflowCheck.hpp"
 
 
-namespace ancient
+namespace ancient::internal
 {
 
 Buffer::Error::Error() noexcept

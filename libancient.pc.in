@@ -1,0 +1,13 @@
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+includedir=@includedir@
+libdir=@libdir@
+
+Name: libancient
+Description: Ancient - Modern decompressor for old data compression formats
+Version: @VERSION@
+Requires.private: @LIBANCIENT_PC_REQUIRES_PRIVATE@
+Libs: -L${libdir} -lancient
+Libs.private: @LIBANCIENT_PC_LIBS_PRIVATE@
+Cflags: -I${includedir} @LIBANCIENT_PC_CFLAGS@ @LIBANCIENT_PC_ANCIENT_API@

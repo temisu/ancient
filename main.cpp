@@ -14,7 +14,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "ancient/ancient.hpp"
+#include <ancient/ancient.hpp>
 
 std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 {

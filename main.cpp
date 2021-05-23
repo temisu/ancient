@@ -178,8 +178,11 @@ int main(int argc,char **argv)
 		uint32_t fileIndex=0;
 		std::function<void(std::string)> processDir=[&](std::string inputDir)
 		{
+			auto closedir=[](DIR *d)->int {
+				return ::closedir(d);
+			};
 
-			std::unique_ptr<DIR,decltype(&::closedir)> dir{::opendir(inputDir.c_str()),::closedir};
+			std::unique_ptr<DIR,decltype(&::closedir)> dir{::opendir(inputDir.c_str()),closedir};
 			if (dir)
 			{
 				while (struct dirent *de=::readdir(dir.get()))

@@ -220,7 +220,7 @@ public:
 
 private:
 	HuffmanDecoder<T>	_base;
-	T			_emptyValue;
+	T			_emptyValue=0;
 };
 
 }

@@ -9,7 +9,9 @@
 #include "common/MemoryBuffer.hpp"
 #include "common/SubBuffer.hpp"
 #include "common/StaticBuffer.hpp"
-#include "ancient/Decompressor.hpp"
+#include "Decompressor.hpp"
+
+using namespace ancient::internal;
 
 std::unique_ptr<Buffer> readFile(const std::string &fileName)
 {

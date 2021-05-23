@@ -38,7 +38,10 @@ namespace ancient
 
 namespace internal
 {
+namespace APIv2
+{
 class DecompressorImpl;
+}
 }
 
 inline namespace APIv2
@@ -129,7 +132,7 @@ public:
 
 private:
 
-	std::unique_ptr<internal::DecompressorImpl> m_impl;
+	std::unique_ptr<internal::APIv2::DecompressorImpl> m_impl;
 
 private:
 

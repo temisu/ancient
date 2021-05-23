@@ -200,7 +200,7 @@ void SXSCDecompressor::decompressASC(Buffer &rawData,ForwardInputStream &inputSt
 			outputStream.writeByte(twoStepArithDecoder(litInitial,litDynamic,litThreshold,1000,1,8));
 		} else {
 			// copy
-			while (outputStream.getOffset()>(1U<<distanceIndex) && distanceIndex<15U)
+			while (outputStream.getOffset()>(1ULL<<distanceIndex) && distanceIndex<15U)
 				updateTable(distanceCodes,6000,++distanceIndex,24);
 			uint16_t distanceValue=arithDecoder.decode(tableSize(distanceCodes));
 			uint16_t distanceBits=decodeSymbol(distanceCodes,distanceValue);
@@ -210,7 +210,7 @@ void SXSCDecompressor::decompressASC(Buffer &rawData,ForwardInputStream &inputSt
 			if (distanceBits>=2)
 			{
 				uint16_t minRange=1<<(distanceBits-1);
-				uint16_t range=distanceIndex==distanceBits?std::min(outputStream.getOffset(),size_t(31200U))-minRange:minRange;
+				uint16_t range=distanceIndex==distanceBits?static_cast<uint16_t>(std::min(outputStream.getOffset(),size_t(31200U)))-minRange:minRange;
 				distance=arithDecoder.decode(range);
 				arithDecoder.scale(distance,distance+1,range);
 				distance+=minRange;

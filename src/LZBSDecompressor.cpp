@@ -63,7 +63,7 @@ void LZBSDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 				for (uint32_t i=0;i<count;i++)
 					outputStream.writeByte(readBits(8));
 			} else {
-				while (outputStream.getOffset()>=(1U<<bits) && bits<maxBits) bits++;
+				while (outputStream.getOffset()>=(1ULL<<bits) && bits<maxBits) bits++;
 				uint32_t distance=readBits(bits);
 
 				outputStream.copy(distance,count);

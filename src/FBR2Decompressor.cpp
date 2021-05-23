@@ -58,7 +58,7 @@ void FBR2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			if (count>=0x8000'0000)
 			{
 				doCopy=true;
-				count=-count;
+				count=0-count;
 			}
 			break;
 

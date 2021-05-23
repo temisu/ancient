@@ -76,7 +76,7 @@ void ImplodeDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			if (bitLengths[i]<minDepth) minDepth=bitLengths[i];
 			if (bitLengths[i]>maxDepth) maxDepth=bitLengths[i];
 		}
-		if (offsets[length-1]+counts[length-1]>maxValue) throw DecompressionError();
+		if (static_cast<uint32_t>(offsets[length-1]+counts[length-1])>maxValue) throw DecompressionError();
 
 		uint32_t code=0;
 		for (uint32_t depth=maxDepth;depth>=minDepth;depth--)

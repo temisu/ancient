@@ -20,6 +20,9 @@
 #include "common/Buffer.hpp"
 #include "common/SubBuffer.hpp"
 
+namespace ancient::internal
+{
+
 class VectorBuffer : public Buffer
 {
 public:
@@ -503,7 +506,6 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 	std::memcpy(dest.data(),stream.data(),stream.size());
 }
 
-
 int main(int argc,char **argv)
 {
 	auto usage=[]()
@@ -524,4 +526,11 @@ int main(int argc,char **argv)
 
 	writeFile(argv[2],packed);
 	return 0;
+}
+
+}
+
+int main(int argc,char **argv)
+{
+	return ancient::internal::main(argc,argv);
 }

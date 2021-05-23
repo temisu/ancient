@@ -60,7 +60,7 @@ void ILZRDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		{
 			outputStream.writeByte(readBits(8));
 		} else {
-			while (outputStream.getOffset()>(1U<<bits)) bits++;
+			while (outputStream.getOffset()>(1ULL<<bits)) bits++;
 			uint32_t position=readBits(bits);
 			uint32_t count=readBits(4)+3;
 

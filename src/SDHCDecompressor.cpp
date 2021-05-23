@@ -72,7 +72,7 @@ void SDHCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			tmp=(uint16_t(buf[i])<<8)|uint16_t(buf[i+1]);
 			ctr+=tmp;
 			buf[i]=ctr>>8;
-			buf[i+1]=ctr;
+			buf[i+1]=ctr&0xff;
 		}
 	};
 
@@ -89,9 +89,9 @@ void SDHCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			tmp=(uint16_t(buf[i+2])<<8)|uint16_t(buf[i+3]);
 			ctr2+=tmp;
 			buf[i]=ctr1>>8;
-			buf[i+1]=ctr1;
+			buf[i+1]=ctr1&0xff;
 			buf[i+2]=ctr2>>8;
-			buf[i+3]=ctr2;
+			buf[i+3]=ctr2&0xff;
 		}
 	};
 

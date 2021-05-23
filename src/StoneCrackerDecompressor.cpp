@@ -178,7 +178,7 @@ StoneCrackerDecompressor::StoneCrackerDecompressor(const Buffer &packedData,bool
 		{
 			initialize(packedData,hdr);
 			initialized=true;
-		} catch (const Error &e) {
+		} catch (const Error &) {
 			_generation=1;
 		}
 	}
@@ -517,7 +517,7 @@ void StoneCrackerDecompressor::decompressGen7(Buffer &rawData)
 			throw DecompressionError();
 		uint16_t value=inputStream.readByte();
 		value|=uint16_t(inputStream.readByte())<<8U;
-		bitReader.reset(value,bitCount);
+		bitReader.reset(value,bitCount&0xff);
 	}
 
 	auto readBits=[&](uint32_t count)->uint32_t
@@ -578,7 +578,7 @@ void StoneCrackerDecompressor::decompressGen8(Buffer &rawData)
 		uint16_t bitCount=_packedData.readBE16(_packedSize-2U)&15U;
 		uint16_t value=inputStream.readByte();
 		value|=uint16_t(inputStream.readByte())<<8U;
-		bitReader.reset(value>>(16U-bitCount),bitCount);
+		bitReader.reset(value>>(16U-bitCount),bitCount&0xff);
 
 		modeBits=inputStream.readByte();
 		modeBits|=uint16_t(inputStream.readByte())<<8U;

@@ -14,6 +14,9 @@ namespace ancient
 namespace internal
 {
 
+namespace APIv2
+{
+
 class DecompressorImpl
 {
 public:
@@ -33,6 +36,8 @@ public:
 		return;
 	}
 };
+
+}
 
 }
 
@@ -92,13 +97,13 @@ bool Decompressor::detect(const uint8_t *packedData, size_t packedSize) noexcept
 }
 
 Decompressor::Decompressor(const std::vector<uint8_t> &packedData,bool exactSizeKnown,bool verify) :
-	m_impl(std::make_unique<internal::DecompressorImpl>(packedData, exactSizeKnown, verify))
+	m_impl(std::make_unique<internal::APIv2::DecompressorImpl>(packedData, exactSizeKnown, verify))
 {
 	return;
 }
 
 Decompressor::Decompressor(const uint8_t *packedData,size_t packedSize,bool exactSizeKnown,bool verify) :
-	m_impl(std::make_unique<internal::DecompressorImpl>(packedData, packedSize, exactSizeKnown, verify))
+	m_impl(std::make_unique<internal::APIv2::DecompressorImpl>(packedData, packedSize, exactSizeKnown, verify))
 {
 	return;
 }

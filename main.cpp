@@ -182,7 +182,11 @@ int main(int argc,char **argv)
 				return ::opendir(f);
 			};
 
-			std::unique_ptr<DIR,decltype(&::closedir)> dir{opendir(inputDir.c_str()),::closedir};
+			auto closedir=[](DIR *d)->int {
+				return ::closedir(d);
+			};
+
+			std::unique_ptr<DIR,decltype(&::closedir)> dir{opendir(inputDir.c_str()),closedir};
 			if (dir)
 			{
 				while (struct dirent *de=::readdir(dir.get()))

@@ -18,7 +18,6 @@
 
 std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 {
-
 	std::unique_ptr<std::vector<uint8_t>> ret=std::make_unique<std::vector<uint8_t>>();
 	std::ifstream file(fileName.c_str(),std::ios::in|std::ios::binary);
 	bool success=false;

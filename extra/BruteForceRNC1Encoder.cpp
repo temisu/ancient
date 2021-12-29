@@ -20,6 +20,8 @@
 #include "common/Buffer.hpp"
 #include "common/SubBuffer.hpp"
 
+#define FUZZY_BLOCK_CUT_THRESHOLD (256)
+
 namespace ancient::internal
 {
 
@@ -147,8 +149,9 @@ uint16_t RNCCRC(const uint8_t *buffer,size_t len)
 // leeway is suspicious. I can't see it from the official RNC ProPack, but seems to be present elsewhere...
 void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 {
-	if (!chunkSize) chunkSize=65536;
-	if (chunkSize<1024) chunkSize=1024;
+	if (!chunkSize) chunkSize=32768;		// seems to be a good default
+	if (chunkSize>65536) chunkSize=65536;
+	if (chunkSize<4096) chunkSize=4096;
 
 	std::vector<uint8_t> stream(20);
 	stream[0]='R';
@@ -205,23 +208,28 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 		// returns length,offset
 		auto findLongestRepeat=[&](const uint8_t *buf,uint32_t offset,uint32_t length)->std::pair<uint32_t,uint32_t>
 		{
+			auto comparablePackedSize=[&](uint32_t value)->uint32_t
+			{
+				if (value<2) return 1;
+				// fuzzy cost addition for longer codes
+				return bitLength(value)+(bitLength(bitLength(value))<<1U);
+			};
+
 			std::pair<uint32_t,uint32_t> best{0,0};
 
 			uint32_t distance=1;
-			while (distance<=offset)
+			while (distance<=offset && distance<=chunkSize)
 			{
 				uint32_t i=0;
-				while (offset+i<length && buf[offset+i]==buf[offset+i-distance]) i++;
-				if (i>=2 && i>best.first)
+				while (offset+i<length && buf[offset+i]==buf[offset+i-distance])
+					i++;
+				if (i>=2 && (comparablePackedSize(i-2)+comparablePackedSize(distance-1)+best.first*8<comparablePackedSize(best.first-2)+comparablePackedSize(best.second-1)+i*8)
+					// fuzzy cost addition for shorter blocks (extra literal turnaround)
+					&& (comparablePackedSize(i-2)+comparablePackedSize(distance-1))+5<i*8 )
 				{
-					// encoding cost: how efficiently this hit encodes stuff
-					if (i>3 || bitLength(i-2)+bitLength(distance-1)<7 ||
-						(i==3 && bitLength(i-2)+bitLength(distance-1)<10))
-					{
-						best=std::make_pair(i,distance);
-					}
+					best=std::make_pair(i,distance);
 				}
-				distance++;
+				distance+=1;
 			}
 			return best;
 		};
@@ -253,6 +261,16 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 		uint32_t currentChunkSize=std::min(uint32_t(source.size())-offset,chunkSize);
 		for (uint32_t i=offset;i<currentChunkSize+offset;i+=foundLength)
 		{
+			auto fuzzyBreak=[&]()->bool
+			{
+				if (i+FUZZY_BLOCK_CUT_THRESHOLD>=currentChunkSize+offset)
+				{
+					currentChunkSize=i+foundLength-offset;
+					return true;
+				}
+				return false;
+			};
+
 			if (!litActive)
 			{
 				// literal count
@@ -264,7 +282,6 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 			}
 
 			auto repeat=findLongestRepeat(source.data(),i,currentChunkSize+offset);
-//			auto repeat=findLongestRepeat(source.data()+offset,i-offset,currentChunkSize);
 			if (repeat.first)
 			{
 				packLit();
@@ -280,6 +297,7 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 				rawChunk.push_back(std::tuple<uint32_t,uint32_t,uint32_t,uint32_t>{3,source.data()[i],0,0});
 				std::get<3>(rawChunk[litCountOffset])+=1;
 				foundLength=1;
+				if (/*std::get<3>(rawChunk[litCountOffset])==1 &&*/ fuzzyBreak()) break;
 			}
 		}
 		if (litActive)
@@ -337,10 +355,12 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 			for (uint32_t i=0;i<frequencies.size();i++)
 			{
 				totalFreq+=frequencies[i];
-				if (frequencies[i]) totalCount=i+1;
-				sortedList.push_back(std::make_pair(i,frequencies[i]));
+				if (frequencies[i])
+				{
+					totalCount=i+1;
+					sortedList.push_back(std::make_pair(i,frequencies[i]));
+				}
 			}
-			sortedList.resize(totalCount);
 			writeBits(5,totalCount);
 			if (!totalCount) return;
 			std::sort(sortedList.begin(),sortedList.end(),[&](const auto &a,const auto &b){return a.second>b.second||(a.second==b.second&&a.first<b.first);});
@@ -349,21 +369,18 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 			const uint32_t initialNorm=1<<30;
 			uint32_t totalUsed=0;
 			uint32_t sortedFrequencies[totalCount];
-			for (uint32_t i=0;i<totalCount;i++)
+			for (uint32_t i=0;i<sortedList.size();i++)
 			{
 				uint32_t bitCount=1;	// extra +1 for later tuning
-				sortedFrequencies[i]=sortedList[i].second;
 				uint32_t tmp=sortedList[i].second;
-				if (tmp)
+				sortedFrequencies[i]=tmp;
+				while (tmp<totalFreq)
 				{
-					while (tmp<totalFreq)
-					{
-						tmp<<=1;
-						bitCount++;
-					}
-					sortedList[i].second=bitCount;
-					totalUsed+=initialNorm>>bitCount;
+					tmp<<=1;
+					bitCount++;
 				}
+				sortedList[i].second=bitCount;
+				totalUsed+=initialNorm>>bitCount;
 			}
 
 			// use the full range
@@ -372,9 +389,8 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 				uint32_t bestIndex=totalCount;
 				uint32_t bestImprovement=0;
 
-				for (uint32_t i=0;i<totalCount;i++)
+				for (uint32_t i=0;i<sortedList.size();i++)
 				{
-					if (!sortedList[i].second) break;
 					if (totalUsed+(initialNorm>>sortedList[i].second)<=initialNorm)
 					{
 						// adding cost factor here too
@@ -395,11 +411,11 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 			std::sort(sortedList.begin(),sortedList.end(),[&](const auto &a,const auto &b){return a.second<b.second||(a.second==b.second&&a.first<b.first);});
 
 			uint32_t maxDepth=0;
-			for (uint32_t i=0;i<totalCount;i++)
+			for (uint32_t i=0;i<sortedList.size();i++)
 				maxDepth=std::max(maxDepth,sortedList[i].second);
 
 			uint32_t value=0;
-			for (uint32_t i=0;i<totalCount;i++)
+			for (uint32_t i=0;i<sortedList.size();i++)
 			{
 				auto reverseBits=[](uint32_t bitCount,uint32_t bits)->uint32_t
 				{
@@ -414,12 +430,9 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 				};
 
 				uint32_t code=sortedList[i].first;
-				if (sortedList[i].second)
-				{
-					codes[code].first=reverseBits(maxDepth,value);
-					codes[code].second=sortedList[i].second;
-					value+=1<<(maxDepth-sortedList[i].second);
-				}
+				codes[code].first=reverseBits(maxDepth,value);
+				codes[code].second=sortedList[i].second;
+				value+=1<<(maxDepth-sortedList[i].second);
 			}
 			for (uint32_t i=0;i<totalCount;i++) writeBits(4,codes[i].second);
 		};

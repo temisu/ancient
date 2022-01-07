@@ -140,26 +140,34 @@ int main(int argc,char **argv)
 			return -1;
 		}
 
-		if (decompressor->getImageOffset() || decompressor->getImageSize())
-		{
-			printf("File %s is disk image, decompressed stream offset is %zu, full image size is %zu\n",argv[2],decompressor->getImageOffset().value(),decompressor->getImageSize().value());
-			printf("!!! Please note !!!\n!!! The destination will not be padded !!!\n\n");
-		}
-
 		if (cmd=="decompress")
 		{
-			writeFile(argv[3],raw);
+			if (decompressor->getImageOffset() || decompressor->getImageSize())
+			{
+				printf("File %s is disk image, decompressed stream offset is %zu, full image size is %zu, stream size is %zu\n",argv[2],decompressor->getImageOffset().value(),decompressor->getImageSize().value(),decompressor->getRawSize().value());
+				printf("!!! Please note !!!\n!!! The destination will be padded !!!\n\n");
+			}
+			if (decompressor->getImageSize())
+			{
+				std::vector<uint8_t> pad(decompressor->getImageSize().value());
+				std::memcpy(&pad[decompressor->getImageOffset()?decompressor->getImageOffset().value():0],raw.data(),raw.size());
+				writeFile(argv[3],pad);
+			} else {
+				writeFile(argv[3],raw);
+			}
 			return 0;
 		} else {
+			size_t actualSize=decompressor->getImageSize()?decompressor->getImageSize().value():raw.size();
 			auto verify{readFile(argv[3])};
-			if (raw.size()!=verify->size())
+			if (verify->size()!=actualSize)
 			{
 				fprintf(stderr,"Verify failed for %s and %s - sizes differ\n",argv[2],argv[3]);
 				return -1;
 			}
+			size_t offset=decompressor->getImageOffset()?decompressor->getImageOffset().value():0;
 			for (size_t i=0;i<raw.size();i++)
 			{
-				if (raw.data()[i]!=verify->data()[i])
+				if (raw.data()[i]!=verify->data()[i+offset])
 				{
 					fprintf(stderr,"Verify failed for %s and %s - contents differ @ %zu\n",argv[2],argv[3],i);
 					return -1;

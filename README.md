@@ -34,6 +34,7 @@ Decompression algorithms provided:
   * FLT! (verification missing)
   * Dupa (verification missing)
   * PARA (verification missing)
+* LOB's File Compressor
 * PowerPacker
   * PP 1.1 (verification missing)
   * PP 2.0

@@ -15,7 +15,8 @@ ForwardInputStream::ForwardInputStream(const Buffer &buffer,size_t startOffset,s
 	_endOffset(endOffset),
 	_allowOverrun(allowOverrun)
 {
-	if (_currentOffset>_endOffset || _currentOffset>buffer.size() || _endOffset>buffer.size()) throw Decompressor::DecompressionError();
+	if (_currentOffset>_endOffset || _currentOffset>buffer.size() || _endOffset>buffer.size())
+		throw Decompressor::DecompressionError();
 }
 
 ForwardInputStream::~ForwardInputStream()
@@ -35,7 +36,7 @@ uint8_t ForwardInputStream::readByte()
 		throw Decompressor::DecompressionError();
 	}
 	uint8_t ret=_bufPtr[_currentOffset++];
-	if (_linkedInputStream) _linkedInputStream->setOffset(_currentOffset);
+	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 	return ret;
 }
 
@@ -56,8 +57,16 @@ const uint8_t *ForwardInputStream::consume(size_t bytes,uint8_t *buffer)
 	}
 	const uint8_t *ret=&_bufPtr[_currentOffset];
 	_currentOffset+=bytes;
-	if (_linkedInputStream) _linkedInputStream->setOffset(_currentOffset);
+	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 	return ret;
+}
+
+void ForwardInputStream::setOffset(size_t offset)
+{
+	if (offset>_endOffset)
+		throw Decompressor::DecompressionError();
+	_currentOffset=offset;
+	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 }
 
 BackwardInputStream::BackwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun) :
@@ -86,7 +95,7 @@ uint8_t BackwardInputStream::readByte()
 		throw Decompressor::DecompressionError();
 	}
 	uint8_t ret=_bufPtr[--_currentOffset];
-	if (_linkedInputStream) _linkedInputStream->setOffset(_currentOffset);
+	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 	return ret;
 }
 
@@ -106,8 +115,16 @@ const uint8_t *BackwardInputStream::consume(size_t bytes,uint8_t *buffer)
 		throw Decompressor::DecompressionError();
 	}
 	_currentOffset-=bytes;
-	if (_linkedInputStream) _linkedInputStream->setOffset(_currentOffset);
+	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 	return &_bufPtr[_currentOffset];
+}
+
+void BackwardInputStream::setOffset(size_t offset)
+{
+	if (offset<_endOffset)
+		throw Decompressor::DecompressionError();
+	_currentOffset=offset;
+	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 }
 
 }

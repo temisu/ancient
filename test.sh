@@ -19,6 +19,9 @@ for a in $TEST_V/mh_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\
 for a in $TEST_V/mmcmp_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files2/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
+for a in $TEST_V/pp_files3/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
+for a in $TEST_V/pp_files4/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
+for a in $TEST_V/pp_files5/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
 for a in $TEST_V/rdc9_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/regression_test/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/rnc1pc_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done

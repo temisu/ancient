@@ -16,7 +16,8 @@ for a in $TEST_V/gzbz2_files/*.bz2 ; do $BIN verify $a $(echo $a | sed s/\\.bz2/
 
 
 for a in $TEST_V/mh_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
-for a in $TEST_V/mmcmp_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/lob_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/lob_files2/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files2/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files3/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done

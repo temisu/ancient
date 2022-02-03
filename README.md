@@ -38,6 +38,7 @@ Decompression algorithms provided:
 * PowerPacker
   * PP 1.1 (verification missing)
   * PP 2.0
+  * Supports password bypassing (PX20)
 * Rob Northen compressors.
   * RNC1: Both old and formats utilizing the same header. heuristics for detecting the current one
   * RNC2: RNC version 2 stream

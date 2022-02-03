@@ -241,7 +241,7 @@ int main(int argc,char **argv)
 								if (decompressor.getPackedSize())
 								{
 									// final checks with the limited buffer and fresh decompressor
-									const uint8_t *finalData=packed->data()+i;
+									const uint8_t *finalData=packed->data()+scanPos;
 									size_t finalSize=decompressor.getPackedSize().value();
 									ancient::Decompressor decompressor2{finalData,finalSize,true,true};
 									try

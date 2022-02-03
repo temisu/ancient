@@ -23,7 +23,7 @@ OBJS	= API.o Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o Wrapped
 	DLTADecode.o DMSDecompressor.o FASTDecompressor.o FBR2Decompressor.o \
 	FRLEDecompressor.o HFMNDecompressor.o HUFFDecompressor.o ILZRDecompressor.o \
 	IMPDecompressor.o LHLBDecompressor.o LIN1Decompressor.o LIN2Decompressor.o \
-	LZBSDecompressor.o LZCBDecompressor.o LZW2Decompressor.o LZW4Decompressor.o \
+	LOBDecompressor.o LZBSDecompressor.o LZCBDecompressor.o LZW2Decompressor.o LZW4Decompressor.o \
 	LZW5Decompressor.o LZXDecompressor.o MASHDecompressor.o MMCMPDecompressor.o \
 	NONEDecompressor.o NUKEDecompressor.o PPDecompressor.o RAKEDecompressor.o \
 	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SDHCDecompressor.o \

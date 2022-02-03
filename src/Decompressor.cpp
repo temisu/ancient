@@ -10,6 +10,7 @@
 #include "DEFLATEDecompressor.hpp"
 #include "DMSDecompressor.hpp"
 #include "IMPDecompressor.hpp"
+#include "LOBDecompressor.hpp"
 #include "MMCMPDecompressor.hpp"
 #include "PPDecompressor.hpp"
 #include "RNCDecompressor.hpp"
@@ -28,6 +29,7 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<Decompressor>(*)(
 	{DEFLATEDecompressor::detectHeader,DEFLATEDecompressor::create},
 	{DMSDecompressor::detectHeader,DMSDecompressor::create},
 	{IMPDecompressor::detectHeader,IMPDecompressor::create},
+	{LOBDecompressor::detectHeader,LOBDecompressor::create},
 	{MMCMPDecompressor::detectHeader,MMCMPDecompressor::create},
 	{PPDecompressor::detectHeader,PPDecompressor::create},
 	{RNCDecompressor::detectHeader,RNCDecompressor::create},

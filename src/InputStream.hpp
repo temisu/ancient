@@ -36,7 +36,7 @@ public:
 private:
 	void setEndOffset(size_t offset) noexcept { _endOffset=offset; }
 
-	const uint8_t		*_bufPtr;
+	const Buffer		&_buffer;
 	size_t			_currentOffset;
 	size_t			_endOffset;
 	bool			_allowOverrun;
@@ -64,7 +64,7 @@ public:
 private:
 	void setEndOffset(size_t offset) noexcept { _endOffset=offset; }
 
-	const uint8_t		*_bufPtr;
+	const Buffer		&_buffer;
 	size_t			_currentOffset;
 	size_t			_endOffset;
 	bool			_allowOverrun;

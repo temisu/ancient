@@ -152,10 +152,9 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 	auto headerChecksum=[](const Buffer &buffer,size_t offset,size_t len)->bool
 	{
 		if (!len || OverflowCheck::sum(offset,len)>buffer.size()) return false;
-		const uint8_t *ptr=buffer.data()+offset;
 		uint8_t tmp=0;
 		for (size_t i=0;i<len;i++)
-			tmp^=ptr[i];
+			tmp^=buffer[offset+i];
 		return !tmp;
 	};
 
@@ -163,10 +162,9 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 	auto chunkChecksum=[](const Buffer &buffer,size_t offset,size_t len,uint16_t checkValue)->bool
 	{
 		if (!len || OverflowCheck::sum(offset,len)>buffer.size()) return false;
-		const uint8_t *ptr=buffer.data()+offset;
 		uint8_t tmp[2]={0,0};
 		for (size_t i=0;i<len;i++)
-			tmp[i&1]^=ptr[i];
+			tmp[i&1]^=buffer[offset+i];
 		return tmp[0]==(checkValue>>8) && tmp[1]==(checkValue&0xff);
 	};
 

@@ -30,7 +30,7 @@ public:
 	size_t getEndOffset() const { return _endOffset; }
 
 private:
-	uint8_t		*_bufPtr;
+	Buffer		&_buffer;
 	size_t		_startOffset;
 	size_t		_currentOffset;
 	size_t		_endOffset;
@@ -50,7 +50,7 @@ public:
 	size_t getOffset() const { return _currentOffset; }
 
 private:
-	uint8_t		*_bufPtr;
+	Buffer		&_buffer;
 	size_t		_startOffset;
 	size_t		_currentOffset;
 	size_t		_endOffset;

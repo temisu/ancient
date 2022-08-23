@@ -17,13 +17,10 @@ namespace ancient::internal
 
 static uint32_t Adler32(const Buffer &buffer,size_t offset,size_t len)
 {
-	if (!len || OverflowCheck::sum(offset,len)>buffer.size()) throw Buffer::OutOfBoundsError();
-	const uint8_t *ptr=buffer.data()+offset;
-
 	uint32_t s1=1,s2=0;
 	for (size_t i=0;i<len;i++)
 	{
-		s1+=ptr[i];
+		s1+=buffer[offset+i];
 		if (s1>=65521) s1-=65521;
 		s2+=s1;
 		if (s2>=65521) s2-=65521;

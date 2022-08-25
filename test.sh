@@ -30,7 +30,7 @@ for a in $TEST_V/rnc1pc_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pa
 # some decompressors generate 1 bytes extra. manual check needed for results
 for a in $TEST_V/stonecracker_files/*.pack* ; do $BIN verify $a $(echo $a | sed s/\\.pack.*/\\.raw/) ; done
 
-for a in $TEST_V/xpk_testfiles/*.pack ; do test $(echo $a | sed s/.*_xpkppmq.*//) && $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/xpk_testfiles/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/xpk_testfiles2/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
 
 for a in $TEST_V/xtra_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done

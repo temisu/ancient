@@ -40,6 +40,7 @@
 #include "NONEDecompressor.hpp"
 #include "NUKEDecompressor.hpp"
 #include "PPDecompressor.hpp"
+#include "PPMQDecompressor.hpp"
 #include "RAKEDecompressor.hpp"
 #include "RDCNDecompressor.hpp"
 #include "RLENDecompressor.hpp"
@@ -96,6 +97,7 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<XPKDecompressor>(
 	{NONEDecompressor::detectHeaderXPK,NONEDecompressor::create},
 	{NUKEDecompressor::detectHeaderXPK,NUKEDecompressor::create},
 	{PPDecompressor::detectHeaderXPK,PPDecompressor::create},
+	{PPMQDecompressor::detectHeaderXPK,PPMQDecompressor::create},
 	{RAKEDecompressor::detectHeaderXPK,RAKEDecompressor::create},
 	{RDCNDecompressor::detectHeaderXPK,RDCNDecompressor::create},
 	{RLENDecompressor::detectHeaderXPK,RLENDecompressor::create},

@@ -33,9 +33,10 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<Decompressor>(*)(
 	{MMCMPDecompressor::detectHeader,MMCMPDecompressor::create},
 	{PPDecompressor::detectHeader,PPDecompressor::create},
 	{RNCDecompressor::detectHeader,RNCDecompressor::create},
-	{StoneCrackerDecompressor::detectHeader,StoneCrackerDecompressor::create},
 	{TPWMDecompressor::detectHeader,TPWMDecompressor::create},
-	{XPKMain::detectHeader,XPKMain::create}};
+	{XPKMain::detectHeader,XPKMain::create},
+	// Putting StoneCracker last since detection can be accidentally be detected instead of correct format
+	{StoneCrackerDecompressor::detectHeader,StoneCrackerDecompressor::create}};
 
 Decompressor::Decompressor() noexcept
 {

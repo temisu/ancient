@@ -1,10 +1,12 @@
 /* Copyright (C) Teemu Suutari */
 
+#include "common/Common.hpp"
 #include "PPMQDecompressor.hpp"
 #include "RangeDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-#include "common/Common.hpp"
+#include "RangeDecoder.hpp"
+#include "FrequencyTree.hpp"
 
 
 namespace ancient::internal
@@ -35,12 +37,312 @@ PPMQDecompressor::~PPMQDecompressor()
 
 const std::string &PPMQDecompressor::getSubName() const noexcept
 {
-	static std::string name="XPK-PPMQ: compressor";
+	static std::string name="XPK-PPMQ: PPM compressor";
 	return name;
 }
 
 void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
+	class BitReader : public RangeDecoder::BitReader
+	{
+	public:
+		BitReader(ForwardInputStream &stream) noexcept :
+			_reader(stream)
+		{
+			// nothing needed
+		}
+
+		virtual ~BitReader()
+		{
+			// nothing needed
+		}
+
+		virtual uint32_t readBit() override final
+		{
+			return _reader.readBitsBE32(1);
+		}
+
+		uint32_t readBits(uint32_t bitCount)
+		{
+			return _reader.readBitsBE32(bitCount);
+		}
+
+	private:
+		MSBBitReader<ForwardInputStream>	_reader;
+	};
+
+
+	ForwardInputStream inputStream(_packedData,0,_packedData.size());
+	ForwardOutputStream outputStream(rawData,0,rawData.size());
+	BitReader bitReader(inputStream);
+
+	for (uint32_t i=0;i<5;i++)
+	{
+		outputStream.writeByte(bitReader.readBits(8));
+		// files shorter than 5 bytes are not supported by the library. We can try something here though
+		if (outputStream.eof()) return;
+	}
+
+	RangeDecoder decoder(bitReader,bitReader.readBits(16));
+
+	class ExclusionList
+	{
+	public:
+		class ExclusionCallback
+		{
+		public:
+			ExclusionCallback(ExclusionList &parent)
+			{
+				parent.registerCallback(this);
+			}
+
+			virtual void symbolIncluded(uint8_t symbol) noexcept=0;
+			virtual void symbolExcluded(uint8_t symbol) noexcept=0;
+		};
+
+		ExclusionList() noexcept
+		{
+			for (uint32_t i=0;i<256U;i++)
+				_tree.set(i,1);
+		}
+
+		~ExclusionList()
+		{
+			// nothing needed
+		}
+
+		void reset() noexcept
+		{
+			for (uint32_t i=0;i<256U;i++) if (!_tree[i])
+			{
+				_tree.set(i,1);
+				for (auto callback : _callbacks) callback->symbolIncluded(i);
+			}
+		}
+
+		void exclude(uint8_t symbol) noexcept
+		{
+			if (_tree[symbol])
+			{
+				_tree.set(symbol,0);
+				for (auto callback : _callbacks) callback->symbolExcluded(symbol);
+			}
+		}
+
+		bool isExcluded(uint8_t symbol) const noexcept
+		{
+			return !_tree[symbol];
+		}
+
+		uint32_t getTotal() const noexcept
+		{
+			return _tree.getTotal();
+		}
+
+		uint8_t decode(uint16_t value,uint16_t &low,uint16_t &freq) const
+		{
+			return _tree.decode(value,low,freq);
+		}
+
+	private:
+		void registerCallback(ExclusionCallback *callback) noexcept
+		{
+			_callbacks.push_back(callback);
+		}
+
+		FrequencyTree<uint16_t,uint8_t,256>	_tree;
+		std::vector<ExclusionCallback*>		_callbacks;
+	};
+
+	class Model
+	{
+	public:
+		Model(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
+			_decoder(decoder),
+			_exclusionList(exclusionList)
+		{
+			// nothing needed
+		}
+
+		virtual ~Model()
+		{
+			// nothing needed
+		}
+
+		virtual bool decode(uint8_t &ch)=0;
+		virtual void mark(uint8_t ch)=0;
+
+	protected:
+		RangeDecoder				&_decoder;
+		ExclusionList				&_exclusionList;
+	};
+
+	class Model2 : public Model
+	{
+	public:
+		Model2(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
+			Model(decoder,exclusionList)
+		{
+			// nothing needed
+		}
+
+		virtual ~Model2()
+		{
+			// nothing needed
+		}
+
+		virtual bool decode(uint8_t &ch) override final
+		{
+			return false;
+		}
+
+		virtual void mark(uint8_t ch) override final
+		{
+		}
+	};
+
+	class Model1 : public Model
+	{
+	public:
+		Model1(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
+			Model(decoder,exclusionList)
+		{
+			// nothing needed
+		}
+
+		virtual ~Model1()
+		{
+			// nothing needed
+		}
+
+		virtual bool decode(uint8_t &ch) override final
+		{
+			return false;
+		}
+
+		virtual void mark(uint8_t ch) override final
+		{
+		}
+	};
+
+	// A simple arithmetic encoder
+	class Model0 : public Model, public ExclusionList::ExclusionCallback
+	{
+	public:
+		Model0(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
+			Model(decoder,exclusionList),
+			ExclusionCallback(exclusionList)
+		{
+			_tree.set(0,1);
+			for (uint32_t i=0;i<256U;i++) _charCounts[i]=0;
+		}
+
+		virtual ~Model0()
+		{
+			// nothing needed
+		}
+
+		virtual bool decode(uint8_t &ch) override final
+		{
+			uint16_t value=_decoder.decode(_tree.getTotal());
+			uint16_t low,freq;
+			uint8_t symbol=_tree.decode(value,low,freq);
+			_decoder.scale(low,low+freq,_tree.getTotal());
+			if (!symbol)
+			{
+				for (uint32_t i=0;i<256U;i++)
+					if (_tree[i+1]) _exclusionList.exclude(i);
+				return false;
+			}
+			_tree.add(symbol,1);
+			if (_tree[symbol]==2 && _tree[0]!=1U) _tree.add(0,-1);
+			ch=symbol-1;
+			return true;
+		}
+		
+		virtual void mark(uint8_t ch) override final
+		{
+			uint16_t symbol=uint16_t(ch)+1;
+			if (!_tree[symbol])		// TODO: if looks like always true!
+			{
+				if (_exclusionList.isExcluded(ch)) _charCounts[ch]=1U;	// TODO: looks like always false
+					else _tree.set(symbol,1U);
+				_tree.add(0,1);
+			}
+		}
+
+		virtual void symbolIncluded(uint8_t symbol) noexcept override final
+		{
+			_tree.set(uint16_t(symbol)+1,_charCounts[symbol]);
+		}
+
+		virtual void symbolExcluded(uint8_t symbol) noexcept override final
+		{
+			_charCounts[symbol]=_tree[symbol];
+			_tree.set(uint16_t(symbol)+1,0);
+		}
+
+	private:
+		// first one is escape character
+		FrequencyTree<uint16_t,uint16_t,257>	_tree;
+		uint16_t				_charCounts[256];
+	};
+
+	// purely a fallback model that can always decode
+	class FallbackModel : public Model
+	{
+	public:
+		FallbackModel(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
+			Model(decoder,exclusionList)
+		{
+			// nothing needed
+		}
+
+		virtual ~FallbackModel()
+		{
+			// nothing needed
+		}
+
+		virtual bool decode(uint8_t &ch) override final
+		{
+			uint16_t value=_decoder.decode(_exclusionList.getTotal());
+			uint16_t low,freq;
+			ch=_exclusionList.decode(value,low,freq);
+			_decoder.scale(low,low+freq,_exclusionList.getTotal());
+			return true;
+		}
+
+		virtual void mark(uint8_t ch) override final
+		{
+			// nothing needed
+		}
+	};
+
+	ExclusionList exclusionList;
+	Model2 model2A(decoder,exclusionList);
+	Model2 model2B(decoder,exclusionList);
+	Model1 model1A(decoder,exclusionList);
+	Model1 model1B(decoder,exclusionList);
+	Model1 model1C(decoder,exclusionList);
+	Model0 model0(decoder,exclusionList);
+	FallbackModel fallbackModel(decoder,exclusionList);
+	std::vector<Model*> models={&model2A,&model2B,&model1A,&model1B,&model1C,&model0,&fallbackModel};
+
+	while (!outputStream.eof())
+	{
+		exclusionList.reset();
+		for (uint32_t i=0;i<models.size();i++)
+		{
+			uint8_t ch;
+			if (models[i]->decode(ch))
+			{
+				for (uint32_t j=i;j;j--)
+					models[j-1]->mark(ch);
+				outputStream.writeByte(ch);
+				break;
+			}
+		}
+	}
 }
 
 }

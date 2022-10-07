@@ -64,6 +64,7 @@ LIBANCIENT_FILES_SRC += src/FBR2Decompressor.cpp
 LIBANCIENT_FILES_SRC += src/FBR2Decompressor.hpp
 LIBANCIENT_FILES_SRC += src/FRLEDecompressor.cpp
 LIBANCIENT_FILES_SRC += src/FRLEDecompressor.hpp
+LIBANCIENT_FILES_SRC += src/FrequencyTree.hpp
 LIBANCIENT_FILES_SRC += src/HFMNDecompressor.cpp
 LIBANCIENT_FILES_SRC += src/HFMNDecompressor.hpp
 LIBANCIENT_FILES_SRC += src/HUFFDecompressor.cpp

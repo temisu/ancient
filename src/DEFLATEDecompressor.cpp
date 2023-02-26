@@ -190,7 +190,6 @@ size_t DEFLATEDecompressor::getRawSize() const noexcept
 void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	size_t packedSize=_packedSize?_packedSize:_packedData.size();
-	size_t rawSize=_rawSize?_rawSize:rawData.size();
 
 	ForwardInputStream inputStream(_packedData,_packedOffset,packedSize);
 	LSBBitReader<ForwardInputStream> bitReader(inputStream);
@@ -203,7 +202,7 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		return bitReader.readBits8(1);
 	};
 
-	ForwardOutputStream outputStream(rawData,0,rawSize);
+	AutoExpandingForwardOutputStream outputStream(rawData);
 
 	bool final;
 	do {
@@ -346,7 +345,7 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		}
 	} while (!final);
 
-	if (!_rawSize) _rawSize=outputStream.getOffset();
+	_rawSize=outputStream.getOffset();
 	if (_type==Type::GZIP)
 	{
 		if (OverflowCheck::sum(inputStream.getOffset(),8U)>packedSize) throw DecompressionError();
@@ -360,7 +359,6 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		if (!_packedSize)
 			_packedSize=inputStream.getOffset();
 	}
-	if (_rawSize!=outputStream.getOffset()) throw DecompressionError();
 
 	if (verify)
 	{

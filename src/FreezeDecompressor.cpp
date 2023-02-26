@@ -1,7 +1,5 @@
-/* Copyright (C) Teemu Suutari */
 
-#include <cstdint>
-#include <cstring>
+/* Copyright (C) Teemu Suutari */
 
 #include "FreezeDecompressor.hpp"
 #include "HuffmanDecoder.hpp"
@@ -95,6 +93,16 @@ size_t FreezeDecompressor::getRawSize() const noexcept
 void FreezeDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	ForwardInputStream inputStream(_packedData,_isOldVersion?2U:5U,_packedData.size());
+
+	// Special case for empty file
+	if (inputStream.eof())
+	{
+		_rawSize=0U;
+		if (_exactSizeKnown && _packedSize!=inputStream.getOffset())
+			throw DecompressionError();
+		_packedSize=inputStream.getOffset();
+	}
+
 	MSBBitReader<ForwardInputStream> bitReader(inputStream);
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
@@ -105,7 +113,7 @@ void FreezeDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		return bitReader.readBits8(1);
 	};
 
-	ForwardOutputStream outputStream(rawData,0,rawData.size());
+	AutoExpandingForwardOutputStream outputStream(rawData);
 	DynamicHuffmanDecoder<511U> decoder(_isOldVersion?315U:511U);
 	HuffmanDecoder<uint8_t> distanceDecoder;
 	{

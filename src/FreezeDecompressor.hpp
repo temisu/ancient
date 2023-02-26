@@ -30,8 +30,8 @@ private:
 
 	size_t		_packedSize=0;
 	size_t		_rawSize=0;
-	bool		_isOldVersion=false;
-	bool		_exactSizeKnown=true;
+	bool		_isOldVersion;
+	bool		_exactSizeKnown;
 
 	uint8_t		_hufTable[8];
 };

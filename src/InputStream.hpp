@@ -210,6 +210,16 @@ public:
 		});
 	}
 
+	uint32_t readBitsLE16(uint32_t count)
+	{
+		return readBitsInternal(count,[&](){
+			uint8_t tmp[2];
+			const uint8_t *buf=_inputStream.consume(2,tmp);
+			_bufContent=(uint32_t(buf[1])<<8)|uint32_t(buf[0]);
+			_bufLength=16;
+		});
+	}
+
 	uint32_t getBufContent() const noexcept { return _bufContent; }
 	uint8_t getBufLength() const noexcept { return _bufLength; }
 

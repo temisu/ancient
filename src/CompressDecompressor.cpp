@@ -1,8 +1,5 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <cstdint>
-#include <cstring>
-
 #include "CompressDecompressor.hpp"
 #include "LZWDecoder.hpp"
 #include "InputStream.hpp"
@@ -85,7 +82,7 @@ void CompressDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		return bitReader.readBits8(count);
 	};
 
-	ForwardOutputStream outputStream(rawData,0,rawData.size());
+	AutoExpandingForwardOutputStream outputStream(rawData);
 	auto writeByte=[&](uint8_t value)
 	{
 		outputStream.writeByte(value);
@@ -98,6 +95,14 @@ void CompressDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	LZWDecoder decoder(1<<_maxBits,_hasBlocks?257U:256U,69001U,firstCode);
 	decoder.write(firstCode,false,writeByte);
 
+	// This is actually surprising for a compressor
+	// that was popular at time: There are silly bugs
+	// and wastage of bytes since codes are read in blocks
+	// and thrown away in reset and code size change
+	// the worst thing is setting max bits to 9 which turns instead
+	// unbounded bit size compressor (here we throw in case we can more than 16 bits)
+	// gzip seems to limit the minimum max bits to 12ish, which is more sane
+	// (debugging that was entertaining though)
 	uint32_t codeCounter=1;				// previous read for first byte included
 	auto reset=[&]()
 	{
@@ -112,7 +117,6 @@ void CompressDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		if (!maxReached && decoder.getCurrentIndex()>=(1<<codeBits))
 		{
 			reset();
-			// maxBits 9 has a silly bug
 			if (codeBits!=_maxBits || _maxBits==9U) codeBits++;
 				else maxReached=true;
 			if (codeBits>16U)

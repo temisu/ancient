@@ -102,6 +102,10 @@ int main(int argc,char **argv)
 		{
 			fprintf(stderr,"Unknown or invalid compression format in file %s\n",argv[2]);
 			return -1;
+		} catch (const ancient::VerificationError&)
+		{
+			fprintf(stderr,"Failed to validate file %s\n",argv[2]);
+			return -1;
 		}
 		return 0;
 	} else if (cmd=="decompress" || cmd=="verify") {

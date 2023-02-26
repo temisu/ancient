@@ -51,13 +51,56 @@ public:
 		return symbol;
 	}
 
-	T operator[](U symbol) const noexcept
+	// for comparing against zero this is always useful
+	// for comparing against other values only useful if the tree is compromised of
+	// 0 and compared-against values and nothing else.
+	// Some positives will be missed if there are multiple values!
+	//
+	// Will be non-ideal on a non 2^n-sized tree when compared against
+	// non-zero value. Adding exact behavior would also add complications
+	// that might not be beneficial in the end
+	template <typename F>
+	void onNoMatch(T targetValue,F func)
 	{
+		uint32_t step=1U<<(_levels-1);
+		uint32_t level=_levels-1;
+		targetValue<<=_levels-1;
+
+		for (uint32_t symbol=0;symbol<V;)
+		{
+			while (_tree[_levelOffsets[level]+(symbol>>level)]!=targetValue)
+			{
+				if (level)
+				{
+					level--;
+					targetValue>>=1;
+					step>>=1;
+				} else {
+					func(symbol);
+					break;
+				}
+			}
+			symbol+=step;
+			if (!(symbol&step))
+			{
+				level++;
+				targetValue<<=1;
+				step<<=1;
+			}
+		}
+	}
+
+	T operator[](U symbol) const
+	{
+		if (symbol>=V)
+			throw Decompressor::DecompressionError();
 		return _tree[symbol];
 	}
 	
-	void add(U symbol,typename std::make_signed<T>::type freq) noexcept
+	void add(U symbol,typename std::make_signed<T>::type freq)
 	{
+		if (symbol>=V)
+			throw Decompressor::DecompressionError();
 		for (uint32_t i=0;i<_levels;i++)
 		{
 			_tree[_levelOffsets[i]+symbol]+=freq;
@@ -65,8 +108,10 @@ public:
 		}
 	}
 
-	void set(U symbol,T freq) noexcept
+	void set(U symbol,T freq)
 	{
+		if (symbol>=V)
+			throw Decompressor::DecompressionError();
 		// TODO: check behavior on large numbers
 		typename std::make_signed<T>::type delta=freq-_tree[symbol];
 		add(symbol,delta);

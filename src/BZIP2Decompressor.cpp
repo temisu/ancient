@@ -87,7 +87,6 @@ size_t BZIP2Decompressor::getRawSize() const noexcept
 void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 {
 	size_t packedSize=_packedSize?_packedSize:_packedData.size();
-	size_t rawSize=_rawSize?_rawSize:rawData.size();
 
 	ForwardInputStream inputStream(_packedData,4,packedSize);
 	MSBBitReader<ForwardInputStream> bitReader(inputStream);
@@ -100,7 +99,7 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 		return bitReader.readBits8(1);
 	};
 
-	ForwardOutputStream outputStream(rawData,0,rawSize);
+	AutoExpandingForwardOutputStream outputStream(rawData);
 
 	// stream verification
 	//
@@ -385,9 +384,8 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 		} else throw DecompressionError();
 	}
 
-	if (!_rawSize) _rawSize=outputStream.getOffset();
-	if (!_packedSize) _packedSize=inputStream.getOffset();
-	if (_rawSize!=outputStream.getOffset()) throw DecompressionError();
+	_rawSize=outputStream.getOffset();
+	_packedSize=inputStream.getOffset();
 }
 
 void BZIP2Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)

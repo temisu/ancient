@@ -19,7 +19,7 @@ OBJS	= API.o Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o Wrapped
 	Decompressor.o LZWDecoder.o XPKDecompressor.o XPKMain.o \
 	OutputStream.o InputStream.o RangeDecoder.o \
 	ACCADecompressor.o ARTMDecompressor.o BLZWDecompressor.o BZIP2Decompressor.o \
-	CBR0Decompressor.o CompressDecompressor.o CRMDecompressor.o CYB2Decoder.o \
+	CBR0Decompressor.o CompactDecompressor.o CompressDecompressor.o CRMDecompressor.o CYB2Decoder.o \
 	DEFLATEDecompressor.o DLTADecode.o DMSDecompressor.o FASTDecompressor.o \
 	FBR2Decompressor.o FreezeDecompressor.o FRLEDecompressor.o HFMNDecompressor.o \
 	HUFFDecompressor.o ILZRDecompressor.o IMPDecompressor.o LHLBDecompressor.o \
@@ -53,6 +53,6 @@ test: $(OBJS) test.o
 	$(CXX) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f $(OBJS) $(MAIN) $(PROG) $(LIB) *~ src/*~
+	rm -f $(OBJS) $(MAIN) $(PROG) $(LIB) test test.o *~ src/*~
 
 .PHONY:

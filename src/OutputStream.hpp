@@ -62,6 +62,8 @@ protected:
 
 private:
 	static constexpr size_t _advance=65536U;
+
+	bool		_hasExpanded=false;
 };
 
 class BackwardOutputStream

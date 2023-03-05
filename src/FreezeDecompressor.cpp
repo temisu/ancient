@@ -1,4 +1,3 @@
-
 /* Copyright (C) Teemu Suutari */
 
 #include "FreezeDecompressor.hpp"
@@ -92,7 +91,7 @@ size_t FreezeDecompressor::getRawSize() const noexcept
 
 void FreezeDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	ForwardInputStream inputStream(_packedData,_isOldVersion?2U:5U,_packedData.size());
+	ForwardInputStream inputStream(_packedData,_isOldVersion?2U:5U,_packedSize?_packedSize:_packedData.size());
 
 	// Special case for empty file
 	if (inputStream.eof())

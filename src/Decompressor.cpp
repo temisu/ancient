@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "BZIP2Decompressor.hpp"
+#include "CompactDecompressor.hpp"
 #include "CompressDecompressor.hpp"
 #include "CRMDecompressor.hpp"
 #include "DEFLATEDecompressor.hpp"
@@ -28,6 +29,7 @@ namespace ancient::internal
 
 static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> decompressors={
 	{BZIP2Decompressor::detectHeader,BZIP2Decompressor::create},
+	{CompactDecompressor::detectHeader,CompactDecompressor::create},
 	{CompressDecompressor::detectHeader,CompressDecompressor::create},
 	{CRMDecompressor::detectHeader,CRMDecompressor::create},
 	{DEFLATEDecompressor::detectHeader,DEFLATEDecompressor::create},

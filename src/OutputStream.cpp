@@ -131,7 +131,7 @@ AutoExpandingForwardOutputStream::AutoExpandingForwardOutputStream(Buffer &buffe
 AutoExpandingForwardOutputStream::~AutoExpandingForwardOutputStream()
 {
 	// trim
-	if (_currentOffset!=_buffer.size())
+	if (_hasExpanded && _currentOffset!=_buffer.size())
 		_buffer.resize(_currentOffset);
 }
 
@@ -140,7 +140,10 @@ void AutoExpandingForwardOutputStream::ensureSize(size_t offset)
 	if (offset>Decompressor::getMaxRawSize())
 		throw Decompressor::DecompressionError();
 	if (offset>_buffer.size())
+	{
 		_buffer.resize(offset+_advance);
+		_hasExpanded=true;
+	}
 }
 
 // ---

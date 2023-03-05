@@ -74,7 +74,7 @@ size_t PackDecompressor::getRawSize() const noexcept
 
 void PackDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	ForwardInputStream inputStream(_packedData,6,_packedData.size());
+	ForwardInputStream inputStream(_packedData,6,_packedSize?_packedSize:_packedData.size());
 	ForwardOutputStream outputStream(rawData,0,rawData.size());
 	MSBBitReader<ForwardInputStream> bitReader(inputStream);
 

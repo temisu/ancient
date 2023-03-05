@@ -2,13 +2,12 @@
 
 This is a collection of decompression routines for old formats popular in the Amiga, Atari computers and some other systems from 80's and 90's as well as some that are currently used which were used in a some specific way in these old systems.
 
-For simple usage both a simple command line application as well as a simple API to use the decompressors are provided. The compression algorithm is automatically detected in most cases, however there are some corner cases where it is not entirely reliable due to weaknesses in the old format used. Please see the
-[main.cpp](main.cpp) and [ancient.hpp](api/ancient/ancient.hpp) to get an idea.
-
 Even though most of these algorithms are still available for download, scavenging and using them might prove to be a challenge. Thus the purpose of this project is to:
 * Provide a clean, modern implementation of the algorithms - Typically the implementations were not meant to be used outside of the original systems they were made for. Some other ported implementations are incomplete, bad quality or direct translations from old M68K assembly code.
 * Provide a clean BSD-style licensing - Original implementations or their ports might have strange license or no visible license at all. There are also implementations that have been ripped off from some other source thus their legality is questionable at best.
 * Provide a tested implementation - The code is no good if it does not work properly and the old code have a lot of corner cases. These implementations are tested using a cache of available files (~10k) that used these algorithms. Although it does not offer any guarantee especially when we are talking about undocumented formats, it gives hope that there are less "stupid errors" in the code.
+
+For simple usage both a simple command line application as well as a simple API to use the decompressors are provided.  The compression algorithm is automatically detected in most cases, however there are some corner cases where it is not entirely reliable due to weaknesses in the old format used. Please see the [main.cpp](main.cpp) and [ancient.hpp](api/ancient/ancient.hpp) to get an idea.
 
 This code should compile cleanly on most C++17 capable compilers (C++14 compilers might need tweaking), and it is tested on clang and MSVC. For MSVC please use https://github.com/tronkko/dirent or similar to compile to command line tool
 
@@ -38,7 +37,7 @@ Decompression algorithms provided:
 * PowerPacker
   * PP 1.1 (verification missing)
   * PP 2.0
-  * Supports password bypassing (PX20)
+  * Supports bypassing password protected files (PX20)
 * Rob Northen compressors.
   * RNC1: Both old and formats utilizing the same header. heuristics for detecting the current one
   * RNC2: RNC version 2 stream
@@ -142,17 +141,11 @@ Some of the rare Lzh-compressors have been re-implemented by using Lhasa as a re
 
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
 
-Current work in progress
-* Completing XPK: DCMB, DMCU (maybe), PPMQ
-* Disk images support for Warp and DiskSqueeze
-
-Not planned:
-* PPC only XPK compressors
+Currently not planned to be supported:
+* PPC only XPK compressors. XPK implementation is now considered complete in practical terms for classic Amiga. Rest of the formats are either incredibly esoteric and/or impractical
+* Archive file support (multi-file compressed archives). That would be separate project in itself
 
 Wishlist:
-* More files for my testbench
-* More DMS images
-* XPK DMCI and DMCD compressors. I can't find it anywhere or find anyone who knows anything about it. Would be fun to add it for completeness
-* XPK TLTA compressor/encoder. ditto.
+* More files for my testbench.
 
 Feedback: tz at iki dot fi

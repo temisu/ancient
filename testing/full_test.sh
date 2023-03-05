@@ -1,7 +1,8 @@
 #!/bin/bash
 
-export BIN=./ancient 
-export TEST_V=../../system/test_vectors
+export BIN=../ancient
+export TEST_V=../test_vectors
+
 
 for a in $TEST_V/dms_files/*.dms ; do $BIN verify $a $(echo $a | sed s/\\.dms/\\.adf/) || exit 1 ; done
 for a in $TEST_V/dms_files2/*.dms ; do $BIN verify $a $(echo $a | sed s/\\.dms/\\.adf/) || exit 1 ; done
@@ -30,7 +31,18 @@ for a in $TEST_V/rnc1pc_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pa
 # some decompressors generate 1 bytes extra. manual check needed for results
 for a in $TEST_V/stonecracker_files/*.pack* ; do $BIN verify $a $(echo $a | sed s/\\.pack.*/\\.raw/) ; done
 
-for a in $TEST_V/xpk_testfiles/*.pack ; do test $(echo $a | sed s/.*_xpkppmq.*//) && $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/xpk_testfiles/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/xpk_testfiles2/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/xpk_testfiles3/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
+
+for a in $TEST_V/pack_files/*.z ; do $BIN verify $a $(echo $a | sed s/\\.z/\\.raw/) || exit 1 ; done
+for a in $TEST_V/pack_files2/*.z ; do $BIN verify $a $(echo $a | sed s/\\.z/\\.raw/) || exit 1 ; done
+
+for a in $TEST_V/compress_files/*.Z ; do $BIN verify $a $(echo $a | sed s/\\.Z/\\.raw/) || exit 1 ; done
+for a in $TEST_V/compress_files2/*.Z ; do $BIN verify $a $(echo $a | sed s/\\.Z/\\.raw/) || exit 1 ; done
+
+for a in $TEST_V/freeze_files/*.F ; do $BIN verify $a $(echo $a | sed s/\\.F/\\.raw/) || exit 1 ; done
+for a in $TEST_V/freeze_files2/*.F ; do $BIN verify $a $(echo $a | sed s/\\.F/\\.raw/) || exit 1 ; done
+for a in $TEST_V/freeze_files3/*.F ; do $BIN verify $a $(echo $a | sed s/\\.F/\\.raw/) || exit 1 ; done
 
 for a in $TEST_V/xtra_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done

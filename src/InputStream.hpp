@@ -36,7 +36,7 @@ public:
 private:
 	void setEndOffset(size_t offset) noexcept { _endOffset=offset; }
 
-	const uint8_t		*_bufPtr;
+	const Buffer		&_buffer;
 	size_t			_currentOffset;
 	size_t			_endOffset;
 	bool			_allowOverrun;
@@ -64,7 +64,7 @@ public:
 private:
 	void setEndOffset(size_t offset) noexcept { _endOffset=offset; }
 
-	const uint8_t		*_bufPtr;
+	const Buffer		&_buffer;
 	size_t			_currentOffset;
 	size_t			_endOffset;
 	bool			_allowOverrun;
@@ -207,6 +207,16 @@ public:
 			_bufContent=(uint32_t(buf[0])<<24)|(uint32_t(buf[1])<<16)|
 				(uint32_t(buf[2])<<8)|uint32_t(buf[3]);
 			_bufLength=32;
+		});
+	}
+
+	uint32_t readBitsLE16(uint32_t count)
+	{
+		return readBitsInternal(count,[&](){
+			uint8_t tmp[2];
+			const uint8_t *buf=_inputStream.consume(2,tmp);
+			_bufContent=(uint32_t(buf[1])<<8)|uint32_t(buf[0]);
+			_bufLength=16;
 		});
 	}
 

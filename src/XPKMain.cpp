@@ -40,6 +40,7 @@
 #include "NONEDecompressor.hpp"
 #include "NUKEDecompressor.hpp"
 #include "PPDecompressor.hpp"
+#include "PPMQDecompressor.hpp"
 #include "RAKEDecompressor.hpp"
 #include "RDCNDecompressor.hpp"
 #include "RLENDecompressor.hpp"
@@ -96,6 +97,8 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<XPKDecompressor>(
 	{NONEDecompressor::detectHeaderXPK,NONEDecompressor::create},
 	{NUKEDecompressor::detectHeaderXPK,NUKEDecompressor::create},
 	{PPDecompressor::detectHeaderXPK,PPDecompressor::create},
+// Not yet functional
+//	{PPMQDecompressor::detectHeaderXPK,PPMQDecompressor::create},
 	{RAKEDecompressor::detectHeaderXPK,RAKEDecompressor::create},
 	{RDCNDecompressor::detectHeaderXPK,RDCNDecompressor::create},
 	{RLENDecompressor::detectHeaderXPK,RLENDecompressor::create},
@@ -152,10 +155,9 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 	auto headerChecksum=[](const Buffer &buffer,size_t offset,size_t len)->bool
 	{
 		if (!len || OverflowCheck::sum(offset,len)>buffer.size()) return false;
-		const uint8_t *ptr=buffer.data()+offset;
 		uint8_t tmp=0;
 		for (size_t i=0;i<len;i++)
-			tmp^=ptr[i];
+			tmp^=buffer[offset+i];
 		return !tmp;
 	};
 
@@ -163,10 +165,9 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 	auto chunkChecksum=[](const Buffer &buffer,size_t offset,size_t len,uint16_t checkValue)->bool
 	{
 		if (!len || OverflowCheck::sum(offset,len)>buffer.size()) return false;
-		const uint8_t *ptr=buffer.data()+offset;
 		uint8_t tmp[2]={0,0};
 		for (size_t i=0;i<len;i++)
-			tmp[i&1]^=ptr[i];
+			tmp[i&1]^=buffer[offset+i];
 		return tmp[0]==(checkValue>>8) && tmp[1]==(checkValue&0xff);
 	};
 

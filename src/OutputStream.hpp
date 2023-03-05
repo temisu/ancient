@@ -11,11 +11,11 @@
 namespace ancient::internal
 {
 
-class ForwardOutputStream
+class ForwardOutputStreamBase
 {
 public:
-	ForwardOutputStream(Buffer &buffer,size_t startOffset,size_t endOffset);
-	~ForwardOutputStream();
+	ForwardOutputStreamBase(Buffer &buffer,size_t startOffset);
+	virtual ~ForwardOutputStreamBase();
 
 	void writeByte(uint8_t value);
 
@@ -25,15 +25,45 @@ public:
 	const uint8_t *history(size_t distance) const;
 	void produce(const uint8_t *src,size_t bytes);
 
-	bool eof() const { return _currentOffset==_endOffset; }
 	size_t getOffset() const { return _currentOffset; }
-	size_t getEndOffset() const { return _endOffset; }
 
-private:
-	uint8_t		*_bufPtr;
+protected:
+	virtual void ensureSize(size_t offset)=0;
+
+	Buffer		&_buffer;
 	size_t		_startOffset;
 	size_t		_currentOffset;
+};
+
+class ForwardOutputStream : public ForwardOutputStreamBase
+{
+public:
+	ForwardOutputStream(Buffer &buffer,size_t startOffset,size_t endOffset);
+	virtual ~ForwardOutputStream();
+
+	bool eof() const { return _currentOffset==_endOffset; }
+	size_t getEndOffset() const { return _endOffset; }
+
+protected:
+	virtual void ensureSize(size_t offset) override final;
+
+private:
 	size_t		_endOffset;
+};
+
+class AutoExpandingForwardOutputStream : public ForwardOutputStreamBase
+{
+public:
+	AutoExpandingForwardOutputStream(Buffer &buffer);
+	virtual ~AutoExpandingForwardOutputStream();
+
+protected:
+	virtual void ensureSize(size_t offset) override final;
+
+private:
+	static constexpr size_t _advance=65536U;
+
+	bool		_hasExpanded=false;
 };
 
 class BackwardOutputStream
@@ -50,7 +80,7 @@ public:
 	size_t getOffset() const { return _currentOffset; }
 
 private:
-	uint8_t		*_bufPtr;
+	Buffer		&_buffer;
 	size_t		_startOffset;
 	size_t		_currentOffset;
 	size_t		_endOffset;

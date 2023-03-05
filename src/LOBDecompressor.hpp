@@ -25,10 +25,14 @@ public:
 	static std::shared_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
 
 private:
+	static void decompressRound(Buffer &rawData,const Buffer &packedData);
+
 	const Buffer	&_packedData;
 
 	uint32_t	_rawSize=0;
 	uint32_t	_packedSize=0;
+
+	uint32_t	_methodCount;
 };
 
 }

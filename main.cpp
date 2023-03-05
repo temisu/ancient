@@ -13,10 +13,17 @@
 #include <cstring>
 #include <optional>
 
-#include <dirent.h>
 #include <sys/stat.h>
 
 #include <ancient/ancient.hpp>
+
+// enables scanning. Useful for testing/debugging. Not so useful otherwise
+// Not good for default since creates dependency for dirent (i.e. windows blues)
+//#define ENABLE_SCAN 1
+
+#ifdef ENABLE_SCAN
+#include <dirent.h>
+#endif
 
 std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 {
@@ -67,15 +74,17 @@ int main(int argc,char **argv)
 {
 	auto usage=[]()
 	{
-		fprintf(stderr,"Usage: ancient identify packed_input_file\n");
-		fprintf(stderr," - identifies compression used in a file\n");
+		fprintf(stderr,"Usage: ancient identify packed_input_files...\n");
+		fprintf(stderr," - identifies compression used in a file(s)\n");
 		fprintf(stderr,"Usage: ancient verify packed_input_file unpacked_comparison_file\n");
 		fprintf(stderr," - verifies decompression against known good unpacked file\n");
 		fprintf(stderr,"Usage: ancient decompress packed_input_file output_file\n");
 		fprintf(stderr," - decompresses single file\n");
+#ifdef ENABLE_SCAN
 		fprintf(stderr,"Usage: ancient scan input_dir output_dir\n");
 		fprintf(stderr," - scans input directory recursively and stores all found\n"
 			       " - known compressed streams to separate files in output directory\n");
+#endif
 	};
 
 	if (argc<3)
@@ -87,21 +96,26 @@ int main(int argc,char **argv)
 
 	if (cmd=="identify")
 	{
-		if (argc!=3)
+		if (argc<3)
 		{
 			usage();
 			return -1;
 		}
-		auto packed{readFile(argv[2])};
-		std::optional<ancient::Decompressor> decompressor;
-		try
+		for (int i=2;i<argc;i++)
 		{
-			decompressor.emplace(*packed,true,true);
-			printf("Compression of %s is %s\n",argv[2],decompressor->getName().c_str());
-		} catch (const ancient::InvalidFormatError&)
-		{
-			fprintf(stderr,"Unknown or invalid compression format in file %s\n",argv[2]);
-			return -1;
+			auto packed{readFile(argv[i])};
+			std::optional<ancient::Decompressor> decompressor;
+			try
+			{
+				decompressor.emplace(*packed,true,true);
+				printf("Compression of %s is %s\n",argv[i],decompressor->getName().c_str());
+			} catch (const ancient::InvalidFormatError&)
+			{
+				fprintf(stderr,"Unknown or invalid compression format in file %s\n",argv[i]);
+			} catch (const ancient::VerificationError&)
+			{
+				fprintf(stderr,"Failed to validate file %s\n",argv[i]);
+			}
 		}
 		return 0;
 	} else if (cmd=="decompress" || cmd=="verify") {
@@ -178,7 +192,9 @@ int main(int argc,char **argv)
 			printf("Files match!\n");
 			return 0;
 		}
-	} else if (cmd=="scan") {
+	}
+#ifdef ENABLE_SCAN
+	else if (cmd=="scan") {
 		if (argc!=4)
 		{
 			usage();
@@ -274,7 +290,9 @@ int main(int argc,char **argv)
 
 		processDir(std::string(argv[2]));
 		return 0;
-	} else {
+	}
+#endif
+	else {
 		fprintf(stderr,"Unknown command\n");
 		usage();
 		return -1;

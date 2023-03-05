@@ -97,7 +97,8 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<XPKDecompressor>(
 	{NONEDecompressor::detectHeaderXPK,NONEDecompressor::create},
 	{NUKEDecompressor::detectHeaderXPK,NUKEDecompressor::create},
 	{PPDecompressor::detectHeaderXPK,PPDecompressor::create},
-	{PPMQDecompressor::detectHeaderXPK,PPMQDecompressor::create},
+// Not yet functional
+//	{PPMQDecompressor::detectHeaderXPK,PPMQDecompressor::create},
 	{RAKEDecompressor::detectHeaderXPK,RAKEDecompressor::create},
 	{RDCNDecompressor::detectHeaderXPK,RDCNDecompressor::create},
 	{RLENDecompressor::detectHeaderXPK,RLENDecompressor::create},

@@ -114,7 +114,6 @@ Decompression algorithms provided:
   * MASH: LZRW-compressor
   * NONE: Null compressor
   * NUKE: LZ77-compressor
-  * PPMQ: PPM compressor
   * PWPK: PowerPacker backend for XPK
   * RAKE: LZ77-compressor
   * RDCN: Ross Data Compression

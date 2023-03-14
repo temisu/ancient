@@ -35,7 +35,7 @@ MAIN	= $(addprefix obj/,$(MAIN_N))
 TEST	= $(addprefix obj/,$(TEST_N))
 
 
-all: $(PROG) $(LIB) $(TESTBIN)
+all: $(PROG) $(TESTBIN)
 
 obj:
 	mkdir -p obj
@@ -43,12 +43,17 @@ obj:
 obj/%.o: %.cpp | obj
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
+ifeq ($(BUILD_LIBRARY),1)
 $(LIB): $(OBJS)
 	$(CXX) -Wl,-dylib -Wl,-install_name,@executable_path/$(LIBNAME) -shared -o $@ $^
 	strip -X $@
 
 $(PROG): $(MAIN) $(LIB) | obj
 	$(CXX) $(CFLAGS) -o $@ $(MAIN) $(LIB)
+else
+$(PROG): $(MAIN) $(OBJS) | obj
+	$(CXX) $(CFLAGS) -o $@ $(MAIN) $(OBJS)
+endif
 
 $(TESTBIN): $(OBJS) $(TEST) | obj
 	$(CXX) $(CFLAGS) -o $@ $^

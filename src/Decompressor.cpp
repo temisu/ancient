@@ -18,6 +18,7 @@
 #include "PackDecompressor.hpp"
 #include "PPDecompressor.hpp"
 #include "RNCDecompressor.hpp"
+#include "SCOCompressDecompressor.hpp"
 #include "StoneCrackerDecompressor.hpp"
 #include "TPWMDecompressor.hpp"
 #include "XPKMain.hpp"
@@ -41,6 +42,7 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<Decompressor>(*)(
 	{PackDecompressor::detectHeader,PackDecompressor::create},
 	{PPDecompressor::detectHeader,PPDecompressor::create},
 	{RNCDecompressor::detectHeader,RNCDecompressor::create},
+	{SCOCompressDecompressor::detectHeader,SCOCompressDecompressor::create},
 	{TPWMDecompressor::detectHeader,TPWMDecompressor::create},
 	{XPKMain::detectHeader,XPKMain::create},
 	// Putting StoneCracker last since detection can be accidentally be detected instead of correct format

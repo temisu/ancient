@@ -8,6 +8,7 @@
 #include "RangeDecoder.hpp"
 #include "FrequencyTree.hpp"
 
+#include <map>
 
 namespace ancient::internal
 {
@@ -27,7 +28,6 @@ PPMQDecompressor::PPMQDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	_packedData(packedData)
 {
 	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
-	if (packedData.size()<2) throw Decompressor::InvalidFormatError(); 
 }
 
 PPMQDecompressor::~PPMQDecompressor()
@@ -113,11 +113,11 @@ void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 
 		void reset() noexcept
 		{
-			for (uint32_t i=0;i<256U;i++) if (!_tree[i])
+			_tree.onNoMatch(1,[&](uint32_t i)
 			{
 				_tree.set(i,1);
 				for (auto callback : _callbacks) callback->symbolIncluded(i);
-			}
+			});
 		}
 
 		void exclude(uint8_t symbol) noexcept
@@ -223,6 +223,51 @@ void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		virtual void mark(uint8_t ch) override final
 		{
 		}
+
+	private:
+		// Sparse frequency map with MFT, no good data type for this one
+		// note that there is no sense to do MFT here. It is just something
+		// the original implementation did
+		// (maybe to optimize linked list traversing perhaps)
+		struct Node
+		{
+			uint16_t			freq;
+			uint8_t				symbol;
+		};
+
+		struct Context
+		{
+			uint16_t			escapeFreq;
+			uint16_t			totalFreq;		// -escapeFreq
+			std::vector<Node>		nodes;
+		};
+
+		uint32_t decode(Context &ctx)
+		{
+/*			uint16_t total=ctx.escapeFreq+ctx.totalFreq;
+			uint16_t value=_decoder.decode(total);
+			if (value.ctx<escapeFreq)
+			{
+				_decoder.scale(0,ctx.escapeFreq,total);
+				return ~0U;
+			}
+			uint16_t low=escapeFreq;
+			uint32_t size=ctx.nodes.size();
+			for (uint32_t i=0;i<size;i++)
+			{
+				auto &node=ctx.nodes[i];
+				if (low+node.freq<value)
+				{
+					_decoder.scale(low,low+node.freq,total);
+					return i;
+				}
+				low+=node.freq;
+			}*/
+			throw Decompressor::DecompressionError();
+		}
+
+
+		std::map<std::pair<uint16_t,uint32_t>,Context> _contexts;
 	};
 
 	// A simple arithmetic encoder
@@ -250,8 +295,10 @@ void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			_decoder.scale(low,low+freq,_tree.getTotal());
 			if (!symbol)
 			{
-				for (uint32_t i=0;i<256U;i++)
-					if (_tree[i+1]) _exclusionList.exclude(i);
+				_tree.onNoMatch(0,[&](uint32_t i)
+				{
+					if (i) _exclusionList.exclude(i-1);
+				});
 				return false;
 			}
 			_tree.add(symbol,1);
@@ -327,6 +374,10 @@ void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	Model0 model0(decoder,exclusionList);
 	FallbackModel fallbackModel(decoder,exclusionList);
 	std::vector<Model*> models={&model2A,&model2B,&model1A,&model1B,&model1C,&model0,&fallbackModel};
+
+	// unsurprisingly this fails for short blocks!
+	for (uint32_t i=0;i<5U;i++)
+		outputStream.writeByte(bitReader.readBits(8U));
 
 	while (!outputStream.eof())
 	{

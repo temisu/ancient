@@ -92,6 +92,13 @@ const uint8_t *ForwardOutputStreamBase::history(size_t distance) const
 	return &_buffer[_currentOffset-distance];
 }
 
+uint8_t *ForwardOutputStreamBase::history(size_t distance)
+{
+	if (OverflowCheck::sum(distance,_startOffset)>_currentOffset)
+		throw Decompressor::DecompressionError();
+	return &_buffer[_currentOffset-distance];
+}
+
 void ForwardOutputStreamBase::produce(const uint8_t *src,size_t bytes)
 {
 	ensureSize(OverflowCheck::sum(_currentOffset,bytes));

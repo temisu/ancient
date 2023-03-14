@@ -187,9 +187,12 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_q.Z",BASE_DIR "test_C1.raw");
 
 	// RNC
-	// TODO: missing old RNC1
 	verifyFile(BASE_DIR "test_C1.rnc1",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.rnc2",BASE_DIR "test_C1.raw");
+
+	// TODO: SCO Compress LZH
+	// I'm not going to buy a openserver license to compress files
+	// I hope someone can help me here
 
 	// Stonecracker
 	verifyFile(BASE_DIR "test_C1.pack271_000",BASE_DIR "test_C1.raw");
@@ -275,5 +278,5 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_tdcs.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_zeno.xpkf",BASE_DIR "test_C1.raw");
 
-//	verifyFile(BASE_DIR "",BASE_DIR "test_C1.raw");
+	return 0;
 }

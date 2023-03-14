@@ -179,10 +179,10 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 	MemoryBuffer tmpBuffer(_tmpBufferSize);
 	uint32_t limitedDecompress=~0U;
 
-	class UnObsfuscator
+	class Unobsfuscator
 	{
 	public:
-		UnObsfuscator(std::unique_ptr<ForwardInputStream> &inputStream) :
+		Unobsfuscator(std::unique_ptr<ForwardInputStream> &inputStream) :
 			_inputStream(inputStream)
 		{
 			// nothing needed
@@ -210,11 +210,6 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 		void setObsfuscate(bool obsfuscate) { _obsfuscate=obsfuscate; }
 		bool eof() const { return _inputStream->getOffset()==_inputStream->getEndOffset(); }
 
-		// not cool, but works (does not need wraparound check)
-		bool eofMinus1() const { return _inputStream->getOffset()+1==_inputStream->getEndOffset(); }
-		bool eofMinus1Plus() const { return _inputStream->getOffset()+1>=_inputStream->getEndOffset(); }
-		bool eofMinus2Plus() const { return _inputStream->getOffset()+2>=_inputStream->getEndOffset(); }
-
 	private:
 		std::unique_ptr<ForwardInputStream> &_inputStream;
 		bool			_obsfuscate=false;
@@ -222,19 +217,19 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 	};
 
 	std::unique_ptr<ForwardInputStream> inputStream=std::make_unique<ForwardInputStream>(_packedData,0,0);
-	UnObsfuscator inputUnObsfuscator(inputStream);
-	MSBBitReader<UnObsfuscator> bitReader(inputUnObsfuscator);
+	Unobsfuscator inputUnobsfuscator(inputStream);
+	MSBBitReader<Unobsfuscator> bitReader(inputUnobsfuscator);
 	auto initInputStream=[&](const Buffer &buffer,uint32_t start,uint32_t length,bool obsfuscate)
 	{
 		inputStream=std::make_unique<ForwardInputStream>(buffer,start,OverflowCheck::sum(start,length));
-		inputUnObsfuscator.setObsfuscate(obsfuscate);
+		inputUnobsfuscator.setObsfuscate(obsfuscate);
 		bitReader.reset();
 	};
 	auto finishStream=[&]()
 	{
 		if (_isObsfuscated && limitedDecompress==~0U)
-			while (!inputUnObsfuscator.eof())
-				inputUnObsfuscator.readByte();
+			while (!inputUnobsfuscator.eof())
+				inputUnobsfuscator.readByte();
 	};
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
@@ -263,63 +258,31 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 
 	auto unpackNone=[&]()
 	{
-		for (uint32_t i=0;i<limitedDecompress&&!inputUnObsfuscator.eof();i++)
-			outputStream->writeByte(inputUnObsfuscator.readByte());
+		for (uint32_t i=0;i<limitedDecompress&&!inputUnobsfuscator.eof();i++)
+			outputStream->writeByte(inputUnobsfuscator.readByte());
 	};
 
 	// same as simple
-	auto unRLE=[&](bool lastCharMissing)->uint32_t
+	auto unRLE=[&]()
 	{
-		// hacky, hacky, hacky
-		while (!inputUnObsfuscator.eof())
+		while (!inputUnobsfuscator.eof())
 		{
-			if (outputStream->getOffset()>=limitedDecompress) return 0;
-			if (lastCharMissing && inputUnObsfuscator.eofMinus1())
-			{
-				if (outputStream->getOffset()+1!=outputStream->getEndOffset())
-					throw DecompressionError();
-				return 1;
-			}
-			uint8_t ch=inputUnObsfuscator.readByte();
+			if (outputStream->getOffset()>=limitedDecompress) return;
+			uint8_t ch=inputUnobsfuscator.readByte();
 			uint32_t count=1;
 			if (ch==0x90U)
 			{
-				if (inputUnObsfuscator.eof()) throw DecompressionError();
-				if (lastCharMissing && inputUnObsfuscator.eofMinus1())
-				{
-					// only possible way this can work
-					if (outputStream->getOffset()+1!=outputStream->getEndOffset()) throw DecompressionError();
-					count=0;
-				} else count=inputUnObsfuscator.readByte();
-				if (!count)
-				{
-					count=1;
-				} else {
-					
-					if (inputUnObsfuscator.eof()) throw DecompressionError();
-					if (lastCharMissing && inputUnObsfuscator.eofMinus1())
-					{
-						if (count==0xffU || outputStream->getOffset()+count!=outputStream->getEndOffset()) throw DecompressionError();
-						return count;
-					}
-					ch=inputUnObsfuscator.readByte();
-				}
+				count=inputUnobsfuscator.readByte();
+				if (!count) count=1;
+					else ch=inputUnobsfuscator.readByte();
 				if (count==0xffU)
 				{
-					if (inputUnObsfuscator.eofMinus1Plus()) throw DecompressionError();
-					if (lastCharMissing && inputUnObsfuscator.eofMinus2Plus())
-					{
-						count=uint32_t(outputStream->getEndOffset()-outputStream->getOffset());
-					} else {
-						count=uint32_t(inputUnObsfuscator.readByte())<<8;
-						count|=inputUnObsfuscator.readByte();
-					}
+					count=uint32_t(inputUnobsfuscator.readByte())<<8;
+					count|=inputUnobsfuscator.readByte();
 				}
 			}
 			for (uint32_t i=0;i<count;i++) outputStream->writeByte(ch);
 		}
-		if (!outputStream->eof()) throw DecompressionError();
-		return 0;
 	};
 
 	bool doInitContext=true;
@@ -526,6 +489,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 		{
 			if (outputStream->getOffset()>=limitedDecompress) return;
 			uint32_t symbol=symbolDecoder->decode(readBit);
+			//printf("%x,%u\n",outputStream->getOffset(),symbol);
 			if (symbol<256)
 			{
 				outputStream->writeByte(contextBuffer[heavyContextLocation++]=symbol);
@@ -578,47 +542,71 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 		uint32_t dataOffset=trackNo*trackLength;
 		if (_rawOffset>dataOffset) throw DecompressionError();
 
+		auto handleTrackSize=[&]()
+		{
+			if (limitedDecompress!=~0U) return;
+			if (!outputStream->eof() && outputStream->getOffset()&0x3ffU)
+				throw DecompressionError();
+		};
+
 		// this is screwy, but it is, what it is
 		auto processBlock=[&](bool doRLE,auto func,auto&&... params)
 		{
+			auto applyFix=[&]()
+			{
+				if (mode==6U && !_isObsfuscated)
+				{
+					uint32_t missingNo=outputStream->getEndOffset()-outputStream->getOffset();
+					uint16_t protoSum=checksum(&rawData[dataOffset-_rawOffset],rawChunkLength-missingNo);
+					uint16_t fileSum=_packedData.readBE16(packedOffset+14);
+
+					// too many ways to interpret the data
+					if (missingNo>1)
+						throw DecompressionError();
+					for (uint32_t i=0;i<missingNo;i++) outputStream->writeByte(0);
+
+					if (protoSum!=fileSum)
+					{
+						// last byte can be trashed by the compressor, but fortunately it can be fixed
+						protoSum-=*outputStream->history(1);
+						uint16_t fixByte=fileSum-protoSum;
+						if (fixByte>=0x100U)
+							throw DecompressionError();
+						*outputStream->history(1)=fixByte;
+					}
+				} else handleTrackSize();
+			};
+
 			initInputStream(_packedData,packedOffset+20,packedChunkLength,_isObsfuscated);
 			if (doRLE)
 			{
+				initOutputStream(tmpBuffer,0,tmpChunkLength);
 				try
 				{
-					initOutputStream(tmpBuffer,0,tmpChunkLength);
 					func(params...);
-					finishStream();
-					initInputStream(tmpBuffer,0,tmpChunkLength,false);
-					initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
-					unRLE(false);
 				} catch (const ShortInputError &) {
-					// if this error happens on repeat/offset instead of char, though luck :(
-					// missing last char on src we can fix :)
-					initInputStream(tmpBuffer,0,tmpChunkLength,false);
-					initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
-					uint32_t missingNo=unRLE(true);
-					if (missingNo)
-					{
-						uint32_t protoSum=checksum(&rawData[dataOffset-_rawOffset],rawChunkLength-missingNo);
-						uint32_t fileSum=_packedData.readBE16(packedOffset+14);
-						uint8_t ch=((fileSum>=protoSum)?fileSum-protoSum:(0x10000U+fileSum-protoSum))/missingNo;
-						for (uint32_t i=0;i<missingNo;i++) outputStream->writeByte(ch);
-					} else throw DecompressionError();
+					// nothing needed
 				}
+				finishStream();
+				uint32_t missingNo=outputStream->getEndOffset()-outputStream->getOffset();
+				initInputStream(tmpBuffer,0,tmpChunkLength-missingNo,false);
+				initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
+				try
+				{
+					unRLE();
+				} catch (const ShortInputError &) {
+					// nothing needed
+				}
+				applyFix();
 			} else {
+				initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
 				try
 				{
-					initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
 					func(params...);
 				} catch (const ShortInputError &) {
-					// same deal
-					if (outputStream->getOffset()+1!=rawChunkLength || _isObsfuscated) throw DecompressionError();
-					uint32_t protoSum=checksum(&rawData[dataOffset-_rawOffset],rawChunkLength-1);
-					uint32_t fileSum=_packedData.readBE16(packedOffset+14);
-					uint8_t ch=fileSum-protoSum;
-					outputStream->writeByte(ch);
+					// nothing needed
 				}
+				applyFix();
 			}
 			finishStream();
 		};
@@ -633,14 +621,14 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 				try
 				{
 					doInitContext=true;
-					inputUnObsfuscator.setCode(restartPosition);
+					inputUnobsfuscator.setCode(restartPosition);
 					limitedDecompress=8;
 					processBlock(doRLE,func,params...);
 					if ((rawData.readBE32(0)&0xffff'ff00U)!=FourCC("DOS\0")) continue;
 
 					// now see if the candidate is any good
 					doInitContext=true;
-					inputUnObsfuscator.setCode(restartPosition);
+					inputUnobsfuscator.setCode(restartPosition);
 					limitedDecompress=~0U;
 					processBlock(doRLE,func,params...);
 					if (checksum(&rawData[dataOffset-_rawOffset],rawChunkLength)!=_packedData.readBE16(packedOffset+14)) continue;
@@ -659,7 +647,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 				try
 				{
 					doInitContext=true;
-					inputUnObsfuscator.setCode(restartPosition);
+					inputUnobsfuscator.setCode(restartPosition);
 					processBlock(doRLE,func,params...);
 					if (checksum(&rawData[dataOffset-_rawOffset],rawChunkLength)!=_packedData.readBE16(packedOffset+14)) continue;
 					return;
@@ -680,7 +668,16 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 			break;
 
 			case 1:
-			processBlockCode(false,unRLE,false);
+			processBlockCode(false,[&]()
+			{
+				try
+				{
+					unRLE();
+				} catch (const ShortInputError &) {
+					throw DecompressionError();
+				}
+				handleTrackSize();
+			});
 			break;
 
 			case 2:

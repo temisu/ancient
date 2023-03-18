@@ -42,6 +42,8 @@ public:
 	ForwardOutputStream(Buffer &buffer,size_t startOffset,size_t endOffset);
 	virtual ~ForwardOutputStream();
 
+	void reset(size_t startOffset,size_t endOffset);
+
 	bool eof() const { return _currentOffset==_endOffset; }
 	size_t getEndOffset() const { return _endOffset; }
 

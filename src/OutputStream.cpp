@@ -112,13 +112,21 @@ ForwardOutputStream::ForwardOutputStream(Buffer &buffer,size_t startOffset,size_
 	ForwardOutputStreamBase(buffer,startOffset),
 	_endOffset(endOffset)
 {
-	if (_startOffset>_endOffset || _endOffset>buffer.size())
+	if (_startOffset>_endOffset || _endOffset>_buffer.size())
 		throw Decompressor::DecompressionError();
 }
 
 ForwardOutputStream::~ForwardOutputStream()
 {
 	// nothing needed
+}
+
+void ForwardOutputStream::reset(size_t startOffset,size_t endOffset)
+{
+	_currentOffset=_startOffset=startOffset;
+	_endOffset=endOffset;
+	if (_startOffset>_endOffset || _endOffset>_buffer.size())
+		throw Decompressor::DecompressionError();
 }
 
 void ForwardOutputStream::ensureSize(size_t offset)

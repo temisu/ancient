@@ -15,13 +15,23 @@ ForwardInputStream::ForwardInputStream(const Buffer &buffer,size_t startOffset,s
 	_endOffset(endOffset),
 	_allowOverrun(allowOverrun)
 {
-	if (_currentOffset>_endOffset || _currentOffset>buffer.size() || _endOffset>buffer.size())
+	if (_currentOffset>_endOffset || _currentOffset>_buffer.size() || _endOffset>_buffer.size())
 		throw Decompressor::DecompressionError();
 }
 
 ForwardInputStream::~ForwardInputStream()
 {
 	// nothing needed
+}
+
+void ForwardInputStream::reset(size_t startOffset,size_t endOffset)
+{
+	_currentOffset=startOffset;
+	_endOffset=endOffset;
+	if (_currentOffset>_endOffset || _currentOffset>_buffer.size() || _endOffset>_buffer.size())
+		throw Decompressor::DecompressionError();
+
+	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 }
 
 uint8_t ForwardInputStream::readByte()

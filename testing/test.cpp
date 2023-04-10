@@ -187,6 +187,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_q.Z",BASE_DIR "test_C1.raw");
 
 	// RNC
+	verifyFile(BASE_DIR "test_C1.rnc1old",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.rnc1",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.rnc2",BASE_DIR "test_C1.raw");
 

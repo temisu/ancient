@@ -237,6 +237,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_blzw.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_bzp2.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_cbr0.xpkf",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C2_cbr0.xpkf",BASE_DIR "test_C2.xm"); // CBR0 does not really want to compress alice
 	verifyFile(BASE_DIR "test_C1_crm2.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_crms.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_cyb2.xpkf",BASE_DIR "test_C1.raw");

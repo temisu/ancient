@@ -172,6 +172,10 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_m17.lob",BASE_DIR "test_C1.raw",true);
 
 	// TODO: MMCMP missing
+	verifyFile(BASE_DIR "test_C2.mmcmp122",BASE_DIR "test_C2.xm",true);
+	verifyFile(BASE_DIR "test_C2.mmcmp130",BASE_DIR "test_C2.xm",true);
+	verifyFile(BASE_DIR "test_C2.mmcmp132",BASE_DIR "test_C2.xm",true);
+	verifyFile(BASE_DIR "test_C2.mmcmp134",BASE_DIR "test_C2.xm",true);
 
 	// Pack
 	verifyFile(BASE_DIR "test_C1_pack.z",BASE_DIR "test_C1.raw");

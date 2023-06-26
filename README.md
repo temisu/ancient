@@ -43,7 +43,7 @@ Decompression algorithms provided:
 * Freeze/Melt
   * Supports both old and new formats
 * gzip
-* LOB's File Compressor
+* LOB's File Compressor (Also known as a Multipak)
   * Supports all original 6 modes and their combinations (BMC, HUF, LZW, LZB, MSP, MSS)
   * Does not support mode 8 (as defined by some game files)
 * Pack (Unix)

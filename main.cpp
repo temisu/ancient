@@ -74,16 +74,18 @@ int main(int argc,char **argv)
 {
 	auto usage=[]()
 	{
-		fprintf(stderr,"Usage: ancient identify packed_input_files...\n");
-		fprintf(stderr," - identifies compression used in a file(s)\n");
-		fprintf(stderr,"Usage: ancient verify packed_input_file unpacked_comparison_file\n");
-		fprintf(stderr," - verifies decompression against known good unpacked file\n");
-		fprintf(stderr,"Usage: ancient decompress packed_input_file output_file\n");
-		fprintf(stderr," - decompresses single file\n");
+		fprintf(stderr, "Ancient v2.1.0\n"
+				"\n"
+				"Usage: ancient i[dentify] packed_input_files...\n"
+				" - identifies compression used in a file(s)\n"
+				"Usage: ancient v[erify] packed_input_file unpacked_comparison_file\n"
+				" - verifies decompression against known good unpacked file\n"
+				"Usage: ancient d[ecompress] packed_input_file output_file\n"
+				" - decompresses single file\n");
 #ifdef ENABLE_SCAN
-		fprintf(stderr,"Usage: ancient scan input_dir output_dir\n");
-		fprintf(stderr," - scans input directory recursively and stores all found\n"
-			       " - known compressed streams to separate files in output directory\n");
+		fprintf(stderr,	"Usage: ancient s[can] input_dir output_dir\n"
+				" - scans input directory recursively and stores all found\n"
+				" - known compressed streams to separate files in output directory\n");
 #endif
 	};
 
@@ -94,7 +96,7 @@ int main(int argc,char **argv)
 	}
 	std::string cmd=argv[1];
 
-	if (cmd=="identify")
+	if (cmd=="i" || cmd=="identify")
 	{
 		if (argc<3)
 		{
@@ -118,7 +120,7 @@ int main(int argc,char **argv)
 			}
 		}
 		return 0;
-	} else if (cmd=="decompress" || cmd=="verify") {
+	} else if (cmd=="d" || cmd=="decompress" || cmd=="v" || cmd=="verify") {
 		if (argc!=4)
 		{
 			usage();
@@ -156,7 +158,7 @@ int main(int argc,char **argv)
 			return -1;
 		}
 
-		if (cmd=="decompress")
+		if (cmd=="d" || cmd=="decompress")
 		{
 			if (decompressor->getImageOffset() || decompressor->getImageSize())
 			{
@@ -194,7 +196,7 @@ int main(int argc,char **argv)
 		}
 	}
 #ifdef ENABLE_SCAN
-	else if (cmd=="scan") {
+	else if (cmd=="s" || cmd=="scan") {
 		if (argc!=4)
 		{
 			usage();

@@ -5,15 +5,22 @@ This is a collection of decompression routines for old formats popular in the Am
 Even though most of these algorithms are still available for download, scavenging and using them might prove to be a challenge. Thus the purpose of this project is to:
 * Provide a clean, modern implementation of the algorithms - Typically the implementations were not meant to be used outside of the original systems they were made for. Some other ported implementations are incomplete, bad quality or direct translations from old M68K assembly code.
 * Provide a clean BSD-style licensing - Original implementations or their ports might have strange license or no visible license at all. There are also implementations that have been ripped off from some other source thus their legality is questionable at best.
-* Provide a tested implementation - The code is no good if it does not work properly and the old code have a lot of corner cases. These implementations are tested using a cache of available files (~10k) that used these algorithms. Although it does not offer any guarantee especially when we are talking about undocumented formats, it gives hope that there are less "stupid errors" in the code.
+* Provide a tested implementation - The code is no good if it does not work properly and the old code have a lot of corner cases. These implementations are tested using a cache of available files (~10k) that used these algorithms. Although it does not offer any guarantee especially when we are talking about undocumented formats, it gives hope that there are less "stupid errors" in the code. I have also generated a small batch of test files for different formats for testing. The source files are known public domain sources
 
 For simple usage both a simple command line application as well as a simple API to use the decompressors are provided.  The compression algorithm is automatically detected in most cases, however there are some corner cases where it is not entirely reliable due to weaknesses in the old format used. Please see the [main.cpp](main.cpp) and [ancient.hpp](api/ancient/ancient.hpp) to get an idea.
 
-This code should compile cleanly on most C++17 capable compilers (C++14 compilers might need tweaking), and it is tested on clang and MSVC. For MSVC please use https://github.com/tronkko/dirent or similar to compile to command line tool
+This code should compile cleanly on most C++17 capable compilers, and it is tested on clang and MSVC.
 
-Currently there are no plans to add password protected file support nor any kind of decryption capability apart from some very basic password bypassing in some formats that can be done easily
+Some formats have incorporated weak password protection on them which can be bypassed. However, this project does not attempt to do any real cryptograpy.
+
+Currently the project does not support any archival files nor self extracting executables.
 
 Decompression algorithms provided:
+* bzip2
+  * both normal and randomized bitstreams
+* Compact (Unix)
+* Compress (Unix)
+  * Supports both old and new formats
 * CrunchMania by Thomas Schwarz
   * CrM!: Crunch-Mania standard-mode
   * Crm!: Crunch-Mania standard-mode, sampled
@@ -33,41 +40,23 @@ Decompression algorithms provided:
   * FLT! (verification missing)
   * Dupa (verification missing)
   * PARA (verification missing)
-* LOB's File Compressor
+* Freeze/Melt
+  * Supports both old and new formats
+* gzip
+* LOB's File Compressor (Also known as a Multipak)
+  * Supports all original 6 modes and their combinations (BMC, HUF, LZW, LZB, MSP, MSS)
+  * Does not support mode 8 (as defined by some game files)
+* Pack (Unix)
+  * Supports both old and new formats
 * PowerPacker
   * PP 1.1 (verification missing)
   * PP 2.0
-  * Supports bypassing password protected files (PX20)
+  * PX20: Supports bypassing password protected files.
+* Quasijarus Strong Compression
 * Rob Northen compressors.
-  * RNC1: Both old and formats utilizing the same header. heuristics for detecting the current one
+  * RNC1: Both old and formats utilizing the same header. heuristics for detecting the correct one
   * RNC2: RNC version 2 stream
 * Turbo Packer by Wolfgang Mayerle.
-* Standard gzip
-* Standard bzip2, both normal and randomized
-* Zip decompressor backend (decompressor only, no Zip file format reading yet)
-  * Shrink
-  * Reduce
-  * Implode
-  * Deflate
-  * Deflate64
-  * Bzip2
-* Lha/Lzh decompressor backend (decompressor only, no Lha file format reading yet)
-  * LH0: Null compressor
-  * LH1: LZRW-compressor with 4kB window
-  * LH2: LZRW-compressor with Dynamic Huffman Encoding (experimental)
-  * LH3: LZRW-compressor (experimental)
-  * LH4: LZRW-compressor with 4kB window
-  * LH5: LZRW-compressor with 8kB window
-  * LH6: LZRW-compressor with 32kB window
-  * LH7: LZRW-compressor with 64kB window
-  * LH8: LZRW-compressor with 64kB window (Joe Jared extension)
-  * LHX: LZRW-compressor with up to 512kB window (UnLHX extension)
-  * LZ4: Null compressor
-  * LZ5: LZ-compressor
-  * LZS: LZ-compressor
-  * PM0: Null compressor
-  * PM1: LZ-compressor
-  * PM2: LZ-compressor
 * MMCMP: Music Module Compressor
 * StoneCracker
   * SC: StoneCracker v2.69 - v2.81
@@ -130,6 +119,33 @@ Decompression algorithms provided:
   * TDCS: LZ77-compressor
   * ZENO: LZW-compressor
 
+There is some support for archival decompressors: However, these are not built in at the moment but the code can be as a reference
+
+* Zip decompressor backend (decompressor only, no Zip file format reading yet)
+  * Shrink
+  * Reduce
+  * Implode
+  * Deflate
+  * Deflate64
+  * Bzip2
+* Lha/Lzh decompressor backend (decompressor only, no Lha file format reading yet)
+  * LH0: Null compressor
+  * LH1: LZRW-compressor with 4kB window
+  * LH2: LZRW-compressor with Dynamic Huffman Encoding (experimental)
+  * LH3: LZRW-compressor (experimental)
+  * LH4: LZRW-compressor with 4kB window
+  * LH5: LZRW-compressor with 8kB window
+  * LH6: LZRW-compressor with 32kB window
+  * LH7: LZRW-compressor with 64kB window
+  * LH8: LZRW-compressor with 64kB window (Joe Jared extension)
+  * LHX: LZRW-compressor with up to 512kB window (UnLHX extension)
+  * LZ4: Null compressor
+  * LZ5: LZ-compressor
+  * LZS: LZ-compressor
+  * PM0: Null compressor
+  * PM1: LZ-compressor
+  * PM2: LZ-compressor
+
 Special thanks go to Cholok for providing me references to many of the XPK-compressors.
 
 BZIP2 tables for randomization have been included, they have BZIP2-license.
@@ -142,8 +158,7 @@ Some of the rare Lzh-compressors have been re-implemented by using Lhasa as a re
 I'm slowly adding new stuff. If your favorite is not listed contact me and maybe I can add it.
 
 Currently not planned to be supported:
-* PPC only XPK compressors. XPK implementation is now considered complete in practical terms for classic Amiga. Rest of the formats are either incredibly esoteric and/or impractical
-* Archive file support (multi-file compressed archives). That would be separate project in itself
+* PPC only XPK compressors. XPK implementation is now considered complete in practical terms for classic Amiga.
 
 Wishlist:
 * More files for my testbench.

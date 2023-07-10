@@ -22,6 +22,7 @@ public:
 	uint8_t copy(size_t distance,size_t count);
 	uint8_t copy(size_t distance,size_t count,const Buffer &prevBuffer);
 	uint8_t copy(size_t distance,size_t count,uint8_t defaultChar);
+	uint8_t *history(size_t distance);
 	const uint8_t *history(size_t distance) const;
 	void produce(const uint8_t *src,size_t bytes);
 
@@ -40,6 +41,8 @@ class ForwardOutputStream : public ForwardOutputStreamBase
 public:
 	ForwardOutputStream(Buffer &buffer,size_t startOffset,size_t endOffset);
 	virtual ~ForwardOutputStream();
+
+	void reset(size_t startOffset,size_t endOffset);
 
 	bool eof() const { return _currentOffset==_endOffset; }
 	size_t getEndOffset() const { return _endOffset; }

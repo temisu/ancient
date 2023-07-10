@@ -178,7 +178,7 @@ const std::string &DEFLATEDecompressor::getName() const noexcept
 {
 	static std::string names[4]={
 		"gzip: Deflate",
-		"Z: Quasijarus strong compression",
+		"Z: Quasijarus Strong Compression",
 		"zlib: Deflate",
 		"raw: Deflate/Deflate64"};
 	return names[static_cast<uint32_t>(_type)];

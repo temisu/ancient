@@ -51,29 +51,19 @@ public:
 		return symbol;
 	}
 
-	// for comparing against zero this is always useful
-	// for comparing against other values only useful if the tree is compromised of
-	// 0 and compared-against values and nothing else.
-	// Some positives will be missed if there are multiple values!
-	//
-	// Will be non-ideal on a non 2^n-sized tree when compared against
-	// non-zero value. Adding exact behavior would also add complications
-	// that might not be beneficial in the end
 	template <typename F>
-	void onNoMatch(T targetValue,F func)
+	void onNotZero(F func)
 	{
 		uint32_t step=1U<<(_levels-1);
 		uint32_t level=_levels-1;
-		targetValue<<=_levels-1;
 
 		for (uint32_t symbol=0;symbol<V;)
 		{
-			while (_tree[_levelOffsets[level]+(symbol>>level)]!=targetValue)
+			while (_tree[_levelOffsets[level]+(symbol>>level)])
 			{
 				if (level)
 				{
 					level--;
-					targetValue>>=1;
 					step>>=1;
 				} else {
 					func(symbol);
@@ -84,7 +74,35 @@ public:
 			if (!(symbol&step))
 			{
 				level++;
-				targetValue<<=1;
+				step<<=1;
+			}
+		}
+	}
+
+	// only works with tree of zeros and ones (and I don't want to specialize this on bool. that would also be ugly)
+	template <typename F>
+	void onNotOne(F func)
+	{
+		uint32_t step=1U<<(_levels-1);
+		uint32_t level=_levels-1;
+
+		for (uint32_t symbol=0;symbol<V;)
+		{
+			while (_tree[_levelOffsets[level]+(symbol>>level)]!=std::min(step,uint32_t(V)-symbol))
+			{
+				if (level)
+				{
+					level--;
+					step>>=1;
+				} else {
+					func(symbol);
+					break;
+				}
+			}
+			symbol+=step;
+			if (!(symbol&step))
+			{
+				level++;
 				step<<=1;
 			}
 		}
@@ -101,6 +119,7 @@ public:
 	{
 		if (symbol>=V)
 			throw Decompressor::DecompressionError();
+		if (!freq) return;
 		for (uint32_t i=0;i<_levels;i++)
 		{
 			_tree[_levelOffsets[i]+symbol]+=freq;

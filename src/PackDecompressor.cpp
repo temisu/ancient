@@ -136,7 +136,7 @@ void PackDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			uint32_t maxLevel=inputStream.readByte();
 			if (!maxLevel || maxLevel>24U)
 				throw DecompressionError();
-			uint8_t levelCounts[24];
+			uint16_t levelCounts[24];
 			for (uint32_t i=0;i<maxLevel;i++)
 				levelCounts[i]=inputStream.readByte();
 			levelCounts[maxLevel-1U]+=2U;

@@ -23,6 +23,8 @@ public:
 	ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun=false);
 	~ForwardInputStream();
 
+	void reset(size_t startOffset,size_t endOffset);
+
 	uint8_t readByte();
 	const uint8_t *consume(size_t bytes,uint8_t *buffer=nullptr);
 

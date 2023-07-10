@@ -171,7 +171,11 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_m16.lob",BASE_DIR "test_C1.raw",true);
 	verifyFile(BASE_DIR "test_C1_m17.lob",BASE_DIR "test_C1.raw",true);
 
-	// TODO: MMCMP missing
+	// MMCMP
+	verifyFile(BASE_DIR "test_C2.mmcmp122",BASE_DIR "test_C2.xm",true);
+	verifyFile(BASE_DIR "test_C2.mmcmp130",BASE_DIR "test_C2.xm",true);
+	verifyFile(BASE_DIR "test_C2.mmcmp132",BASE_DIR "test_C2.xm",true);
+	verifyFile(BASE_DIR "test_C2.mmcmp134",BASE_DIR "test_C2.xm",true);
 
 	// Pack
 	verifyFile(BASE_DIR "test_C1_pack.z",BASE_DIR "test_C1.raw");
@@ -187,9 +191,13 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_q.Z",BASE_DIR "test_C1.raw");
 
 	// RNC
-	// TODO: missing old RNC1
+	verifyFile(BASE_DIR "test_C1.rnc1old",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.rnc1",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.rnc2",BASE_DIR "test_C1.raw");
+
+	// TODO: SCO Compress LZH
+	// I'm not going to buy a openserver license to compress files
+	// I hope someone can help me here
 
 	// Stonecracker
 	verifyFile(BASE_DIR "test_C1.pack271_000",BASE_DIR "test_C1.raw");
@@ -229,6 +237,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_blzw.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_bzp2.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_cbr0.xpkf",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C2_cbr0.xpkf",BASE_DIR "test_C2.xm"); // CBR0 does not really want to compress alice
 	verifyFile(BASE_DIR "test_C1_crm2.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_crms.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_cyb2.xpkf",BASE_DIR "test_C1.raw");
@@ -258,7 +267,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_mash.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_none.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_nuke.xpkf",BASE_DIR "test_C1.raw");
-//	verifyFile(BASE_DIR "test_C1_ppmq.xpkf",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_ppmq.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_pwpk.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_rake.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_rdcn.xpkf",BASE_DIR "test_C1.raw");
@@ -275,5 +284,5 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_tdcs.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_zeno.xpkf",BASE_DIR "test_C1.raw");
 
-//	verifyFile(BASE_DIR "",BASE_DIR "test_C1.raw");
+	return 0;
 }

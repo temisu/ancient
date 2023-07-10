@@ -58,6 +58,7 @@ Decompression algorithms provided:
   * RNC2: RNC version 2 stream
 * Turbo Packer by Wolfgang Mayerle.
 * MMCMP: Music Module Compressor
+* SCO Compress LZH
 * StoneCracker
   * SC: StoneCracker v2.69 - v2.81
   * SC: StoneCracker v2.92, v2.99

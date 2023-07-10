@@ -75,6 +75,7 @@ int main(int argc,char **argv)
 	auto usage=[]()
 	{
 		fprintf(stderr, "Ancient v2.1.0\n"
+				"Copyright (C) Teemu Suutari\n"
 				"\n"
 				"Usage: ancient i[dentify] packed_input_files...\n"
 				" - identifies compression used in a file(s)\n"

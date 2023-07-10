@@ -171,7 +171,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_m16.lob",BASE_DIR "test_C1.raw",true);
 	verifyFile(BASE_DIR "test_C1_m17.lob",BASE_DIR "test_C1.raw",true);
 
-	// TODO: MMCMP missing
+	// MMCMP
 	verifyFile(BASE_DIR "test_C2.mmcmp122",BASE_DIR "test_C2.xm",true);
 	verifyFile(BASE_DIR "test_C2.mmcmp130",BASE_DIR "test_C2.xm",true);
 	verifyFile(BASE_DIR "test_C2.mmcmp132",BASE_DIR "test_C2.xm",true);
@@ -267,7 +267,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_mash.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_none.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_nuke.xpkf",BASE_DIR "test_C1.raw");
-//	verifyFile(BASE_DIR "test_C1_ppmq.xpkf",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_ppmq.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_pwpk.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_rake.xpkf",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_rdcn.xpkf",BASE_DIR "test_C1.raw");

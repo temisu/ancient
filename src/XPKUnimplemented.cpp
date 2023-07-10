@@ -66,7 +66,7 @@ std::vector<XPKUnimplemented::Mode> &XPKUnimplemented::getModes()
 		Mode{FourCC("BZIP"),"XPK-BZIP: Bzip v1 (unimplemented)"},		// PowerPC only
 		Mode{FourCC("CAST"),"XPK-CAST: CAST encryption (unimplemented)"},	// Encryption format
 		Mode{FourCC("ENCO"),"XPK-ENCO: Unsafe encryption (unimplemented)"},	// Encryption format
-		Mode{FourCC("DHUF"),"XPK-DHUF: Huffman compressor (unimplemented)"},	// Missing
+		Mode{FourCC("DHUF"),"XPK-DHUF: Huffman compressor (unimplemented)"},	// Missing (All the libraries that exist are broken)
 		Mode{FourCC("DMCB"),"XPK-DMCB: Arithmetic compressor (unimplemented)"},	// Floating point based format
 		Mode{FourCC("DMCD"),"XPK-DMCD: Arithmetic compressor (unimplemented)"},	// Floating point based format
 		Mode{FourCC("DMCI"),"XPK-DMCI: Arithmetic compressor (unimplemented)"},	// Missing

@@ -9,6 +9,7 @@
 #include "FrequencyTree.hpp"
 
 #include <map>
+#include <list>
 
 namespace ancient::internal
 {
@@ -47,17 +48,14 @@ void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	{
 	public:
 		BitReader(ForwardInputStream &stream) noexcept :
-			_reader(stream)
+			_reader{stream}
 		{
 			// nothing needed
 		}
 
-		virtual ~BitReader()
-		{
-			// nothing needed
-		}
+		~BitReader() noexcept=default;
 
-		virtual uint32_t readBit() override final
+		uint32_t readBit() final
 		{
 			return _reader.readBitsBE32(1);
 		}
@@ -72,48 +70,58 @@ void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	};
 
 
-	ForwardInputStream inputStream(_packedData,0,_packedData.size());
+	ForwardInputStream inputStream(_packedData,0,_packedData.size(),true);
 	ForwardOutputStream outputStream(rawData,0,rawData.size());
 	BitReader bitReader(inputStream);
 
-	for (uint32_t i=0;i<5;i++)
+	uint32_t history;
+	uint8_t history5;
+	auto addToHistory=[&](uint8_t ch)
 	{
-		outputStream.writeByte(bitReader.readBits(8));
-		// files shorter than 5 bytes are not supported by the library. We can try something here though
+		history5=history>>24U;
+		history=(history<<8U)|ch;
+	};
+
+	for (uint32_t i=0;i<5U;i++)
+	{
+		// files shorter than 5 bytes are not supported by the encoder.
+		// In practice this most probably just means padding
 		if (outputStream.eof()) return;
+		uint8_t ch=bitReader.readBits(8U);
+		outputStream.writeByte(ch);
+		addToHistory(ch);
 	}
 
 	RangeDecoder decoder(bitReader,bitReader.readBits(16));
 
-	class ExclusionList
+	class InclusionList
 	{
 	public:
-		class ExclusionCallback
+		class InclusionCallback
 		{
 		public:
-			ExclusionCallback(ExclusionList &parent)
+			InclusionCallback(InclusionList &parent) noexcept
 			{
 				parent.registerCallback(this);
 			}
+
+			~InclusionCallback() noexcept=default;
 
 			virtual void symbolIncluded(uint8_t symbol) noexcept=0;
 			virtual void symbolExcluded(uint8_t symbol) noexcept=0;
 		};
 
-		ExclusionList() noexcept
+		InclusionList() noexcept
 		{
 			for (uint32_t i=0;i<256U;i++)
 				_tree.set(i,1);
 		}
 
-		~ExclusionList()
-		{
-			// nothing needed
-		}
+		~InclusionList() noexcept=default;
 
 		void reset() noexcept
 		{
-			_tree.onNoMatch(1,[&](uint32_t i)
+			_tree.onNotOne([&](uint32_t i)
 			{
 				_tree.set(i,1);
 				for (auto callback : _callbacks) callback->symbolIncluded(i);
@@ -129,9 +137,9 @@ void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			}
 		}
 
-		bool isExcluded(uint8_t symbol) const noexcept
+		bool isIncluded(uint8_t symbol) const noexcept
 		{
-			return !_tree[symbol];
+			return _tree[symbol];
 		}
 
 		uint32_t getTotal() const noexcept
@@ -145,250 +153,528 @@ void PPMQDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		}
 
 	private:
-		void registerCallback(ExclusionCallback *callback) noexcept
+		void registerCallback(InclusionCallback *callback) noexcept
 		{
 			_callbacks.push_back(callback);
 		}
 
 		FrequencyTree<uint16_t,uint8_t,256>	_tree;
-		std::vector<ExclusionCallback*>		_callbacks;
+		std::vector<InclusionCallback*>		_callbacks;
 	};
 
-	class Model
+	class ShadedFrequencyTree : public InclusionList::InclusionCallback
 	{
 	public:
-		Model(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
-			_decoder(decoder),
-			_exclusionList(exclusionList)
+		ShadedFrequencyTree(InclusionList &inclusionList) noexcept :
+			InclusionCallback{inclusionList},
+			_inclusionList{inclusionList}
 		{
-			// nothing needed
+			for (uint32_t i=0;i<256U;i++) _charCounts[i]=0;
 		}
 
-		virtual ~Model()
+		~ShadedFrequencyTree() noexcept=default;
+
+		uint16_t operator[](uint8_t symbol) const
 		{
-			// nothing needed
+			return _tree[symbol];
 		}
 
-		virtual bool decode(uint8_t &ch)=0;
-		virtual void mark(uint8_t ch)=0;
-
-	protected:
-		RangeDecoder				&_decoder;
-		ExclusionList				&_exclusionList;
-	};
-
-	class Model2 : public Model
-	{
-	public:
-		Model2(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
-			Model(decoder,exclusionList)
+		void add(uint8_t symbol,int16_t freq)
 		{
-			// nothing needed
+			if (_inclusionList.isIncluded(symbol))
+				_tree.add(symbol,freq);
+			_charCounts[symbol]+=freq;
 		}
 
-		virtual ~Model2()
+		void set(uint8_t symbol,uint16_t freq)
 		{
-			// nothing needed
+			if (_inclusionList.isIncluded(symbol))
+				_tree.set(symbol,freq);
+			_charCounts[symbol]=freq;
 		}
 
-		virtual bool decode(uint8_t &ch) override final
+		uint16_t getTotal() const noexcept
 		{
-			return false;
+			return _tree.getTotal();
 		}
 
-		virtual void mark(uint8_t ch) override final
+		void excludeAll() noexcept
 		{
-		}
-	};
-
-	class Model1 : public Model
-	{
-	public:
-		Model1(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
-			Model(decoder,exclusionList)
-		{
-			// nothing needed
+			_tree.onNotZero([&](uint32_t i)
+			{
+				_inclusionList.exclude(i);
+			});
 		}
 
-		virtual ~Model1()
+		uint8_t decode(uint16_t value,uint16_t &low,uint16_t &freq) const
 		{
-			// nothing needed
-		}
-
-		virtual bool decode(uint8_t &ch) override final
-		{
-			return false;
-		}
-
-		virtual void mark(uint8_t ch) override final
-		{
+			return _tree.decode(value,low,freq);
 		}
 
 	private:
-		// Sparse frequency map with MFT, no good data type for this one
-		// note that there is no sense to do MFT here. It is just something
-		// the original implementation did
-		// (maybe to optimize linked list traversing perhaps)
+		void symbolIncluded(uint8_t symbol) noexcept final
+		{
+			_tree.set(uint16_t(symbol),_charCounts[symbol]);
+		}
+
+		void symbolExcluded(uint8_t symbol) noexcept final
+		{
+			_tree.set(uint16_t(symbol),0);
+		}
+
+		InclusionList				&_inclusionList;
+		FrequencyTree<uint16_t,uint8_t,256U>	_tree;
+		uint16_t				_charCounts[256];
+	};
+
+	// Sparse frequency map with MFT, no good data type for this one.
+	// Note that there is no sense to do MFT here. It is just something
+	// the original implementation did (maybe to optimize linked list traversing)
+	// Worse yet, this embeds to the exclusion logic in the original.
+	// By using just tree and separate MFT, the mem-usage would be in gigabytes -> lets not do that
+	// No matter how I rotate this rubics cube, the star's wont align to do something nice
+	// so lets do something ugly
+	class ShadedSparseFMTFrequencyList
+	{
+	public:
 		struct Node
 		{
 			uint16_t			freq;
 			uint8_t				symbol;
 		};
 
-		struct Context
+		ShadedSparseFMTFrequencyList(InclusionList &inclusionList) noexcept :
+			_inclusionList{inclusionList}
 		{
-			uint16_t			escapeFreq;
-			uint16_t			totalFreq;		// -escapeFreq
-			std::vector<Node>		nodes;
-		};
+		}
 
-		uint32_t decode(Context &ctx)
+		~ShadedSparseFMTFrequencyList() noexcept=default;
+
+		uint16_t getTotal() const noexcept
 		{
-/*			uint16_t total=ctx.escapeFreq+ctx.totalFreq;
-			uint16_t value=_decoder.decode(total);
-			if (value.ctx<escapeFreq)
+			uint16_t ret=0;
+			for (auto &node : _nodes)
 			{
-				_decoder.scale(0,ctx.escapeFreq,total);
-				return ~0U;
+				if (_inclusionList.isIncluded(node.symbol))
+					ret+=node.freq;
 			}
-			uint16_t low=escapeFreq;
-			uint32_t size=ctx.nodes.size();
-			for (uint32_t i=0;i<size;i++)
+			return ret;
+		}
+
+		size_t size() const noexcept
+		{
+			return _nodes.size();
+		}
+
+		void excludeAll() noexcept
+		{
+			for (auto &node : _nodes)
+				_inclusionList.exclude(node.symbol);
+		}
+
+		void scale() noexcept
+		{
+
+			for (auto it=_nodes.begin();it!=_nodes.end();)
 			{
-				auto &node=ctx.nodes[i];
-				if (low+node.freq<value)
+				auto next=it++;
+				it->freq>>=1U;
+				if (!it->freq) _nodes.erase(it);
+				it=next;
+			}
+		}
+
+		Node &decode(uint16_t value,uint16_t &low,uint16_t &freq)
+		{
+			uint16_t tmp=0;
+			for (auto it=_nodes.begin();it!=_nodes.end();it++)
+			{
+				auto &node=*it;
+				if (_inclusionList.isIncluded(node.symbol))
 				{
-					_decoder.scale(low,low+node.freq,total);
-					return i;
+					if (value<tmp+node.freq)
+					{
+						Node nodeCopy=node;
+						freq=node.freq;
+						low=tmp;
+						_nodes.erase(it);
+						_nodes.insert(_nodes.begin(),nodeCopy);
+						return _nodes.front();
+					}
+					tmp+=node.freq;
 				}
-				low+=node.freq;
-			}*/
+			}
 			throw Decompressor::DecompressionError();
 		}
 
-
-		std::map<std::pair<uint16_t,uint32_t>,Context> _contexts;
-	};
-
-	// A simple arithmetic encoder
-	class Model0 : public Model, public ExclusionList::ExclusionCallback
-	{
-	public:
-		Model0(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
-			Model(decoder,exclusionList),
-			ExclusionCallback(exclusionList)
+		Node &front()
 		{
-			_tree.set(0,1);
-			for (uint32_t i=0;i<256U;i++) _charCounts[i]=0;
+			return _nodes.front();
 		}
 
-		virtual ~Model0()
+		void addNew(uint8_t symbol)
 		{
-			// nothing needed
-		}
-
-		virtual bool decode(uint8_t &ch) override final
-		{
-			uint16_t value=_decoder.decode(_tree.getTotal());
-			uint16_t low,freq;
-			uint8_t symbol=_tree.decode(value,low,freq);
-			_decoder.scale(low,low+freq,_tree.getTotal());
-			if (!symbol)
-			{
-				_tree.onNoMatch(0,[&](uint32_t i)
-				{
-					if (i) _exclusionList.exclude(i-1);
-				});
-				return false;
-			}
-			_tree.add(symbol,1);
-			if (_tree[symbol]==2 && _tree[0]!=1U) _tree.add(0,-1);
-			ch=symbol-1;
-			return true;
-		}
-		
-		virtual void mark(uint8_t ch) override final
-		{
-			uint16_t symbol=uint16_t(ch)+1;
-			if (!_tree[symbol])		// TODO: if looks like always true!
-			{
-				if (_exclusionList.isExcluded(ch)) _charCounts[ch]=1U;	// TODO: looks like always false
-					else _tree.set(symbol,1U);
-				_tree.add(0,1);
-			}
-		}
-
-		virtual void symbolIncluded(uint8_t symbol) noexcept override final
-		{
-			_tree.set(uint16_t(symbol)+1,_charCounts[symbol]);
-		}
-
-		virtual void symbolExcluded(uint8_t symbol) noexcept override final
-		{
-			_charCounts[symbol]=_tree[symbol];
-			_tree.set(uint16_t(symbol)+1,0);
+			_nodes.emplace(_nodes.begin(),Node{1U,symbol});
 		}
 
 	private:
-		// first one is escape character
-		FrequencyTree<uint16_t,uint16_t,257>	_tree;
-		uint16_t				_charCounts[256];
+		std::list<Node>				_nodes;
+		InclusionList				&_inclusionList;
 	};
+	// After some eye-bleach we are ready to continue
 
-	// purely a fallback model that can always decode
-	class FallbackModel : public Model
+	class Model
 	{
 	public:
-		FallbackModel(RangeDecoder &decoder,ExclusionList &exclusionList) noexcept :
-			Model(decoder,exclusionList)
+		Model(RangeDecoder &decoder,InclusionList &inclusionList) noexcept :
+			_decoder{decoder},
+			_inclusionList{inclusionList}
 		{
 			// nothing needed
 		}
 
-		virtual ~FallbackModel()
+		virtual ~Model() noexcept=default;
+
+		virtual bool decode(uint32_t history,uint8_t history5,uint8_t &ch)=0;
+		virtual void mark(uint8_t ch) noexcept=0;
+
+	protected:
+		RangeDecoder				&_decoder;
+		InclusionList				&_inclusionList;
+	};
+
+	class Model2 : public Model
+	{
+	public:
+		using contextFunc=std::tuple<uint32_t,uint16_t,uint8_t>(*)(uint32_t,uint8_t) noexcept;
+
+		Model2(RangeDecoder &decoder,InclusionList &inclusionList,contextFunc cf) noexcept :
+			Model{decoder,inclusionList},
+			_cf{cf}
+		{
+			for (uint32_t i=0;i<32;i++) for (uint32_t j=0;j<18;j++)
+			{
+				_freqs[i][j]=1U;
+				_totals[i][j]=j?(j<<2)+1U:2U;
+			}
+		}
+
+		~Model2() noexcept=default;
+
+		bool decode(uint32_t history,uint8_t history5,uint8_t &ch) final
+		{
+			auto context=_cf(history,history5);
+
+			auto scale=[&](Context &ctx,uint16_t total)
+			{
+				if (total+ctx.escapeFreq==0x4000U)
+				{
+					ctx.escapeFreq=(ctx.escapeFreq>>1U)+1U;
+					ctx.nodes.scale();
+				}
+			};
+
+			if (auto it=_contexts.find(context);it!=_contexts.end())
+			{
+				Context &ctx=it->second;
+				if (ctx.nodes.size()==1U)
+				{
+					auto &node=ctx.nodes.front();
+					uint16_t count=std::min(node.freq,uint16_t{17U});
+					uint32_t index=std::get<0>(context)&0x1fU;
+					if (_totals[index][count]>16300U)
+					{
+						_freqs[index][count]>>=1U;
+						_totals[index][count]>>=1U;
+						if (!_freqs[index][count])
+						{
+							_freqs[index][count]++;
+							_totals[index][count]+=20U;
+						}
+					}
+					if (node.freq>16300U) node.freq>>=1U;
+					if (_inclusionList.isIncluded(node.symbol))
+					{
+						uint16_t freq=_freqs[index][count];
+						uint16_t total=_totals[index][count];
+
+						uint16_t value=_decoder.decode(total);
+						if (value<freq)
+						{
+							_decoder.scale(0,freq,total);
+							_inclusionList.exclude(node.symbol);
+						} else {
+							_decoder.scale(freq,total,total);
+							node.freq++;
+							_totals[index][count]+=20U;
+							ch=node.symbol;
+							return true;
+						}
+					}
+					ctx.escapeFreq++;		// does not check scale (under the limit?)
+					_freqs[index][count]+=20U;
+					_totals[index][count]+=20U;
+					_delayedContext=context;
+					_addNewContext=true;
+					return false;
+				}
+				uint16_t total=ctx.nodes.getTotal();
+				uint16_t value=_decoder.decode(total+ctx.escapeFreq);
+				if (value<ctx.escapeFreq)
+				{
+					_decoder.scale(0,ctx.escapeFreq,total+ctx.escapeFreq);
+					ctx.nodes.excludeAll();
+					ctx.escapeFreq++;
+					scale(ctx,total);
+					_delayedContext=context;
+					_addNewContext=true;
+					return false;
+				} else {
+					uint16_t low,freq;
+					auto &node=ctx.nodes.decode(value-ctx.escapeFreq,low,freq);
+					_decoder.scale(ctx.escapeFreq+low,ctx.escapeFreq+low+freq,total+ctx.escapeFreq);
+					if (node.freq==1U && ctx.escapeFreq>1U) ctx.escapeFreq--;
+					node.freq++;
+					ch=node.symbol;
+					scale(ctx,total+1U);
+					return true;
+				}
+			}
+			_delayedContext=context;
+			_addNewContext=true;
+			return false;
+		}
+
+		void mark(uint8_t ch) noexcept final
+		{
+			if (_addNewContext)
+			{
+				if (auto it=_contexts.find(_delayedContext);it!=_contexts.end())
+				{
+					it->second.nodes.addNew(ch);
+				} else {
+					_contexts.emplace(_delayedContext,Context{_inclusionList,ch});
+				}
+				_addNewContext=false;
+			}
+		}
+
+	private:
+		struct Context
+		{
+			Context(InclusionList &inclusionList,uint8_t ch) noexcept :
+				escapeFreq{1U},
+				nodes{inclusionList}
+			{
+				nodes.addNew(ch);
+			};
+
+			~Context() noexcept=default;
+
+			uint16_t			escapeFreq;
+			ShadedSparseFMTFrequencyList	nodes;
+		};
+
+		contextFunc				_cf;
+		bool					_addNewContext=false;
+		std::tuple<uint32_t,uint16_t,uint8_t>	_delayedContext;
+		std::map<std::tuple<uint32_t,uint16_t,uint8_t>,Context> _contexts;
+		uint16_t				_freqs[32][18];
+		uint16_t				_totals[32][18];
+	};
+
+	class Model1 : public Model
+	{
+	public:
+		using contextFunc=std::pair<uint32_t,uint16_t>(*)(uint32_t) noexcept;
+
+		Model1(RangeDecoder &decoder,InclusionList &inclusionList,contextFunc cf) noexcept :
+			Model{decoder,inclusionList},
+			_cf{cf}
 		{
 			// nothing needed
 		}
 
-		virtual bool decode(uint8_t &ch) override final
+		~Model1() noexcept=default;
+
+		bool decode(uint32_t history,uint8_t history5,uint8_t &ch) final
 		{
-			uint16_t value=_decoder.decode(_exclusionList.getTotal());
-			uint16_t low,freq;
-			ch=_exclusionList.decode(value,low,freq);
-			_decoder.scale(low,low+freq,_exclusionList.getTotal());
+			auto context=_cf(history);
+
+			auto scale=[&](Context &ctx,uint16_t total)
+			{
+				if (total+ctx.escapeFreq==0x4000U)
+				{
+					ctx.escapeFreq=(ctx.escapeFreq>>1U)+1U;
+					ctx.nodes.scale();
+				}
+			};
+
+			if (auto it=_contexts.find(context);it!=_contexts.end())
+			{
+				Context &ctx=it->second;
+				uint16_t total=ctx.nodes.getTotal();
+				uint16_t value=_decoder.decode(total+ctx.escapeFreq);
+				if (value<ctx.escapeFreq)
+				{
+					_decoder.scale(0,ctx.escapeFreq,total+ctx.escapeFreq);
+					ctx.nodes.excludeAll();
+					ctx.escapeFreq++;
+					scale(ctx,total);
+					_delayedContext=context;
+					_addNewContext=true;
+					return false;
+				} else {
+					uint16_t low,freq;
+					auto &node=ctx.nodes.decode(value-ctx.escapeFreq,low,freq);
+					_decoder.scale(ctx.escapeFreq+low,ctx.escapeFreq+low+freq,total+ctx.escapeFreq);
+					if (node.freq==1U && ctx.escapeFreq>1U) ctx.escapeFreq--;
+					node.freq++;
+					ch=node.symbol;
+					scale(ctx,total+1U);
+					return true;
+				}
+			}
+			_delayedContext=context;
+			_addNewContext=true;
+			return false;
+		}
+
+		void mark(uint8_t ch) noexcept final
+		{
+			if (_addNewContext)
+			{
+				if (auto it=_contexts.find(_delayedContext);it!=_contexts.end())
+				{
+					it->second.nodes.addNew(ch);
+				} else {
+					_contexts.emplace(_delayedContext,Context{_inclusionList,ch});
+				}
+				_addNewContext=false;
+			}
+		}
+
+	private:
+		struct Context
+		{
+			Context(InclusionList &inclusionList,uint8_t ch) noexcept :
+				escapeFreq{1U},
+				nodes{inclusionList}
+			{
+				nodes.addNew(ch);
+			};
+
+			~Context() noexcept=default;
+
+			uint16_t			escapeFreq;
+			ShadedSparseFMTFrequencyList	nodes;
+		};
+
+		contextFunc				_cf;
+		bool					_addNewContext=false;
+		std::pair<uint32_t,uint16_t>		_delayedContext;
+		std::map<std::pair<uint32_t,uint16_t>,Context> _contexts;
+	};
+
+	// A simple arithmetic encoder (but with sparse array)
+	// Fallback built in, since they have unhealthy dependency to this model
+	class Model0 : public Model
+	{
+	public:
+		Model0(RangeDecoder &decoder,InclusionList &inclusionList) noexcept :
+			Model{decoder,inclusionList},
+			_tree{inclusionList}
+		{
+			// nothing needed
+		}
+
+		~Model0() noexcept=default;
+
+		bool decode(uint32_t history,uint8_t history5,uint8_t &ch) final
+		{
+			uint16_t value=_decoder.decode(_tree.getTotal()+_escapeFreq);
+			if (value<_escapeFreq)
+			{
+				_decoder.scale(0,_escapeFreq,_tree.getTotal()+_escapeFreq);
+
+				// since we could not decode it, it is no symbol we know and
+				// we can exclude them all
+				_tree.excludeAll();
+
+				decodeFallback(ch);
+			} else {
+				uint16_t low,freq;
+				uint8_t symbol=_tree.decode(value-_escapeFreq,low,freq);
+				_decoder.scale(_escapeFreq+low,_escapeFreq+low+freq,_tree.getTotal()+_escapeFreq);
+
+				switch (_tree[symbol])
+				{
+					case 0:
+					_escapeFreq++;
+					break;
+
+					case 1:
+					 if (_escapeFreq>1U) _escapeFreq--;
+					break;
+
+					default:
+					// nothing needed
+					break;
+				}
+				_tree.add(symbol,1);
+				ch=symbol;
+			}
 			return true;
 		}
 
-		virtual void mark(uint8_t ch) override final
+		void mark(uint8_t ch) noexcept final
 		{
 			// nothing needed
 		}
+
+	private:
+		void decodeFallback(uint8_t &ch)
+		{
+			uint16_t value=_decoder.decode(_inclusionList.getTotal());
+			uint16_t low,freq;
+			ch=_inclusionList.decode(value,low,freq);
+			_decoder.scale(low,low+freq,_inclusionList.getTotal());
+
+			_tree.set(uint16_t(ch),1U);
+			_escapeFreq++;
+		}
+
+		uint16_t				_escapeFreq=1U;
+		ShadedFrequencyTree			_tree;
 	};
 
-	ExclusionList exclusionList;
-	Model2 model2A(decoder,exclusionList);
-	Model2 model2B(decoder,exclusionList);
-	Model1 model1A(decoder,exclusionList);
-	Model1 model1B(decoder,exclusionList);
-	Model1 model1C(decoder,exclusionList);
-	Model0 model0(decoder,exclusionList);
-	FallbackModel fallbackModel(decoder,exclusionList);
-	std::vector<Model*> models={&model2A,&model2B,&model1A,&model1B,&model1C,&model0,&fallbackModel};
+	InclusionList inclusionList;
 
-	// unsurprisingly this fails for short blocks!
-	for (uint32_t i=0;i<5U;i++)
-		outputStream.writeByte(bitReader.readBits(8U));
+	// Different sources put different names on the models: PPM, PPMI etc. with different contexts
+	// Also, nothing seems to be exactly same as some public sources. The xpk library is "special"
+	// -> I just call them with numbers and letters so I don't get confused
+	Model2 model2A(decoder,inclusionList,[](uint32_t c,uint8_t c5)noexcept{return std::make_tuple(c,uint16_t(c^(c>>15U)),c5);});
+	Model2 model2B(decoder,inclusionList,[](uint32_t c,uint8_t c5)noexcept{return std::make_tuple(c,uint16_t(c^(c>>15U)),uint8_t{0});});
+	Model1 model1A(decoder,inclusionList,[](uint32_t c)noexcept{return std::make_pair(c&0xff'ffffU,uint16_t(c^(c>>7U)));});
+	Model1 model1B(decoder,inclusionList,[](uint32_t c)noexcept{return std::make_pair(c&0xffffU,uint16_t(c&0xffffU));});
+	Model1 model1C(decoder,inclusionList,[](uint32_t c)noexcept{return std::make_pair(c&0xffU,uint16_t(c&0xffU));});
+	Model0 model0(decoder,inclusionList);
+	Model *models[6]={&model2A,&model2B,&model1A,&model1B,&model1C,&model0};
 
 	while (!outputStream.eof())
 	{
-		exclusionList.reset();
-		for (uint32_t i=0;i<models.size();i++)
+		inclusionList.reset();
+		for (auto model : models)
 		{
 			uint8_t ch;
-			if (models[i]->decode(ch))
+			if (model->decode(history,history5,ch))
 			{
-				for (uint32_t j=i;j;j--)
-					models[j-1]->mark(ch);
+				for (auto backModel : models)
+				{
+					if (backModel==model) break;
+					backModel->mark(ch);
+				}
+				addToHistory(ch);
 				outputStream.writeByte(ch);
 				break;
 			}

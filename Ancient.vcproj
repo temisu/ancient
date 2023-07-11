@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <Compile Include="main.cpp"/>
+  </ItemGroup>
+  <Target Name="Build">
+    <Csc Sources="@(Compile)"/>
+  </Target>
+</Project>

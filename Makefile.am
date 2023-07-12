@@ -199,3 +199,5 @@ ancient_LDADD = libancient.la
 ancient_SOURCES = 
 ancient_SOURCES += main.cpp
 
+dist-hook:
+	rm -rf $(distdir)/testing

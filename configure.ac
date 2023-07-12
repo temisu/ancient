@@ -1,5 +1,5 @@
 
-AC_INIT([ancient], [2.2.0-pre.0], [https://github.com/temisu/ancient/issues], [ancient], [https://github.com/temisu/ancient/])
+AC_INIT([ancient], [2.1.1-pre.0], [https://github.com/temisu/ancient/issues], [ancient], [https://github.com/temisu/ancient/])
 #                   ^^^^^^^^^^^
 # Package Version
 #
@@ -23,7 +23,7 @@ AC_INIT([ancient], [2.2.0-pre.0], [https://github.com/temisu/ancient/issues], [a
 # *  set AGE=0 when the next release is incompatible with the previous release (changed/removed API elements)
 # For details, see <https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html>.
 LIBANCIENT_LTVER_CURRENT=2
-LIBANCIENT_LTVER_REVISION=2
+LIBANCIENT_LTVER_REVISION=1
 LIBANCIENT_LTVER_AGE=0
 #
 
@@ -70,10 +70,6 @@ PKG_PROG_PKG_CONFIG([0.24])
 
 AM_SILENT_RULES([yes])
 
-# C
-#AC_PROG_CC
-#AM_PROG_CC_C_O
-
 # C++
 AC_PROG_CXX
 
@@ -82,10 +78,6 @@ AC_PROG_INSTALL
 AC_SUBST([LIBANCIENT_LTVER_CURRENT])
 AC_SUBST([LIBANCIENT_LTVER_REVISION])
 AC_SUBST([LIBANCIENT_LTVER_AGE])
-
-# C
-#AC_PROG_CC_STDC
-#AC_PROG_CC_C99
 
 # C++
 AX_CXX_COMPILE_STDCXX(17, [noext], [mandatory])
@@ -98,12 +90,6 @@ LIBANCIENT_PC_LIBS_PRIVATE=
 LIBANCIENT_PC_CFLAGS=
 # ANCIENT_API macro for .pc file
 LIBANCIENT_PC_ANCIENT_API=
-
-# C
-#AC_LANG_PUSH([C])
-#AX_CHECK_COMPILE_FLAG([-fvisibility=hidden], [CFLAGS="$CFLAGS -fvisibility=hidden"])
-#AX_CFLAGS_WARN_ALL
-#AC_LANG_POP([C])
 
 # C++
 AC_LANG_PUSH([C++])

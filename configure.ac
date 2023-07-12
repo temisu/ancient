@@ -1,5 +1,5 @@
 
-AC_INIT([ancient], [2.1.1], [https://github.com/temisu/ancient/issues], [ancient], [https://github.com/temisu/ancient/])
+AC_INIT([ancient], [2.2.0-pre.0], [https://github.com/temisu/ancient/issues], [ancient], [https://github.com/temisu/ancient/])
 #                   ^^^^^^^^^^^
 # Package Version
 #
@@ -23,7 +23,7 @@ AC_INIT([ancient], [2.1.1], [https://github.com/temisu/ancient/issues], [ancient
 # *  set AGE=0 when the next release is incompatible with the previous release (changed/removed API elements)
 # For details, see <https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html>.
 LIBANCIENT_LTVER_CURRENT=2
-LIBANCIENT_LTVER_REVISION=1
+LIBANCIENT_LTVER_REVISION=2
 LIBANCIENT_LTVER_AGE=0
 #
 

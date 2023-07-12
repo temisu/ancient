@@ -97,7 +97,6 @@ AX_CHECK_COMPILE_FLAG([-fvisibility=hidden], [CXXFLAGS="$CXXFLAGS -fvisibility=h
 AX_CHECK_COMPILE_FLAG([-fvisibility=default], [AC_DEFINE([ANCIENT_API], [__attribute__((visibility("default")))])])
 AX_CHECK_COMPILE_FLAG([-fvisibility=default], [AC_SUBST([LIBANCIENT_PC_ANCIENT_API], [-DANCIENT_API_VISIBILITY_DEFAULT])])
 AX_CXXFLAGS_WARN_ALL
-AX_APPEND_FLAG($CXXFLAGS, [-Werror])
 AC_LANG_POP([C++])
 
 AC_SUBST([LIBANCIENT_PC_REQUIRES_PRIVATE])

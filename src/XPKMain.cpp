@@ -45,8 +45,7 @@
 #include "RDCNDecompressor.hpp"
 #include "RLENDecompressor.hpp"
 #include "SDHCDecompressor.hpp"
-#include "SHR3Decompressor.hpp"
-#include "SHRIDecompressor.hpp"
+#include "SHRXDecompressor.hpp"
 #include "SLZ3Decompressor.hpp"
 #include "SMPLDecompressor.hpp"
 #include "SQSHDecompressor.hpp"
@@ -103,8 +102,7 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<XPKDecompressor>(
 	{RDCNDecompressor::detectHeaderXPK,RDCNDecompressor::create},
 	{RLENDecompressor::detectHeaderXPK,RLENDecompressor::create},
 	{SDHCDecompressor::detectHeaderXPK,SDHCDecompressor::create},
-	{SHR3Decompressor::detectHeaderXPK,SHR3Decompressor::create},
-	{SHRIDecompressor::detectHeaderXPK,SHRIDecompressor::create},
+	{SHRXDecompressor::detectHeaderXPK,SHRXDecompressor::create},
 	{SLZ3Decompressor::detectHeaderXPK,SLZ3Decompressor::create},
 	{SMPLDecompressor::detectHeaderXPK,SMPLDecompressor::create},
 	{SQSHDecompressor::detectHeaderXPK,SQSHDecompressor::create},

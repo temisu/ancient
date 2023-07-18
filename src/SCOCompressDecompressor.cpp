@@ -6,6 +6,7 @@
 #include "OutputStream.hpp"
 #include "common/Common.hpp"
 
+#include <array>
 
 namespace ancient::internal
 {
@@ -89,7 +90,7 @@ void SCOCompressDecompressor::decompressImpl(Buffer &rawData,bool verify)
 
 			auto createTable=[&](OptionalHuffmanDecoder<uint32_t> &dest,uint32_t bits,bool enableHole)
 			{
-				uint8_t symbolBits[31];
+				std::array<uint8_t,31> symbolBits;
 				uint32_t length=readBits(bits);
 				if (!length)
 				{
@@ -121,7 +122,7 @@ void SCOCompressDecompressor::decompressImpl(Buffer &rawData,bool verify)
 
 			decoder.reset();
 
-			uint8_t symbolBits[511];
+			std::array<uint8_t,511> symbolBits;
 			uint32_t length=readBits(9);
 			if (!length)
 			{

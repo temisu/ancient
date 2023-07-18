@@ -70,27 +70,27 @@ void SQSHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 
 	HuffmanDecoder<uint8_t> modDecoder
 	{
-		HuffmanCode<uint8_t>{1,0b0001,0},
-		HuffmanCode<uint8_t>{2,0b0000,1},
-		HuffmanCode<uint8_t>{3,0b0010,2},
-		HuffmanCode<uint8_t>{4,0b0110,3},
-		HuffmanCode<uint8_t>{4,0b0111,4}
+		HuffmanCode{1,0b0001,uint8_t{0}},
+		HuffmanCode{2,0b0000,uint8_t{1}},
+		HuffmanCode{3,0b0010,uint8_t{2}},
+		HuffmanCode{4,0b0110,uint8_t{3}},
+		HuffmanCode{4,0b0111,uint8_t{4}}
 	};
 
 	HuffmanDecoder<uint8_t> lengthDecoder
 	{
-		HuffmanCode<uint8_t>{1,0b0000,0},
-		HuffmanCode<uint8_t>{2,0b0010,1},
-		HuffmanCode<uint8_t>{3,0b0110,2},
-		HuffmanCode<uint8_t>{4,0b1110,3},
-		HuffmanCode<uint8_t>{4,0b1111,4}
+		HuffmanCode{1,0b0000,uint8_t{0}},
+		HuffmanCode{2,0b0010,uint8_t{1}},
+		HuffmanCode{3,0b0110,uint8_t{2}},
+		HuffmanCode{4,0b1110,uint8_t{3}},
+		HuffmanCode{4,0b1111,uint8_t{4}}
 	};
 
 	HuffmanDecoder<uint8_t> distanceDecoder
 	{
-		HuffmanCode<uint8_t>{1,0b01,0},
-		HuffmanCode<uint8_t>{2,0b00,1},
-		HuffmanCode<uint8_t>{2,0b01,2}
+		HuffmanCode{1,0b01,uint8_t{0}},
+		HuffmanCode{2,0b00,uint8_t{1}},
+		HuffmanCode{2,0b01,uint8_t{2}}
 	};
 
 	// first byte is special

@@ -10,6 +10,8 @@
 #include "common/OverflowCheck.hpp"
 #include "common/Common.hpp"
 
+#include <array>
+
 // This allows decompression of pc compressed files from unonfficial (and unpatched) compressor
 // PC games do not need chunk count, and are happy to read these files.
 // Official tools put it and amiga decompressors require it
@@ -167,25 +169,25 @@ void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 
 	HuffmanDecoder<uint8_t> litDecoder
 	{
-		HuffmanCode<uint8_t>{1,0b00,0},
-		HuffmanCode<uint8_t>{2,0b10,1},
-		HuffmanCode<uint8_t>{2,0b11,2}
+		HuffmanCode{1,0b00,uint8_t{0}},
+		HuffmanCode{2,0b10,uint8_t{1}},
+		HuffmanCode{2,0b11,uint8_t{2}}
 	};
 
 	HuffmanDecoder<uint8_t> lengthDecoder
 	{
-		HuffmanCode<uint8_t>{1,0b0000,0},
-		HuffmanCode<uint8_t>{2,0b0010,1},
-		HuffmanCode<uint8_t>{3,0b0110,2},
-		HuffmanCode<uint8_t>{4,0b1110,3},
-		HuffmanCode<uint8_t>{4,0b1111,4}
+		HuffmanCode{1,0b0000,uint8_t{0}},
+		HuffmanCode{2,0b0010,uint8_t{1}},
+		HuffmanCode{3,0b0110,uint8_t{2}},
+		HuffmanCode{4,0b1110,uint8_t{3}},
+		HuffmanCode{4,0b1111,uint8_t{4}}
 	};
 
 	HuffmanDecoder<uint8_t> distanceDecoder
 	{
-		HuffmanCode<uint8_t>{1,0b00,0},
-		HuffmanCode<uint8_t>{2,0b10,1},
-		HuffmanCode<uint8_t>{2,0b11,2}
+		HuffmanCode{1,0b00,uint8_t{0}},
+		HuffmanCode{2,0b10,uint8_t{1}},
+		HuffmanCode{2,0b11,uint8_t{2}}
 	};
 
 	for (;;)
@@ -246,7 +248,16 @@ void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 	LSBBitReader<ForwardInputStream> bitReader(inputStream);
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		return bitReader.readBits16Limit(count);
+		return bitReader.readBitsGeneric(count,[&](){
+			uint32_t tmp{inputStream.readByte()};
+			if (inputStream.eof())
+			{
+				return std::make_pair(tmp,8);
+			} else {
+				tmp=tmp|(uint32_t(inputStream.readByte())<<8);
+				return std::make_pair(tmp,16);
+			}
+		});
 	};
 	auto readByte=[&]()->uint8_t
 	{
@@ -263,7 +274,7 @@ void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 		uint32_t length=readBits(5);
 		if (!length) return;
 		uint32_t maxDepth=0;
-		uint8_t lengthTable[31];
+		std::array<uint8_t,31> lengthTable;
 		for (uint32_t i=0;i<length;i++)
 		{
 			lengthTable[i]=readBits(4);
@@ -345,50 +356,49 @@ void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
 
 	HuffmanDecoder<Cmd> cmdDecoder
 	{
-		HuffmanCode<Cmd>{1,0b0000,Cmd::LIT},
-		HuffmanCode<Cmd>{2,0b0010,Cmd::MOV},
-		HuffmanCode<Cmd>{3,0b0110,Cmd::MV2},
-		HuffmanCode<Cmd>{4,0b1110,Cmd::MV3},
-		HuffmanCode<Cmd>{4,0b1111,Cmd::CND}
+		HuffmanCode{1,0b0000,Cmd::LIT},
+		HuffmanCode{2,0b0010,Cmd::MOV},
+		HuffmanCode{3,0b0110,Cmd::MV2},
+		HuffmanCode{4,0b1110,Cmd::MV3},
+		HuffmanCode{4,0b1111,Cmd::CND}
 	};
 
 	/* length of 9 is a marker for literals */
 	HuffmanDecoder<uint8_t> lengthDecoder
 	{
-		HuffmanCode<uint8_t>{2,0b000,4},
-		HuffmanCode<uint8_t>{2,0b010,5},
-		HuffmanCode<uint8_t>{3,0b010,6},
-		HuffmanCode<uint8_t>{3,0b011,7},
-		HuffmanCode<uint8_t>{3,0b110,8},
-		HuffmanCode<uint8_t>{3,0b111,9}
+		HuffmanCode{2,0b000,uint8_t{4}},
+		HuffmanCode{2,0b010,uint8_t{5}},
+		HuffmanCode{3,0b010,uint8_t{6}},
+		HuffmanCode{3,0b011,uint8_t{7}},
+		HuffmanCode{3,0b110,uint8_t{8}},
+		HuffmanCode{3,0b111,uint8_t{9}}
 	};
 	
-	HuffmanDecoder<int8_t> distanceDecoder
+	HuffmanDecoder<uint8_t> distanceDecoder
 	{
-		HuffmanCode<int8_t>{1,0b000000,0},
-		HuffmanCode<int8_t>{3,0b000110,1},
-		HuffmanCode<int8_t>{4,0b001000,2},
-		HuffmanCode<int8_t>{4,0b001001,3},
-		HuffmanCode<int8_t>{5,0b010101,4},
-		HuffmanCode<int8_t>{5,0b010111,5},
-		HuffmanCode<int8_t>{5,0b011101,6},
-		HuffmanCode<int8_t>{5,0b011111,7},
-		HuffmanCode<int8_t>{6,0b101000,8},
-		HuffmanCode<int8_t>{6,0b101001,9},
-		HuffmanCode<int8_t>{6,0b101100,10},
-		HuffmanCode<int8_t>{6,0b101101,11},
-		HuffmanCode<int8_t>{6,0b111000,12},
-		HuffmanCode<int8_t>{6,0b111001,13},
-		HuffmanCode<int8_t>{6,0b111100,14},
-		HuffmanCode<int8_t>{6,0b111101,15}
+		HuffmanCode{1,0b000000,uint8_t{0}},
+		HuffmanCode{3,0b000110,uint8_t{1}},
+		HuffmanCode{4,0b001000,uint8_t{2}},
+		HuffmanCode{4,0b001001,uint8_t{3}},
+		HuffmanCode{5,0b010101,uint8_t{4}},
+		HuffmanCode{5,0b010111,uint8_t{5}},
+		HuffmanCode{5,0b011101,uint8_t{6}},
+		HuffmanCode{5,0b011111,uint8_t{7}},
+		HuffmanCode{6,0b101000,uint8_t{8}},
+		HuffmanCode{6,0b101001,uint8_t{9}},
+		HuffmanCode{6,0b101100,uint8_t{10}},
+		HuffmanCode{6,0b101101,uint8_t{11}},
+		HuffmanCode{6,0b111000,uint8_t{12}},
+		HuffmanCode{6,0b111001,uint8_t{13}},
+		HuffmanCode{6,0b111100,uint8_t{14}},
+		HuffmanCode{6,0b111101,uint8_t{15}}
 	};
 
 
 	// helpers
 	auto readDistance=[&]()->uint32_t
 	{
-		int8_t distMult=distanceDecoder.decode(readBit);
-		if (distMult<0) throw DecompressionError();
+		uint8_t distMult=distanceDecoder.decode(readBit);
 		uint8_t distByte=readByte();
 		return (uint32_t(distByte)|(uint32_t(distMult)<<8))+1;
 	};

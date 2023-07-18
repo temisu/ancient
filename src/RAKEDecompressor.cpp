@@ -66,16 +66,15 @@ void RAKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	};
 	{
 		uint16_t tmp=_packedData.readBE16(0);
-	        if (tmp>32) throw Decompressor::DecompressionError();
-		const uint8_t *buf=forwardInputStream.consume(4);
-		uint32_t content=(uint32_t(buf[0])<<24)|(uint32_t(buf[1])<<16)|
-			(uint32_t(buf[2])<<8)|uint32_t(buf[3]);
+	        if (tmp>32)
+	        	throw Decompressor::DecompressionError();
+		uint32_t content{forwardInputStream.readBE32()};
 		bitReader.reset(content>>tmp,32-tmp);
 	}
 
 	BackwardOutputStream outputStream(rawData,0,rawData.size());
 
-	HuffmanDecoder<uint32_t> lengthDecoder;
+	HuffmanDecoder<uint8_t> lengthDecoder;
 	// is there some logic into this?
 	static const uint8_t decTable[255][2]={
 		{ 1,0x01},{ 3,0x03},{ 5,0x05},{ 6,0x09},{ 7,0x0c},{ 9,0x13},{12,0x34},{18,0xc0},
@@ -114,7 +113,7 @@ void RAKEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	uint32_t hufCode=0;
 	for (auto &it: decTable)
 	{
-		lengthDecoder.insert(HuffmanCode<uint32_t>{it[0],hufCode>>(32-it[0]),it[1]});
+		lengthDecoder.insert(HuffmanCode{it[0],hufCode>>(32-it[0]),it[1]});
 		hufCode+=1<<(32-it[0]);
 	}
 

@@ -306,12 +306,12 @@ void StoneCrackerDecompressor::decompressGen1(Buffer &rawData)
 	// logic is very hard to un-convolute...
 	HuffmanDecoder<SCItem> scDecoder
 	{
-		HuffmanCode<SCItem>{2,0b000,SCItem{0,3U,0,true}},
-		HuffmanCode<SCItem>{3,0b010,SCItem{0,_modes[2]+1U,8U,true}},
-		HuffmanCode<SCItem>{3,0b011,SCItem{_modes[0]+1U,_modes[1]+1U,5U,false}},
-		HuffmanCode<SCItem>{2,0b010,SCItem{8U,0,2U,false}},
-		HuffmanCode<SCItem>{3,0b110,SCItem{9U,0,3U,false}},
-		HuffmanCode<SCItem>{3,0b111,SCItem{10U,0,4U,false}}
+		HuffmanCode{2,0b000,SCItem{0,3U,0,true}},
+		HuffmanCode{3,0b010,SCItem{0,_modes[2]+1U,8U,true}},
+		HuffmanCode{3,0b011,SCItem{_modes[0]+1U,_modes[1]+1U,5U,false}},
+		HuffmanCode{2,0b010,SCItem{8U,0,2U,false}},
+		HuffmanCode{3,0b110,SCItem{9U,0,3U,false}},
+		HuffmanCode{3,0b111,SCItem{10U,0,4U,false}}
 	};
 
 	while (!outputStream.eof())
@@ -610,22 +610,22 @@ void StoneCrackerDecompressor::decompressGen8(Buffer &rawData)
 
 	HuffmanDecoder<CountItem> countDecoder
 	{
-		HuffmanCode<CountItem>{1,0b00000000,CountItem{0,1U,true}},
-		HuffmanCode<CountItem>{2,0b00000011,CountItem{1U,2U,false}},
-		HuffmanCode<CountItem>{3,0b00000101,CountItem{2U,4U,false}},
-		HuffmanCode<CountItem>{4,0b00001000,CountItem{8U,23U,false}},
-		HuffmanCode<CountItem>{5,0b00010010,CountItem{3U,8U,false}},
-		HuffmanCode<CountItem>{6,0b00100110,CountItem{2U,16U,false}},
-		HuffmanCode<CountItem>{7,0b01001110,CountItem{1U,20U,false}},
-		HuffmanCode<CountItem>{8,0b10011110,CountItem{0,22U,false}},
-		HuffmanCode<CountItem>{8,0b10011111,CountItem{5U,14U,true}}
+		HuffmanCode{1,0b00000000,CountItem{0,1U,true}},
+		HuffmanCode{2,0b00000011,CountItem{1U,2U,false}},
+		HuffmanCode{3,0b00000101,CountItem{2U,4U,false}},
+		HuffmanCode{4,0b00001000,CountItem{8U,23U,false}},
+		HuffmanCode{5,0b00010010,CountItem{3U,8U,false}},
+		HuffmanCode{6,0b00100110,CountItem{2U,16U,false}},
+		HuffmanCode{7,0b01001110,CountItem{1U,20U,false}},
+		HuffmanCode{8,0b10011110,CountItem{0,22U,false}},
+		HuffmanCode{8,0b10011111,CountItem{5U,14U,true}}
 	};
 
 	HuffmanDecoder<DistanceItem> distanceDecoder
 	{
-		HuffmanCode<DistanceItem>{1,0b01,DistanceItem{modeBits,0x221U}},
-		HuffmanCode<DistanceItem>{2,0b00,DistanceItem{9U,0x21U}},
-		HuffmanCode<DistanceItem>{2,0b01,DistanceItem{5U,0x1U}}
+		HuffmanCode{1,0b01,DistanceItem{modeBits,0x221U}},
+		HuffmanCode{2,0b00,DistanceItem{9U,0x21U}},
+		HuffmanCode{2,0b01,DistanceItem{5U,0x1U}}
 	};
 
 	while (!outputStream.eof())

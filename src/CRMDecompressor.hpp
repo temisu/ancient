@@ -14,16 +14,16 @@ class CRMDecompressor : public Decompressor, public XPKDecompressor
 public:
 	CRMDecompressor(const Buffer &packedData,uint32_t recursionLevel,bool verify);
 	CRMDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify);
-	virtual ~CRMDecompressor();
+	~CRMDecompressor() noexcept=default;
 
-	virtual const std::string &getName() const noexcept override final;
-	virtual const std::string &getSubName() const noexcept override final;
+	const std::string &getName() const noexcept final;
+	const std::string &getSubName() const noexcept final;
 
-	virtual size_t getPackedSize() const noexcept override final;
-	virtual size_t getRawSize() const noexcept override final;
+	size_t getPackedSize() const noexcept final;
+	size_t getRawSize() const noexcept final;
 
-	virtual void decompressImpl(Buffer &rawData,bool verify) override final;
-	virtual void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) override final;
+	void decompressImpl(Buffer &rawData,bool verify) final;
+	void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) final;
 
 	static bool detectHeader(uint32_t hdr) noexcept;
 	static bool detectHeaderXPK(uint32_t hdr) noexcept;

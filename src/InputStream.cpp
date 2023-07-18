@@ -4,24 +4,19 @@
 // for exceptions
 #include "Decompressor.hpp"
 #include "common/OverflowCheck.hpp"
-
+#include "common/SubBuffer.hpp"
 
 namespace ancient::internal
 {
 
 ForwardInputStream::ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun) :
-	_buffer(buffer),
-	_currentOffset(startOffset),
-	_endOffset(endOffset),
-	_allowOverrun(allowOverrun)
+	_buffer{buffer},
+	_currentOffset{startOffset},
+	_endOffset{endOffset},
+	_allowOverrun{allowOverrun}
 {
 	if (_currentOffset>_endOffset || _currentOffset>_buffer.size() || _endOffset>_buffer.size())
 		throw Decompressor::DecompressionError();
-}
-
-ForwardInputStream::~ForwardInputStream()
-{
-	// nothing needed
 }
 
 void ForwardInputStream::reset(size_t startOffset,size_t endOffset)
@@ -38,34 +33,46 @@ uint8_t ForwardInputStream::readByte()
 {
 	if (_currentOffset>=_endOffset)
 	{
-		if (_allowOverrun)
+		if (_allowOverrun && _overrunAllowance)
 		{
-			_currentOffset++;
+			_overrunAllowance--;
 			return 0;
 		}
 		throw Decompressor::DecompressionError();
 	}
-	uint8_t ret=_buffer[_currentOffset++];
+	uint8_t ret{_buffer[_currentOffset++]};
 	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 	return ret;
 }
 
-const uint8_t *ForwardInputStream::consume(size_t bytes,uint8_t *buffer)
+uint16_t ForwardInputStream::readBE16()
+{
+	uint16_t b0{readByte()};
+	uint16_t b1{readByte()};
+	return (b0<<8)|b1;
+}
+
+uint32_t ForwardInputStream::readBE32()
+{
+	uint32_t b0{readByte()};
+	uint32_t b1{readByte()};
+	uint32_t b2{readByte()};
+	uint32_t b3{readByte()};
+	return (b0<<24)|(b1<<16)|(b2<<8)|b3;
+}
+
+uint16_t ForwardInputStream::readLE16()
+{
+	uint16_t b0{readByte()};
+	uint16_t b1{readByte()};
+	return (b1<<8)|b0;
+}
+
+std::shared_ptr<const Buffer> ForwardInputStream::consume(size_t bytes)
 {
 	if (OverflowCheck::sum(_currentOffset,bytes)>_endOffset)
-	{
-		if (_allowOverrun && buffer)
-		{
-			for (size_t i=0;i<bytes;i++)
-			{
-				buffer[i]=(_currentOffset<_endOffset)?_buffer[_currentOffset]:0;
-				_currentOffset++;
-			}
-			return buffer;
-		}
 		throw Decompressor::DecompressionError();
-	}
-	const uint8_t *ret=&_buffer[_currentOffset];
+	auto ret{std::make_shared<ConstSubBuffer>(_buffer,_currentOffset,bytes)};
 	_currentOffset+=bytes;
 	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 	return ret;
@@ -80,26 +87,21 @@ void ForwardInputStream::setOffset(size_t offset)
 }
 
 BackwardInputStream::BackwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun) :
-	_buffer(buffer),
-	_currentOffset(endOffset),
-	_endOffset(startOffset),
-	_allowOverrun(allowOverrun)
+	_buffer{buffer},
+	_currentOffset{endOffset},
+	_endOffset{startOffset},
+	_allowOverrun{allowOverrun}
 {
 	if (_currentOffset<_endOffset || _currentOffset>buffer.size() || _endOffset>buffer.size()) throw Decompressor::DecompressionError();
-}
-
-BackwardInputStream::~BackwardInputStream()
-{
-	// nothing needed
 }
 
 uint8_t BackwardInputStream::readByte()
 {
 	if (_currentOffset<=_endOffset)
 	{
-		if (_allowOverrun)
+		if (_allowOverrun && _overrunAllowance)
 		{
-			--_currentOffset;
+			_overrunAllowance--;
 			return 0;
 		}
 		throw Decompressor::DecompressionError();
@@ -109,24 +111,27 @@ uint8_t BackwardInputStream::readByte()
 	return ret;
 }
 
-const uint8_t *BackwardInputStream::consume(size_t bytes,uint8_t *buffer)
+uint16_t BackwardInputStream::readBE16()
 {
-	if (_currentOffset<OverflowCheck::sum(_endOffset,bytes))
-	{
-		if (_allowOverrun && buffer)
-		{
-			for (size_t i=bytes;i;i--)
-			{
-				buffer[i-1]=(_currentOffset>_endOffset)?_buffer[_currentOffset-1]:0;
-				--_currentOffset;
-			}
-			return buffer;
-		}
-		throw Decompressor::DecompressionError();
-	}
-	_currentOffset-=bytes;
-	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
-	return &_buffer[_currentOffset];
+	uint16_t b0{readByte()};
+	uint16_t b1{readByte()};
+	return (b1<<8)|b0;
+}
+
+uint32_t BackwardInputStream::readBE32()
+{
+	uint32_t b0{readByte()};
+	uint32_t b1{readByte()};
+	uint32_t b2{readByte()};
+	uint32_t b3{readByte()};
+	return (b3<<24)|(b2<<16)|(b1<<8)|b0;
+}
+
+uint16_t BackwardInputStream::readLE16()
+{
+	uint16_t b0{readByte()};
+	uint16_t b1{readByte()};
+	return (b0<<8)|b1;
 }
 
 void BackwardInputStream::setOffset(size_t offset)

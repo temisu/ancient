@@ -99,11 +99,11 @@ uint8_t *ForwardOutputStreamBase::history(size_t distance)
 	return &_buffer[_currentOffset-distance];
 }
 
-void ForwardOutputStreamBase::produce(const uint8_t *src,size_t bytes)
+void ForwardOutputStreamBase::produce(const Buffer &src)
 {
-	ensureSize(OverflowCheck::sum(_currentOffset,bytes));
-	std::memcpy(&_buffer[_currentOffset],src,bytes);
-	_currentOffset+=bytes;
+	ensureSize(OverflowCheck::sum(_currentOffset,src.size()));
+	std::memcpy(&_buffer[_currentOffset],src.data(),src.size());
+	_currentOffset+=src.size();
 }
 
 // ---

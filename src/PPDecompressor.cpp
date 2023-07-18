@@ -425,11 +425,13 @@ void PPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	LSBBitReader<BackwardInputStream> bitReader(inputStream);
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		return rotateBits(bitReader.readBitsBE32(count,key),count);
+		return rotateBits(bitReader.readBitsGeneric(count,[&](){
+			return std::make_pair(inputStream.readBE32()^key,32U);
+		}),count);
 	};
 	auto readBit=[&]()->uint32_t
 	{
-		return bitReader.readBitsBE32(1,key);
+		return readBits(1);
 	};
 
 	readBits(_startShift);

@@ -63,7 +63,7 @@ void SMPLDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		if (!codeLength) continue;
 		if (codeLength==15) codeLength=readBits(4)+15;
 		uint32_t code=readBits(codeLength);
-		decoder.insert(HuffmanCode<uint32_t>{codeLength,code,i});
+		decoder.insert(HuffmanCode{codeLength,code,i});
 	}
 
 	uint8_t accum=0;

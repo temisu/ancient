@@ -60,13 +60,13 @@ void MASHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 
 	HuffmanDecoder<uint32_t> litDecoder
 	{
-		HuffmanCode<uint32_t>{1,0b000000,0},
-		HuffmanCode<uint32_t>{2,0b000010,1},
-		HuffmanCode<uint32_t>{3,0b000110,2},
-		HuffmanCode<uint32_t>{4,0b001110,3},
-		HuffmanCode<uint32_t>{5,0b011110,4},
-		HuffmanCode<uint32_t>{6,0b111110,5},
-		HuffmanCode<uint32_t>{6,0b111111,6}
+		HuffmanCode{1,0b000000,0U},
+		HuffmanCode{2,0b000010,1U},
+		HuffmanCode{3,0b000110,2U},
+		HuffmanCode{4,0b001110,3U},
+		HuffmanCode{5,0b011110,4U},
+		HuffmanCode{6,0b111110,5U},
+		HuffmanCode{6,0b111111,6U}
 	};
 
 	while (!outputStream.eof())

@@ -24,7 +24,7 @@ public:
 	uint8_t copy(size_t distance,size_t count,uint8_t defaultChar);
 	uint8_t *history(size_t distance);
 	const uint8_t *history(size_t distance) const;
-	void produce(const uint8_t *src,size_t bytes);
+	void produce(const Buffer &src);
 
 	size_t getOffset() const { return _currentOffset; }
 

@@ -116,7 +116,7 @@ void PackDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				} else {
 					if (!length)
 						throw DecompressionError();
-					decoder.insert(HuffmanCode<uint8_t>{length,bits,uint8_t(tree[node+1])});
+					decoder.insert(HuffmanCode{length,bits,uint8_t(tree[node+1])});
 				}
 			};
 			branch(0,0,0,branch);
@@ -147,7 +147,7 @@ void PackDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				for (uint32_t j=0;j<levelCounts[i];j++)
 				{
 					uint16_t symbol=(i==maxLevel-1&&j==levelCounts[i]-1U)?256U:inputStream.readByte();
-					decoder.insert(HuffmanCode<uint16_t>{i+1U,code>>(23U-i),symbol});
+					decoder.insert(HuffmanCode{i+1U,code>>(23U-i),symbol});
 					code+=1U<<(23U-i);
 				}
 				code-=levelCounts[i]<<(23U-i);

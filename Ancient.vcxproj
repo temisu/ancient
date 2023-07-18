@@ -193,8 +193,7 @@
     <ClCompile Include="src\RNCDecompressor.cpp" />
     <ClCompile Include="src\SCOCompressDecompressor.cpp" />
     <ClCompile Include="src\SDHCDecompressor.cpp" />
-    <ClCompile Include="src\SHR3Decompressor.cpp" />
-    <ClCompile Include="src\SHRIDecompressor.cpp" />
+    <ClCompile Include="src\SHRXDecompressor.cpp" />
     <ClCompile Include="src\SLZ3Decompressor.cpp" />
     <ClCompile Include="src\SMPLDecompressor.cpp" />
     <ClCompile Include="src\SQSHDecompressor.cpp" />
@@ -270,8 +269,7 @@
     <ClInclude Include="src\RNCDecompressor.hpp" />
     <ClInclude Include="src\SCOCompressDecompressor.hpp" />
     <ClInclude Include="src\SDHCDecompressor.hpp" />
-    <ClInclude Include="src\SHR3Decompressor.hpp" />
-    <ClInclude Include="src\SHRIDecompressor.hpp" />
+    <ClInclude Include="src\SHRXDecompressor.hpp" />
     <ClInclude Include="src\SLZ3Decompressor.hpp" />
     <ClInclude Include="src\SMPLDecompressor.hpp" />
     <ClInclude Include="src\SQSHDecompressor.hpp" />

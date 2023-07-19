@@ -150,6 +150,7 @@ LIBANCIENT_FILES_SRC += src/TDCSDecompressor.cpp
 LIBANCIENT_FILES_SRC += src/TDCSDecompressor.hpp
 LIBANCIENT_FILES_SRC += src/TPWMDecompressor.cpp
 LIBANCIENT_FILES_SRC += src/TPWMDecompressor.hpp
+LIBANCIENT_FILES_SRC += src/VariableLengthCodeDecoder.hpp
 LIBANCIENT_FILES_SRC += src/XPKDecompressor.cpp
 LIBANCIENT_FILES_SRC += src/XPKDecompressor.hpp
 LIBANCIENT_FILES_SRC += src/XPKMain.cpp

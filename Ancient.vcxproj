@@ -277,6 +277,7 @@
     <ClInclude Include="src\SXSCDecompressor.hpp" />
     <ClInclude Include="src\TDCSDecompressor.hpp" />
     <ClInclude Include="src\TPWMDecompressor.hpp" />
+    <ClInclude Include="src\VariableLengthCodeDecoder.hpp " />
     <ClInclude Include="src\XPKDecompressor.hpp" />
     <ClInclude Include="src\XPKMain.hpp" />
     <ClInclude Include="src\XPKUnimplemented.hpp" />

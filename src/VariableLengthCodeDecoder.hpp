@@ -25,7 +25,7 @@ public:
 		uint32_t length{0};
 		for (uint32_t i=0;i<N;i++)
 		{
-			_offsets[i]=length; 
+			_offsets[i]=length;
 			length+=1U<<_bitLengths[i];
 		}
 	}

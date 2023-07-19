@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include <algorithm>
+#include <memory>
 
 #include "common/Buffer.hpp"
 

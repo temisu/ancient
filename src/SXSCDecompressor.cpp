@@ -72,7 +72,7 @@ void SXSCDecompressor::decompressASC(Buffer &rawData,ForwardInputStream &inputSt
 
 	auto tableElements=[](auto &table)->uint16_t
 	{
-		return (table.size()+1U)>>1U;
+		return uint16_t((table.size()+1U)>>1U);
 	};
 
 	auto initTable=[&](auto &table,uint16_t initialValue)

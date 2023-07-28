@@ -30,14 +30,15 @@ public:
 
 		auto foldOffsets=[&](auto value) noexcept
 		{
-			if (value<0)
+			if constexpr (std::is_signed_v<decltype(value)>) if (value<0)
 			{
 				_offsets[i]=0;
 				length=1U<<-value;
-			} else {
-				_offsets[i]=length;
-				length+=1U<<value;
+				i++;
+				return;
 			}
+			_offsets[i]=length;
+			length+=1U<<value;
 			i++;
 		};
 

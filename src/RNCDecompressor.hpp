@@ -12,14 +12,13 @@ class RNCDecompressor : public Decompressor
 {
 public:
 	RNCDecompressor(const Buffer &packedData,bool verify);
+	~RNCDecompressor() noexcept=default;
 
-	virtual ~RNCDecompressor();
+	const std::string &getName() const noexcept final;
+	size_t getPackedSize() const noexcept final;
+	size_t getRawSize() const noexcept final;
 
-	virtual const std::string &getName() const noexcept override final;
-	virtual size_t getPackedSize() const noexcept override final;
-	virtual size_t getRawSize() const noexcept override final;
-
-	virtual void decompressImpl(Buffer &rawData,bool verify) override final;
+	void decompressImpl(Buffer &rawData,bool verify) final;
 
 	static bool detectHeader(uint32_t hdr) noexcept;
 
@@ -39,10 +38,10 @@ private:
 
 	const Buffer	&_packedData;
 
-	uint32_t	_rawSize=0;
-	uint32_t	_packedSize=0;
-	uint16_t	_rawCRC=0;
-	uint8_t		_chunks=0;
+	uint32_t	_rawSize{0};
+	uint32_t	_packedSize{0};
+	uint16_t	_rawCRC{0};
+	uint8_t		_chunks{0};
 	Version		_ver;
 };
 

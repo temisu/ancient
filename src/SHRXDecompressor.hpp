@@ -5,6 +5,8 @@
 
 #include "XPKDecompressor.hpp"
 
+#include <array>
+
 namespace ancient::internal
 {
 
@@ -20,7 +22,7 @@ private:
 		uint32_t vlen{0};
 		uint32_t vnext{0};
 		uint32_t shift{0};
-		uint32_t ar[999];
+		std::array<uint32_t,999> ar;
 	};
 
 public:

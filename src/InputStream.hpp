@@ -21,7 +21,7 @@ class ForwardInputStream
 	friend class BackwardInputStream;
 
 public:
-	ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun=false);
+	ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,size_t overrunAllowance=0);
 	~ForwardInputStream() noexcept=default;
 
 	void reset(size_t startOffset,size_t endOffset);
@@ -30,6 +30,7 @@ public:
 	uint16_t readBE16();
 	uint32_t readBE32();
 	uint16_t readLE16();
+	uint32_t readLE32();
 	std::shared_ptr<const Buffer> consume(size_t bytes);
 
 	bool eof() const noexcept { return _currentOffset==_endOffset; }
@@ -45,8 +46,7 @@ private:
 	const Buffer		&_buffer;
 	size_t			_currentOffset;
 	size_t			_endOffset;
-	bool			_allowOverrun;
-	size_t			_overrunAllowance{16};
+	size_t			_overrunAllowance;
 
 	BackwardInputStream	*_linkedInputStream{nullptr};
 };
@@ -56,13 +56,14 @@ class BackwardInputStream
 {
 	friend class ForwardInputStream;
 public:
-	BackwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun=false);
+	BackwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset);
 	~BackwardInputStream() noexcept=default;
 
 	uint8_t readByte();
 	uint16_t readBE16();
 	uint32_t readBE32();
 	uint16_t readLE16();
+	uint32_t readLE32();
 
 	bool eof() const noexcept { return _currentOffset==_endOffset; }
 	size_t getOffset() const noexcept { return _currentOffset; }
@@ -76,8 +77,6 @@ private:
 	const Buffer		&_buffer;
 	size_t			_currentOffset;
 	size_t			_endOffset;
-	bool			_allowOverrun;
-	size_t			_overrunAllowance{16};
 
 	ForwardInputStream	*_linkedInputStream{nullptr};
 };
@@ -112,6 +111,13 @@ public:
 	{
 		return readBitsGeneric(count,[&](){
 			return std::make_pair(_inputStream.readBE32(),32U);
+		});
+	}
+
+	uint32_t readBitsLE16(uint32_t count)
+	{
+		return readBitsGeneric(count,[&](){
+			return std::make_pair(_inputStream.readLE16(),16U);
 		});
 	}
 

@@ -67,7 +67,7 @@ void ARTMDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	};
 
 
-	ForwardInputStream inputStream{_packedData,0,_packedData.size(),true};
+	ForwardInputStream inputStream{_packedData,0,_packedData.size(),3U};
 	ForwardOutputStream outputStream{rawData,0,rawData.size()};
 	BitReader bitReader{inputStream};
 

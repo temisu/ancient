@@ -92,9 +92,9 @@ void LZCBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		{
 			// nothing needed
 		}
-		virtual ~BitReader() noexcept=default;
+		~BitReader() noexcept=default;
 
-		virtual uint32_t readBit() override final
+		uint32_t readBit() final
 		{
 			return _reader.readBitsBE32(1);
 		}
@@ -108,7 +108,7 @@ void LZCBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		MSBBitReader<ForwardInputStream>	_reader;
 	};
 
-	ForwardInputStream inputStream{_packedData,0,_packedData.size(),true};
+	ForwardInputStream inputStream{_packedData,0,_packedData.size(),3U};
 	ForwardOutputStream outputStream{rawData,0,rawData.size()};
 	BitReader bitReader{inputStream};
 

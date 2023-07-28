@@ -27,9 +27,9 @@ struct HuffmanCode
 	T		value;
 
 	HuffmanCode(uint32_t _length,uint32_t _code,T _value) noexcept :
-		length(_length),
-		code(_code),
-		value(_value)
+		length{_length},
+		code{_code},
+		value{_value}
 	{
 		// nothing needed
 	}

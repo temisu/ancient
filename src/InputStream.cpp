@@ -9,11 +9,11 @@
 namespace ancient::internal
 {
 
-ForwardInputStream::ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun) :
+ForwardInputStream::ForwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,size_t overrunAllowance) :
 	_buffer{buffer},
 	_currentOffset{startOffset},
 	_endOffset{endOffset},
-	_allowOverrun{allowOverrun}
+	_overrunAllowance{overrunAllowance}
 {
 	if (_currentOffset>_endOffset || _currentOffset>_buffer.size() || _endOffset>_buffer.size())
 		throw Decompressor::DecompressionError();
@@ -33,7 +33,7 @@ uint8_t ForwardInputStream::readByte()
 {
 	if (_currentOffset>=_endOffset)
 	{
-		if (_allowOverrun && _overrunAllowance)
+		if (_overrunAllowance)
 		{
 			_overrunAllowance--;
 			return 0;
@@ -68,6 +68,15 @@ uint16_t ForwardInputStream::readLE16()
 	return (b1<<8)|b0;
 }
 
+uint32_t ForwardInputStream::readLE32()
+{
+	uint32_t b0{readByte()};
+	uint32_t b1{readByte()};
+	uint32_t b2{readByte()};
+	uint32_t b3{readByte()};
+	return (b3<<24)|(b2<<16)|(b1<<8)|b0;
+}
+
 std::shared_ptr<const Buffer> ForwardInputStream::consume(size_t bytes)
 {
 	if (OverflowCheck::sum(_currentOffset,bytes)>_endOffset)
@@ -86,11 +95,10 @@ void ForwardInputStream::setOffset(size_t offset)
 	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 }
 
-BackwardInputStream::BackwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset,bool allowOverrun) :
+BackwardInputStream::BackwardInputStream(const Buffer &buffer,size_t startOffset,size_t endOffset) :
 	_buffer{buffer},
 	_currentOffset{endOffset},
-	_endOffset{startOffset},
-	_allowOverrun{allowOverrun}
+	_endOffset{startOffset}
 {
 	if (_currentOffset<_endOffset || _currentOffset>buffer.size() || _endOffset>buffer.size()) throw Decompressor::DecompressionError();
 }
@@ -98,14 +106,7 @@ BackwardInputStream::BackwardInputStream(const Buffer &buffer,size_t startOffset
 uint8_t BackwardInputStream::readByte()
 {
 	if (_currentOffset<=_endOffset)
-	{
-		if (_allowOverrun && _overrunAllowance)
-		{
-			_overrunAllowance--;
-			return 0;
-		}
 		throw Decompressor::DecompressionError();
-	}
 	uint8_t ret=_buffer[--_currentOffset];
 	if (_linkedInputStream) _linkedInputStream->setEndOffset(_currentOffset);
 	return ret;
@@ -132,6 +133,15 @@ uint16_t BackwardInputStream::readLE16()
 	uint16_t b0{readByte()};
 	uint16_t b1{readByte()};
 	return (b0<<8)|b1;
+}
+
+uint32_t BackwardInputStream::readLE32()
+{
+	uint32_t b0{readByte()};
+	uint32_t b1{readByte()};
+	uint32_t b2{readByte()};
+	uint32_t b3{readByte()};
+	return (b0<<24)|(b1<<16)|(b2<<8)|b3;
 }
 
 void BackwardInputStream::setOffset(size_t offset)

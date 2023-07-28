@@ -492,11 +492,14 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 			finishStream();
 			continue;
 		}
-		if (rawChunkLength>trackLength) throw DecompressionError();
-		if (trackNo>80) throw DecompressionError();				// should not happen, already excluded
+		if (rawChunkLength>trackLength)
+			throw DecompressionError();
+		if (trackNo>80)
+			throw DecompressionError();					// should not happen, already excluded
 
 		uint32_t dataOffset{trackNo*trackLength};
-		if (_rawOffset>dataOffset) throw DecompressionError();
+		if (_rawOffset>dataOffset)
+			throw DecompressionError();
 
 		auto handleTrackSize=[&]()
 		{
@@ -510,7 +513,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 		{
 			auto applyFix=[&]()
 			{
-				if (mode==6U && !_isObsfuscated)
+				if (mode>=5U && !_isObsfuscated)
 				{
 					uint32_t missingNo{uint32_t(outputStream.getEndOffset()-outputStream.getOffset())};
 					uint16_t protoSum{checksum(rawData,dataOffset-_rawOffset,rawChunkLength-missingNo)};

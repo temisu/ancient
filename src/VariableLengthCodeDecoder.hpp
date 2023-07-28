@@ -66,8 +66,8 @@ private:
 	template<typename T>
 	static constexpr uint8_t createBitLength(T value) noexcept
 	{
-		if constexpr (std::is_signed_v<T>) return value>=0?value:-value;
-			return value;
+		if constexpr (std::is_signed_v<T>) return uint8_t(value>=0?value:-value);
+			return uint8_t(value);
 	}
 
 	const std::array<uint8_t,N>	_bitLengths;

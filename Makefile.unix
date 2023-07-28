@@ -22,8 +22,8 @@ OBJS_N	= API.o Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o Wrapp
 	LZCBDecompressor.o LZW2Decompressor.o LZW4Decompressor.o LZW5Decompressor.o \
 	LZXDecompressor.o MASHDecompressor.o MMCMPDecompressor.o NONEDecompressor.o \
 	NUKEDecompressor.o PackDecompressor.o PPDecompressor.o PPMQDecompressor.o RAKEDecompressor.o \
-	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SCOCompressDecompressor.o SDHCDecompressor.o \
-	SHR3Decompressor.o SHRIDecompressor.o SLZ3Decompressor.o SMPLDecompressor.o \
+	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SCOCompressDecompressor.o \
+	SDHCDecompressor.o SHRXDecompressor.o SLZ3Decompressor.o SMPLDecompressor.o \
 	StoneCrackerDecompressor.o SQSHDecompressor.o SXSCDecompressor.o TDCSDecompressor.o \
 	TPWMDecompressor.o XPKUnimplemented.o ZENODecompressor.o
 TEST_N	= test.o

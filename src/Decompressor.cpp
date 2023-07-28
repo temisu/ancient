@@ -48,21 +48,11 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<Decompressor>(*)(
 	// Putting StoneCracker last since detection can be accidentally be detected instead of correct format
 	{StoneCrackerDecompressor::detectHeader,StoneCrackerDecompressor::create}};
 
-Decompressor::Decompressor() noexcept
-{
-	// nothing needed
-}
-
-Decompressor::~Decompressor()
-{
-	// nothing needed
-}
-
 std::shared_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
 {
 	try
 	{
-		uint32_t hdr=(packedData.size()>=4)?packedData.readBE32(0):(uint32_t(packedData.readBE16(0))<<16);
+		uint32_t hdr{(packedData.size()>=4)?packedData.readBE32(0):(uint32_t(packedData.readBE16(0))<<16)};
 		for (auto &it : decompressors)
 		{
 			if (it.first(hdr)) return it.second(packedData,exactSizeKnown,verify);
@@ -77,7 +67,7 @@ bool Decompressor::detect(const Buffer &packedData) noexcept
 {
 	try
 	{
-		uint32_t hdr=packedData.readBE32(0);
+		uint32_t hdr{(packedData.size()>=4)?packedData.readBE32(0):(uint32_t(packedData.readBE16(0))<<16)};
 		for (auto &it : decompressors)
 			if (it.first(hdr)) return true;
 		return false;

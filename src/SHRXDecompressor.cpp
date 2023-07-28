@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include "SHR3Decompressor.hpp"
+#include "SHRXDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
 #include "common/Common.hpp"
@@ -9,56 +9,69 @@
 namespace ancient::internal
 {
 
-SHR3Decompressor::SHR3State::SHR3State() noexcept
+SHRXDecompressor::SHRXState::SHRXState() noexcept
 {
 	for (uint32_t i=0;i<999;i++) ar[i]=0;
 }
 
-SHR3Decompressor::SHR3State::~SHR3State()
+bool SHRXDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	// nothing needed
+	return hdr==FourCC("SHRI")||hdr==FourCC("SHR3");
 }
 
-bool SHR3Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
+std::shared_ptr<XPKDecompressor> SHRXDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return hdr==FourCC("SHR3");
+	return std::make_shared<SHRXDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-std::shared_ptr<XPKDecompressor> SHR3Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
+SHRXDecompressor::SHRXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
+	XPKDecompressor{recursionLevel},
+	_packedData{packedData},
+	_state{state}
 {
-	return std::make_shared<SHR3Decompressor>(hdr,recursionLevel,packedData,state,verify);
-}
-
-SHR3Decompressor::SHR3Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
-	XPKDecompressor(recursionLevel),
-	_packedData(packedData),
-	_state(state)
-{
-	if (!detectHeaderXPK(hdr) || _packedData.size()<6) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr) || _packedData.size()<6)
+		throw Decompressor::InvalidFormatError();
 	_ver=_packedData.read8(0);
-	if (!_ver || _ver>2) throw Decompressor::InvalidFormatError();
+	if (!_ver || _ver>2)
+		throw Decompressor::InvalidFormatError();
+
+	_isSHR3=hdr==FourCC("SHR3");
+
+	if (!_isSHR3)
+	{
+		// second byte defines something that does not seem to be terribly important...
+		uint8_t tmp{_packedData.read8(2)};
+		if (tmp&0x80U)
+		{
+			_rawSize=~_packedData.readBE32(2)+1U;
+			_startOffset=6;
+		} else {
+			_rawSize=_packedData.readBE16(2);
+			_startOffset=4;
+		}
+	} else _startOffset=1;
 
 	if (!_state)
 	{
-		if (_ver==2) throw Decompressor::InvalidFormatError();
-		_state.reset(new SHR3State());
+		if (_ver==2)
+			throw Decompressor::InvalidFormatError();
+		_state.reset(new SHRXState());
 	}
 }
 
-SHR3Decompressor::~SHR3Decompressor()
+const std::string &SHRXDecompressor::getSubName() const noexcept
 {
-	// nothing needed
+	static std::string name3{"XPK-SHR3: LZ-compressor with arithmetic encoding"};
+	static std::string nameI{"XPK-SHRI: LZ-compressor with arithmetic encoding"};
+	return _isSHR3?name3:nameI;
 }
 
-const std::string &SHR3Decompressor::getSubName() const noexcept
+void SHRXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	static std::string name="XPK-SHR3: LZ-compressor with arithmetic encoding";
-	return name;
-}
+	if (!_isSHR3 && rawData.size()!=_rawSize)
+		throw Decompressor::DecompressionError();
 
-void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
-{
-	ForwardInputStream inputStream(_packedData,1,_packedData.size());
+	ForwardInputStream inputStream{_packedData,_startOffset,_packedData.size()};
 	auto readByte=[&]()->uint8_t
 	{
 		return inputStream.readByte();
@@ -67,7 +80,7 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	// This follows quite closely Choloks pascal reference
-	uint32_t ar[999];
+	std::array<uint32_t,999> ar;
 
 	auto resum=[&]()
 	{
@@ -100,15 +113,26 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		}
 	};
 
-	auto scale=[&](uint32_t b,uint32_t mult)->uint32_t
+	auto scale=[&](uint32_t a,uint32_t b,uint32_t mult)->uint32_t
 	{
-		if (!b) throw Decompressor::DecompressionError();
-		uint32_t tmp=(0x10000U/b);
-		uint32_t tmp2=((0x10000U%b)<<16)/b;
+		if (!b)
+			throw Decompressor::DecompressionError();
+		uint32_t tmp,tmp2;
+		if (_isSHR3)
+		{
+			tmp=(0x10000U/b);
+			tmp2=((0x10000U%b)<<16)/b;
+		} else {
+			tmp=(a<<16)/b;
+			tmp2=(((a<<16)%b)<<16)/b;
+		}
 		return ((mult&0xffffU)*tmp>>16)+((mult>>16)*tmp2>>16)+(mult>>16)*tmp;
 	};
 
-	uint32_t vlen=0,vnext=0;
+	uint32_t vlen{0};
+	uint32_t vnext{0};
+	const std::array<uint32_t,6> updates1{358,359,386,387,414,415};
+	const std::array<uint32_t,4> updates2{442,456,470,484};
 
 	auto upgrade=[&]()
 	{
@@ -118,9 +142,10 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		} else if (!vlen) {
 			vnext=1;
 		} else {
-			uint32_t vvalue=vnext-1;
-			if (vvalue<48) update(vvalue+256,1);
-			uint32_t bits=0,compare=4;
+			uint32_t vvalue{vnext-1U};
+			if (vvalue<48U) update(vvalue+256U,1U);
+			uint32_t bits{0};
+			uint32_t compare{4};
 			while (vvalue>=compare)
 			{
 				vvalue-=compare;
@@ -143,8 +168,6 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 						for (uint32_t i=332;i<=333;i++)
 							update((bits<<1)+i,1);
 					}
-					static const uint32_t updates1[6]={358,359,386,387,414,415};
-					static const uint32_t updates2[4]={442,456,470,484};
 					for (auto it : updates1)
 						update((bits<<1)+it,1);
 					for (auto it : updates2)
@@ -162,7 +185,8 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		}
 	};
 
-	uint32_t stream=0,shift=0;
+	uint32_t stream{0};
+	uint32_t shift{0};
 
 	auto refillStream=[&]()
 	{
@@ -176,10 +200,10 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	auto getSymbol=[&]()->uint32_t
 	{
 		if (!(shift>>16)) throw Decompressor::DecompressionError();
-		uint32_t vvalue=(stream/(shift>>16))&0xffff;
-		uint32_t threshold=(ar[1]*vvalue)>>16;
-		uint32_t arIndex=1;
-		uint32_t result=0;
+		uint32_t vvalue{(stream/(shift>>16U))&0xffffU};
+		uint32_t threshold{(ar[1]*vvalue)>>16U};
+		uint32_t arIndex{1};
+		uint32_t result{0};
 		do {
 			arIndex<<=1;
 			uint32_t tmp=ar[arIndex]+result;
@@ -189,21 +213,29 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 				arIndex++;
 			}
 		} while (arIndex<499);
-		uint32_t rawValue=scale(ar[1],shift);
-		uint32_t newValue=rawValue*result;
+		uint32_t rawValue;
+		uint32_t newValue;
+		if (_isSHR3)
+		{
+			rawValue=scale(0,ar[1],shift);
+			newValue=rawValue*result;
+		} else {
+			rawValue=0;	// not used
+			newValue=scale(result,ar[1],shift);
+		}
 		if (newValue>stream)
 		{
 			while (newValue>stream)
 			{
 				if (--arIndex<499) arIndex+=499;
 				result-=ar[arIndex];
-				newValue=rawValue*result;
+				newValue=_isSHR3?rawValue*result:scale(result,ar[1],shift);
 			}
 		} else {
 			result+=ar[arIndex];
 			while (result<ar[1])
 			{
-				uint32_t compare=rawValue*result;
+				uint32_t compare{_isSHR3?rawValue*result:scale(result,ar[1],shift)};
 				if (stream<compare) break;
 				if (++arIndex>=998) arIndex-=499;
 				result+=ar[arIndex];
@@ -211,9 +243,9 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			}
 		}
 		stream-=newValue;
-		shift=rawValue*ar[arIndex];
-		uint32_t addition=(ar[1]>>10)+3;
-		arIndex-=499;
+		shift=_isSHR3?rawValue*ar[arIndex]:scale(ar[arIndex],ar[1U],shift);
+		uint32_t addition{(ar[1U]>>10U)+3U};
+		arIndex-=499U;
 		update(arIndex,addition);
 		refillStream();
 		return arIndex;
@@ -221,7 +253,7 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	
 	auto getCode=[&](uint32_t size)->uint32_t
 	{
-		uint32_t ret=0;
+		uint32_t ret{0};
 		while (size--)
 		{
 			ret<<=1;
@@ -243,23 +275,19 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 
 		shift=0x8000'0000U;
 	} else {
-		SHR3State *state=static_cast<SHR3State*>(_state.get());
+		SHRXState *state{static_cast<SHRXState*>(_state.get())};
 		vlen=state->vlen;
 		vnext=state->vnext;
 		shift=state->shift;
 		for (uint32_t i=0;i<999;i++) ar[i]=state->ar[i];
 	}
 
-	{
-		const uint8_t *buf=inputStream.consume(4);
-		stream=(uint32_t(buf[0])<<24)|(uint32_t(buf[1])<<16)|
-			(uint32_t(buf[2])<<8)|uint32_t(buf[3]);
-	}
+	stream=inputStream.readBE32();
 
 	while (!outputStream.eof())
 	{
 		while (vlen>=vnext) upgrade();
-		uint32_t code=getSymbol();
+		uint32_t code{getSymbol()};
 		if (code<256)
 		{
 			outputStream.writeByte(code);
@@ -311,12 +339,13 @@ void SHR3Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 				distance=getCode(16);
 			}
 			vlen+=count;
-			if (!count) throw Decompressor::DecompressionError();
+			if (!count)
+				throw Decompressor::DecompressionError();
 			outputStream.copy(distance,count,previousData);
 		}
 	}
 
-	SHR3State *state=static_cast<SHR3State*>(_state.get());
+	SHRXState *state{static_cast<SHRXState*>(_state.get())};
 	state->vlen=vlen;
 	state->vnext=vnext;
 	state->shift=shift;

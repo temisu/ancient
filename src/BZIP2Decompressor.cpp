@@ -41,8 +41,9 @@ BZIP2Decompressor::BZIP2Decompressor(const Buffer &packedData,bool exactSizeKnow
 	_packedSize{0}
 {
 	uint32_t hdr=packedData.readBE32(0);
-	if (!detectHeader(hdr)) throw Decompressor::InvalidFormatError();;
-	_blockSize=((hdr&0xffU)-'0')*10'0000;
+	if (!detectHeader(hdr))
+		throw Decompressor::InvalidFormatError();;
+	_blockSize=((hdr&0xffU)-'0')*100'000;
 }
 
 BZIP2Decompressor::BZIP2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
@@ -51,8 +52,9 @@ BZIP2Decompressor::BZIP2Decompressor(uint32_t hdr,uint32_t recursionLevel,const 
 	_packedSize{_packedData.size()}
 {
 	uint32_t blockHdr=packedData.readBE32(0);
-	if (!detectHeader(blockHdr)) throw Decompressor::InvalidFormatError();;
-	_blockSize=((blockHdr&0xffU)-'0')*10'0000;
+	if (!detectHeader(blockHdr))
+		throw Decompressor::InvalidFormatError();;
+	_blockSize=((blockHdr&0xffU)-'0')*100'000;
 }
 
 const std::string &BZIP2Decompressor::getName() const noexcept
@@ -195,10 +197,12 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 				}
 
 				uint32_t huffmanGroups{readBits(3)};
-				if (huffmanGroups<2 || huffmanGroups>6) throw DecompressionError();
+				if (huffmanGroups<2 || huffmanGroups>6)
+					throw DecompressionError();
 
 				uint32_t selectorsUsed{readBits(15)};
-				if (!selectorsUsed) throw DecompressionError();
+				if (!selectorsUsed)
+					throw DecompressionError();
 
 				std::vector<uint8_t> huffmanSelectorList(selectorsUsed);
 
@@ -221,7 +225,8 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 				for (uint32_t i=0;i<selectorsUsed;i++)
 				{
 					uint8_t item{unMTF(selectorDecoder.decode(readBit),selectorMTFMap)};
-					if (item>=huffmanGroups) throw DecompressionError();
+					if (item>=huffmanGroups)
+						throw DecompressionError();
 					huffmanSelectorList[i]=item;
 				}
 
@@ -242,7 +247,8 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 							delta=deltaDecoder.decode(readBit);
 							currentBits+=delta;
 						} while (delta);
-						if (currentBits<1 || currentBits>20) throw DecompressionError();
+						if (currentBits<1 || currentBits>20)
+							throw DecompressionError();
 						bitLengths[j]=currentBits;
 					}
 
@@ -291,7 +297,8 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 					} else {
 						decodeRLE();
 						uint8_t symbol{unMTF(symbolMTF-1,dataMTFMap)};
-						if (currentBlockSize>=_blockSize) throw DecompressionError();
+						if (currentBlockSize>=_blockSize)
+							throw DecompressionError();
 						tmpBuffer[currentBlockSize++]=huffmanValues[symbol];
 					}
 				}

@@ -89,13 +89,16 @@ DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,bool exactSize
 	if (hdr==0x1f8bU)
 	{
 		// Standard Gzip
-		if (_packedData.size()<18U) throw InvalidFormatError();
+		if (_packedData.size()<18U)
+			throw InvalidFormatError();
 
 		uint8_t cm{_packedData.read8(2)};
-		if (cm!=8) throw InvalidFormatError();;
+		if (cm!=8)
+			throw InvalidFormatError();;
 
 		uint8_t flags{_packedData.read8(3)};
-		if (flags&0xe0) throw InvalidFormatError();;
+		if (flags&0xe0)
+			throw InvalidFormatError();;
 
 		uint32_t currentOffset{10};
 
@@ -126,7 +129,8 @@ DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,bool exactSize
 		_type=Type::GZIP;
 	} else {
 		// Quasijarus
-		if (_packedData.size()<10U) throw InvalidFormatError();
+		if (_packedData.size()<10U)
+			throw InvalidFormatError();
 
 		_packedOffset=2U;
 
@@ -159,11 +163,13 @@ DEFLATEDecompressor::DEFLATEDecompressor(const Buffer &packedData,size_t packedS
 	_deflate64{deflate64}
 {
 	_packedSize=packedSize;
-	if (_packedSize>_packedData.size()) throw InvalidFormatError();
+	if (_packedSize>_packedData.size())
+		throw InvalidFormatError();
 	if (isZlib)
 	{
 		// if it is not real zlib-stream fail.
-		if (!detectZLib()) throw InvalidFormatError();
+		if (!detectZLib())
+			throw InvalidFormatError();
 	} else {
 		// raw stream
 		_packedOffset=0;
@@ -248,7 +254,8 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			len|=uint16_t(inputStream.readByte())<<8;
 			uint16_t nlen=inputStream.readByte();
 			nlen|=uint16_t(inputStream.readByte())<<8;
-			if (len!=(nlen^0xffffU)) throw DecompressionError();
+			if (len!=(nlen^0xffffU))
+				throw DecompressionError();
 			outputStream.produce(*inputStream.consume(len));
 		} else if (blockType==1 || blockType==2) {
 			typedef HuffmanDecoder<uint32_t> DEFLATEDecoder;
@@ -296,7 +303,8 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				{
 					auto insert=[&](uint8_t value)
 					{
-						if (i>=hlit+hdist) throw DecompressionError();
+						if (i>=hlit+hdist)
+							throw DecompressionError();
 						if (i>=hlit) distanceTableBits[i-hlit]=value;
 							else llTableBits[i]=value;
 						prevValue=value;
@@ -362,10 +370,12 @@ void DEFLATEDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	_rawSize=outputStream.getOffset();
 	if (_type==Type::GZIP || _type==Type::Quasijarus)
 	{
-		if (OverflowCheck::sum(inputStream.getOffset(),8U)>packedSize) throw DecompressionError();
+		if (OverflowCheck::sum(inputStream.getOffset(),8U)>packedSize)
+			throw DecompressionError();
 		_packedSize=inputStream.getOffset()+8;
 	} else if (_type==Type::ZLib) {
-		if (OverflowCheck::sum(inputStream.getOffset(),4U)>packedSize) throw DecompressionError();
+		if (OverflowCheck::sum(inputStream.getOffset(),4U)>packedSize)
+			throw DecompressionError();
 		_packedSize=inputStream.getOffset()+4;
 	} else {
 		_packedSize=inputStream.getOffset();

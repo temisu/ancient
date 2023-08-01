@@ -33,7 +33,8 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 	_packedData{packedData}
 {
 	uint32_t hdr{packedData.readBE32(0)};
-	if (!detectHeader(hdr) || packedData.size()<56) throw InvalidFormatError();
+	if (!detectHeader(hdr) || packedData.size()<56)
+		throw InvalidFormatError();
 
 	if (verify && CRC16(packedData,4,50,0)!=packedData.readBE16(54))
 		throw VerificationError();
@@ -50,6 +51,8 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 	if (packedData.readBE16(50)>6)
 		throw InvalidFormatError();		// either FMS or unknown
 
+	const std::array<uint32_t,7> contextSizes{0,0,256,16384,16384,4096,8192};
+
 	// now calculate the real packed size, including headers
 	uint32_t offset{56};
 	uint32_t accountedSize{0};
@@ -62,7 +65,8 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 		if (_packedData.readBE16(offset)!=MultiChar2("TR"))
 		{
 			// secondary exit criteria, should not be like this, if the header would be trustworthy
-			if (!accountedSize) throw InvalidFormatError();
+			if (!accountedSize)
+				throw InvalidFormatError();
 			break;
 		}
 		uint32_t trackNo{_packedData.readBE16(offset+2)};
@@ -76,7 +80,7 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 		uint8_t mode{_packedData.read8(offset+13)};
 		if (mode>6)
 			throw InvalidFormatError();
-		static const uint32_t contextSizes[7]={0,0,256,16384,16384,4096,8192};
+
 		_contextBufferSize=std::max(_contextBufferSize,contextSizes[mode]);
 
 		uint8_t flags{_packedData.read8(offset+12)};

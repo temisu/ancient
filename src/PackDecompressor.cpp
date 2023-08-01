@@ -1,4 +1,3 @@
-
 /* Copyright (C) Teemu Suutari */
 
 #include <cstdint>

@@ -23,8 +23,8 @@ std::shared_ptr<XPKDecompressor> SDHCDecompressor::create(uint32_t hdr,uint32_t 
 }
 
 SDHCDecompressor::SDHCDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
-	XPKDecompressor(recursionLevel),
-	_packedData(packedData)
+	XPKDecompressor{recursionLevel},
+	_packedData{packedData}
 {
 	if (!detectHeaderXPK(hdr) || _packedData.size()<2)
 		throw Decompressor::InvalidFormatError();
@@ -32,7 +32,7 @@ SDHCDecompressor::SDHCDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	if (verify && (_mode&0x8000U))
 	{
 		ConstSubBuffer src{_packedData,2U,_packedData.size()-2U};
-		XPKMain::createDecompressor(_recursionLevel,src,true);
+		XPKMain::createDecompressor(_recursionLevel+1,src,true);
 	}
 }
 
@@ -47,7 +47,7 @@ void SDHCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	ConstSubBuffer src{_packedData,2U,_packedData.size()-2U};
 	if (_mode&0x8000U)
 	{
-		auto main=XPKMain::createDecompressor(_recursionLevel,src,verify);
+		auto main=XPKMain::createDecompressor(_recursionLevel+1,src,verify);
 		main->decompress(rawData,verify);
 	} else {
 		if (src.size()!=rawData.size())

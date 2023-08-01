@@ -5,8 +5,6 @@
 
 #include "Decompressor.hpp"
 
-#include "common/MemoryBuffer.hpp"
-
 namespace ancient::internal
 {
 
@@ -15,7 +13,7 @@ class DMSDecompressor : public Decompressor
 {
 public:
 	DMSDecompressor(const Buffer &packedData,bool verify);
-	virtual ~DMSDecompressor() noexcept=default;
+	~DMSDecompressor() noexcept=default;
 
 	const std::string &getName() const noexcept final;
 	size_t getPackedSize() const noexcept final;

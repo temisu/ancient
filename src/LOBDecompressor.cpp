@@ -7,6 +7,7 @@
 #include "LZWDecoder.hpp"
 #include "common/Common.hpp"
 #include "common/SubBuffer.hpp"
+#include "common/MemoryBuffer.hpp"
 #include "common/OverflowCheck.hpp"
 
 

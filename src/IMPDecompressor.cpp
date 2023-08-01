@@ -267,7 +267,8 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		} else if (count==7) {
 			count=readByte();
 			// why this is error? (Well, it just is)
-			if (!count) throw DecompressionError();
+			if (!count)
+				throw DecompressionError();
 		}
 
 		uint32_t i1{lldDecoder2.decode(readBit)};
@@ -287,7 +288,8 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 
 void IMPDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (_rawSize!=rawData.size()) throw DecompressionError();
+	if (_rawSize!=rawData.size())
+		throw DecompressionError();
 	return decompressImpl(rawData,verify);
 }
 

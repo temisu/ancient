@@ -165,7 +165,8 @@ BackwardOutputStream::BackwardOutputStream(Buffer &buffer,size_t startOffset,siz
 
 void BackwardOutputStream::writeByte(uint8_t value)
 {
-	if (_currentOffset<=_startOffset) throw Decompressor::DecompressionError();
+	if (_currentOffset<=_startOffset)
+		throw Decompressor::DecompressionError();
 	_buffer[--_currentOffset]=value;
 }
 

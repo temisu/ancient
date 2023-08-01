@@ -84,7 +84,8 @@ PPDecompressor::PPDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer
 		mode=static_cast<PPState*>(state.get())->_cachedMode;
 	} else {
 		mode=packedData.readBE32(_dataStart);
-		if (mode>4) throw InvalidFormatError();
+		if (mode>4)
+			throw InvalidFormatError();
 		state.reset(new PPState(mode));
 		if (_dataStart<4U)
 			 throw InvalidFormatError();

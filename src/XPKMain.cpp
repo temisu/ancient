@@ -7,7 +7,6 @@
 #include "common/SubBuffer.hpp"
 #include "common/OverflowCheck.hpp"
 #include "common/Common.hpp"
-#include "common/Common.hpp"
 #include "XPKMain.hpp"
 #include "XPKDecompressor.hpp"
 
@@ -143,7 +142,8 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 		_headerSize=36U;
 	}
 
-	if (OverflowCheck::sum(_packedSize,8U)>packedData.size()) throw InvalidFormatError();
+	if (OverflowCheck::sum(_packedSize,8U)>packedData.size())
+		throw InvalidFormatError();
 
 	bool found=false;
 	for (auto &it : XPKDecompressors)
@@ -154,7 +154,8 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 			break;
 		}
 	}
-	if (!found) throw InvalidFormatError();
+	if (!found)
+		throw InvalidFormatError();
 
 	auto headerChecksum=[](const Buffer &buffer,size_t offset,size_t len)->bool
 	{
@@ -178,20 +179,24 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 
 	if (verify)
 	{
-		if (!headerChecksum(_packedData,0,36U)) throw VerificationError();
+		if (!headerChecksum(_packedData,0,36U))
+			throw VerificationError();
 
 		std::shared_ptr<XPKDecompressor::State> state;
 		forEachChunk([&](const Buffer &header,const Buffer &chunk,uint32_t rawChunkSize,uint8_t chunkType)->bool
 		{
-			if (!headerChecksum(header,0,header.size())) throw VerificationError();
+			if (!headerChecksum(header,0,header.size()))
+				throw VerificationError();
 
 			uint16_t hdrCheck{header.readBE16(2U)};
-			if (chunk.size() && !chunkChecksum(chunk,0,chunk.size(),hdrCheck)) throw VerificationError();
+			if (chunk.size() && !chunkChecksum(chunk,0,chunk.size(),hdrCheck))
+				throw VerificationError();
 
 			if (chunkType==1U)
 			{
 				auto sub=createDecompressor(_type,_recursionLevel,chunk,state,true);
-			} else if (chunkType!=0 && chunkType!=15U) throw InvalidFormatError();
+			} else if (chunkType!=0 && chunkType!=15U)
+				throw InvalidFormatError();
 			return true;
 		});
 	}
@@ -285,7 +290,8 @@ void XPKMain::decompressImpl(Buffer &rawData,bool verify)
 
 	if (verify)
 	{
-		if (std::memcmp(_packedData.data()+16U,rawData.data(),std::min(_rawSize,16U))) throw DecompressionError();
+		if (std::memcmp(_packedData.data()+16U,rawData.data(),std::min(_rawSize,16U)))
+			throw DecompressionError();
 	}
 }
 
@@ -296,9 +302,6 @@ std::shared_ptr<Decompressor> XPKMain::createDecompressor(uint32_t recursionLeve
 
 std::shared_ptr<XPKDecompressor> XPKMain::createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	// since this method is used externally, better check recursion level
-	if (recursionLevel>=getMaxRecursionLevel())
-		 throw InvalidFormatError();
 	for (auto &it : XPKDecompressors)
 	{
 		if (it.first(type)) return it.second(type,recursionLevel,buffer,state,verify);

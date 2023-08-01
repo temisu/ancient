@@ -25,7 +25,8 @@ CBR0Decompressor::CBR0Decompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	_packedData{packedData},
 	_isCBR0{hdr==FourCC("CBR0")}
 {
-	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr))
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &CBR0Decompressor::getSubName() const noexcept

@@ -221,15 +221,16 @@ void SXSCDecompressor::decompressASC(Buffer &rawData,ForwardInputStream &inputSt
 			outputStream.copy(distance,count);
 		}
 	}
-	if (!outputStream.eof()) throw Decompressor::DecompressionError();
+	if (!outputStream.eof())
+		throw Decompressor::DecompressionError();
 }
 
-template<typename T,size_t length>
+template<typename T,size_t N>
 class CheckedArray
 {
 public:
 	CheckedArray() :
-		_buffer(length)
+		_buffer(N)
 	{
 		// nothing needed
 	}
@@ -238,14 +239,14 @@ public:
 
 	T &operator[](size_t i)
 	{
-		if (i>=length)
+		if (i>=N)
 			throw Decompressor::DecompressionError();
 		return _buffer[i];
 	}
 
 	const T &operator[](size_t i) const
 	{
-		if (i>=length)
+		if (i>=N)
 			throw Decompressor::DecompressionError();
 		return _buffer[i];
 	}
@@ -372,7 +373,8 @@ void SXSCDecompressor::decompressHSC(Buffer &rawData,ForwardInputStream &inputSt
 	}
 
 	auto loopBreaker=[](uint16_t i) {
-		if (i>=0x8000U) throw Decompressor::DecompressionError();
+		if (i>=0x8000U)
+			throw Decompressor::DecompressionError();
 	};
 
 	auto findNext=[&]()->uint16_t
@@ -487,7 +489,8 @@ void SXSCDecompressor::decompressHSC(Buffer &rawData,ForwardInputStream &inputSt
 						auto &frequency{frequencies[i]};
 						if (cmCondition||!characterMask[frequency.character])
 						{
-							if (characterMaskStackPointer==256) throw Decompressor::DecompressionError();
+							if (characterMaskStackPointer==256)
+								throw Decompressor::DecompressionError();
 							characterMaskStack[characterMaskStackPointer++]=frequency.character;
 							characterMask[frequency.character]=true;
 						}

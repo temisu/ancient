@@ -23,7 +23,8 @@ NONEDecompressor::NONEDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr))
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &NONEDecompressor::getSubName() const noexcept
@@ -34,7 +35,8 @@ const std::string &NONEDecompressor::getSubName() const noexcept
 
 void NONEDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	if (rawData.size()!=_packedData.size()) throw Decompressor::DecompressionError();
+	if (rawData.size()!=_packedData.size())
+		throw Decompressor::DecompressionError();
 
 	std::memcpy(rawData.data(),_packedData.data(),_packedData.size());
 }

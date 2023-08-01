@@ -65,7 +65,8 @@ LZXDecompressor::LZXDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buff
 		uint32_t crc{CRC32(_packedData,10,26,0)};
 		for (uint32_t i=0;i<4;i++) crc=CRC32Byte(0,crc);
 		crc=CRC32(_packedData,40,_packedOffset-40,crc);
-		if (crc!=headerCRC) throw Decompressor::VerificationError(); 
+		if (crc!=headerCRC)
+			throw Decompressor::VerificationError(); 
 	}
 }
 
@@ -235,7 +236,8 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 	if (verify)
 	{
 		uint32_t crc{CRC32(rawData,0,_rawSize,0)};
-		if (crc!=_rawCRC) throw Decompressor::VerificationError();
+		if (crc!=_rawCRC)
+			throw Decompressor::VerificationError();
 	}
 	if (_isSampled)
 		DLTADecode::decode(rawData,rawData,0,_rawSize);

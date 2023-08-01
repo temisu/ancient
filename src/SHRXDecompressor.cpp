@@ -199,7 +199,8 @@ void SHRXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 
 	auto getSymbol=[&]()->uint32_t
 	{
-		if (!(shift>>16)) throw Decompressor::DecompressionError();
+		if (!(shift>>16))
+			throw Decompressor::DecompressionError();
 		uint32_t vvalue{(stream/(shift>>16U))&0xffffU};
 		uint32_t threshold{(ar[1]*vvalue)>>16U};
 		uint32_t arIndex{1};

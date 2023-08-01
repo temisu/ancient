@@ -33,7 +33,8 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 	_packedData{packedData}
 {
 	uint32_t hdr{packedData.readBE32(0)};
-	if (!detectHeader(hdr) || packedData.size()<56) throw InvalidFormatError();
+	if (!detectHeader(hdr) || packedData.size()<56)
+		throw InvalidFormatError();
 
 	if (verify && CRC16(packedData,4,50,0)!=packedData.readBE16(54))
 		throw VerificationError();
@@ -64,7 +65,8 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 		if (_packedData.readBE16(offset)!=MultiChar2("TR"))
 		{
 			// secondary exit criteria, should not be like this, if the header would be trustworthy
-			if (!accountedSize) throw InvalidFormatError();
+			if (!accountedSize)
+				throw InvalidFormatError();
 			break;
 		}
 		uint32_t trackNo{_packedData.readBE16(offset+2)};

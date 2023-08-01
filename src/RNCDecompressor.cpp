@@ -39,7 +39,8 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 	_rawSize=packedData.readBE32(4);
 	_packedSize=packedData.readBE32(8);
 	if (!_rawSize || !_packedSize ||
-		_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize()) throw InvalidFormatError();
+		_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize())
+			throw InvalidFormatError();
 
 	bool verified{false};
 	if (hdr==FourCC("RNC\001"))
@@ -118,7 +119,8 @@ size_t RNCDecompressor::getRawSize() const noexcept
 
 void RNCDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	if (rawData.size()<_rawSize) throw DecompressionError();
+	if (rawData.size()<_rawSize)
+		throw DecompressionError();
 
 	switch (_ver)
 	{

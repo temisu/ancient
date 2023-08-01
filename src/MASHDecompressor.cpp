@@ -25,7 +25,8 @@ MASHDecompressor::MASHDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr))
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &MASHDecompressor::getSubName() const noexcept
@@ -87,7 +88,8 @@ void MASHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		{
 			uint32_t countBits;
 			for (countBits=1;countBits<=16;countBits++) if (!readBit()) break;
-			if (countBits==16) throw Decompressor::DecompressionError();
+			if (countBits==16)
+				throw Decompressor::DecompressionError();
 			count=readBits(countBits)+(1<<countBits)+2;
 			distance=vlcDecoder.decode(readBits,readBits(3));
 		} else {

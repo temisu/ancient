@@ -23,7 +23,8 @@ FASTDecompressor::FASTDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr))
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &FASTDecompressor::getSubName() const noexcept

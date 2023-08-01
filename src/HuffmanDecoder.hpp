@@ -96,12 +96,14 @@ public:
 	template<typename F>
 	const T &decode(F bitReader) const
 	{
-		if (!_table.size()) throw Decompressor::DecompressionError();
+		if (!_table.size())
+			throw Decompressor::DecompressionError();
 		uint32_t i{0};
 		while (_table[i].left || _table[i].right)
 		{
 			i=bitReader()?_table[i].right:_table[i].left;
-			if (!i) throw Decompressor::DecompressionError();
+			if (!i)
+				throw Decompressor::DecompressionError();
 		}
 		return _table[i].value;
 	}
@@ -115,7 +117,8 @@ public:
 			uint32_t codeBit={(currentBit && ((code.code>>(currentBit-1U))&1U))?1U:0};
 			if (i!=length)
 			{
-				if (!currentBit || (!_table[i].left && !_table[i].right)) throw Decompressor::DecompressionError();
+				if (!currentBit || (!_table[i].left && !_table[i].right))
+					throw Decompressor::DecompressionError();
 				uint32_t &tmp{codeBit?_table[i].right:_table[i].left};
 				if (!tmp) tmp=i=length;
 					else i=tmp;
@@ -146,7 +149,8 @@ public:
 		for (uint32_t i=0;i<bitTableLength;i++)
 		{
 			uint8_t length{bitLengths[i]};
-			if (length>32) throw Decompressor::DecompressionError();
+			if (length>32)
+				throw Decompressor::DecompressionError();
 			if (length)
 			{
 				if (length<minDepth) minDepth=length;

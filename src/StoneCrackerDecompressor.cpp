@@ -6,6 +6,7 @@
 #include "HuffmanDecoder.hpp"
 #include "VariableLengthCodeDecoder.hpp"
 #include "common/Common.hpp"
+#include "common/MemoryBuffer.hpp"
 
 
 namespace ancient::internal
@@ -107,7 +108,8 @@ void StoneCrackerDecompressor::initialize(const Buffer &packedData,uint32_t hdr)
 		_rle[1]=hdr>>16U;
 		_rle[2]=hdr>>8U;
 		_modes[0]=hdr;
-		if (packedData.size()<_dataOffset) throw InvalidFormatError();
+		if (packedData.size()<_dataOffset)
+			throw InvalidFormatError();
 		for (uint32_t i=1;i<3U;i++)
 		{
 			_modes[i]=packedData.read8(i+15U);
@@ -175,7 +177,8 @@ StoneCrackerDecompressor::StoneCrackerDecompressor(const Buffer &packedData,bool
 	_packedData{packedData}
 {
 	uint32_t hdr{packedData.readBE32(0)};
-	if (!detectHeaderAndGeneration(hdr,_generation)) throw InvalidFormatError();
+	if (!detectHeaderAndGeneration(hdr,_generation))
+		throw InvalidFormatError();
 
 	bool initialized{false};
 	// this is the fallback if we have accidentally identified the wrong version

@@ -31,7 +31,8 @@ LIN1Decompressor::LIN1Decompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 		throw Decompressor::InvalidFormatError();
 
 	uint32_t tmp{packedData.readBE32(0)};
-	if (tmp) throw Decompressor::InvalidFormatError();	// password set
+	if (tmp)
+		throw Decompressor::InvalidFormatError();	// password set
 }
 
 const std::string &LIN1Decompressor::getSubName() const noexcept
@@ -76,7 +77,8 @@ void LIN1Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 						if (count==15U)
 						{
 							count=readByte();
-							if (count==0xffU) throw Decompressor::DecompressionError();
+							if (count==0xffU)
+								throw Decompressor::DecompressionError();
 							count+=3U;
 						} else count+=14U;
 					} else count+=7U;

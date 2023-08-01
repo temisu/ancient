@@ -24,7 +24,8 @@ SMPLDecompressor::SMPLDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr) || packedData.size()<2) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr) || packedData.size()<2)
+		throw Decompressor::InvalidFormatError();
 
 	if (packedData.readBE16(0)!=1U)
 		throw Decompressor::InvalidFormatError();

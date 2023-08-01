@@ -98,7 +98,8 @@ BackwardInputStream::BackwardInputStream(const Buffer &buffer,size_t startOffset
 	_currentOffset{endOffset},
 	_endOffset{startOffset}
 {
-	if (_currentOffset<_endOffset || _currentOffset>buffer.size() || _endOffset>buffer.size()) throw Decompressor::DecompressionError();
+	if (_currentOffset<_endOffset || _currentOffset>buffer.size() || _endOffset>buffer.size())
+		throw Decompressor::DecompressionError();
 }
 
 uint8_t BackwardInputStream::readByte()

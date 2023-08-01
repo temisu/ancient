@@ -23,7 +23,8 @@ LZBSDecompressor::LZBSDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr) || _packedData.size()<1) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr) || _packedData.size()<1)
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &LZBSDecompressor::getSubName() const noexcept
@@ -55,7 +56,8 @@ void LZBSDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			if (count==2)
 			{
 				count=readBits(12);
-				if (!count) throw Decompressor::DecompressionError();
+				if (!count)
+					throw Decompressor::DecompressionError();
 				for (uint32_t i=0;i<count;i++)
 					outputStream.writeByte(readBits(8));
 			} else {

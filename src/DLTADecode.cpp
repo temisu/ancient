@@ -23,7 +23,8 @@ DLTADecode::DLTADecode(uint32_t hdr,uint32_t recursionLevel,const Buffer &packed
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr))
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &DLTADecode::getSubName() const noexcept

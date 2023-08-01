@@ -58,7 +58,8 @@ CRMDecompressor::CRMDecompressor(const Buffer &packedData,uint32_t recursionLeve
 	_packedSize=packedData.readBE32(10);
 	if (!_rawSize || !_packedSize ||
 		_rawSize>getMaxRawSize() || _packedSize>getMaxPackedSize() ||
-		OverflowCheck::sum(_packedSize,14U)>packedData.size()) throw Decompressor::InvalidFormatError();
+		OverflowCheck::sum(_packedSize,14U)>packedData.size())
+			throw Decompressor::InvalidFormatError();
 	if (((hdr>>8)&0xff)=='m') _isSampled=true;
 	if ((hdr&0xff)=='2') _isLZH=true;
 }
@@ -103,7 +104,8 @@ size_t CRMDecompressor::getRawSize() const noexcept
 
 void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	if (rawData.size()<_rawSize) throw Decompressor::DecompressionError();
+	if (rawData.size()<_rawSize)
+		throw Decompressor::DecompressionError();
 
 	BackwardInputStream inputStream{_packedData,14,_packedSize+14-6};
 	LSBBitReader<BackwardInputStream> bitReader{inputStream};

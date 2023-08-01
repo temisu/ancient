@@ -73,7 +73,8 @@ LZCBDecompressor::LZCBDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
-	if (packedData.size()<2) throw Decompressor::InvalidFormatError();
+	if (packedData.size()<2)
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &LZCBDecompressor::getSubName() const noexcept
@@ -165,7 +166,8 @@ void LZCBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			do
 			{
 				literalCount=literalCountDecoder.decode(readCount);
-				if (!literalCount) throw Decompressor::DecompressionError();
+				if (!literalCount)
+					throw Decompressor::DecompressionError();
 
 				for (uint32_t i=0;i<literalCount;i++)
 				{

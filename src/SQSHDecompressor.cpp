@@ -26,9 +26,11 @@ SQSHDecompressor::SQSHDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr) || packedData.size()<3) throw Decompressor::InvalidFormatError();
+	if (!detectHeaderXPK(hdr) || packedData.size()<3)
+		throw Decompressor::InvalidFormatError();
 	_rawSize=packedData.readBE16(0);
-	if (!_rawSize) throw Decompressor::InvalidFormatError();
+	if (!_rawSize)
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &SQSHDecompressor::getSubName() const noexcept

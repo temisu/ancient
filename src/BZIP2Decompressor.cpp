@@ -41,8 +41,9 @@ BZIP2Decompressor::BZIP2Decompressor(const Buffer &packedData,bool exactSizeKnow
 	_packedSize{0}
 {
 	uint32_t hdr=packedData.readBE32(0);
-	if (!detectHeader(hdr)) throw Decompressor::InvalidFormatError();;
-	_blockSize=((hdr&0xffU)-'0')*10'0000;
+	if (!detectHeader(hdr))
+		throw Decompressor::InvalidFormatError();;
+	_blockSize=((hdr&0xffU)-'0')*100'000;
 }
 
 BZIP2Decompressor::BZIP2Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
@@ -51,8 +52,9 @@ BZIP2Decompressor::BZIP2Decompressor(uint32_t hdr,uint32_t recursionLevel,const 
 	_packedSize{_packedData.size()}
 {
 	uint32_t blockHdr=packedData.readBE32(0);
-	if (!detectHeader(blockHdr)) throw Decompressor::InvalidFormatError();;
-	_blockSize=((blockHdr&0xffU)-'0')*10'0000;
+	if (!detectHeader(blockHdr))
+		throw Decompressor::InvalidFormatError();;
+	_blockSize=((blockHdr&0xffU)-'0')*100'000;
 }
 
 const std::string &BZIP2Decompressor::getName() const noexcept
@@ -195,7 +197,8 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 				}
 
 				uint32_t huffmanGroups{readBits(3)};
-				if (huffmanGroups<2 || huffmanGroups>6) throw DecompressionError();
+				if (huffmanGroups<2 || huffmanGroups>6)
+					throw DecompressionError();
 
 				uint32_t selectorsUsed{readBits(15)};
 				if (!selectorsUsed) throw DecompressionError();

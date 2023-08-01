@@ -35,8 +35,8 @@ CYB2Decoder::CYB2Decoder(uint32_t hdr,uint32_t recursionLevel,const Buffer &pack
 	{
 		// trigger child checks...
 		ConstSubBuffer blockData{_packedData,10,_packedData.size()-10};
-		std::shared_ptr<XPKDecompressor::State> state;
-		auto sub=XPKMain::createDecompressor(_blockHeader,_recursionLevel+1,blockData,state,true);
+		std::shared_ptr<XPKDecompressor::State> subState;
+		auto sub=XPKMain::createDecompressor(_blockHeader,_recursionLevel+1,blockData,subState,true);
 	}
 }
 

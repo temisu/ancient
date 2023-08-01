@@ -7,7 +7,6 @@
 #include "common/SubBuffer.hpp"
 #include "common/OverflowCheck.hpp"
 #include "common/Common.hpp"
-#include "common/Common.hpp"
 #include "XPKMain.hpp"
 #include "XPKDecompressor.hpp"
 
@@ -296,9 +295,6 @@ std::shared_ptr<Decompressor> XPKMain::createDecompressor(uint32_t recursionLeve
 
 std::shared_ptr<XPKDecompressor> XPKMain::createDecompressor(uint32_t type,uint32_t recursionLevel,const Buffer &buffer,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	// since this method is used externally, better check recursion level
-	if (recursionLevel>=getMaxRecursionLevel())
-		 throw InvalidFormatError();
 	for (auto &it : XPKDecompressors)
 	{
 		if (it.first(type)) return it.second(type,recursionLevel,buffer,state,verify);

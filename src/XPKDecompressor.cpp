@@ -7,7 +7,7 @@ namespace ancient::internal
 {
 
 XPKDecompressor::XPKDecompressor(uint32_t recursionLevel) :
-	_recursionLevel(recursionLevel)
+	_recursionLevel{recursionLevel}
 {
 	// nothing needed
 }

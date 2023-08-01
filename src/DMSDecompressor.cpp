@@ -50,6 +50,8 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 	if (packedData.readBE16(50)>6)
 		throw InvalidFormatError();		// either FMS or unknown
 
+	const std::array<uint32_t,7> contextSizes{0,0,256,16384,16384,4096,8192};
+
 	// now calculate the real packed size, including headers
 	uint32_t offset{56};
 	uint32_t accountedSize{0};
@@ -76,7 +78,7 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 		uint8_t mode{_packedData.read8(offset+13)};
 		if (mode>6)
 			throw InvalidFormatError();
-		static const uint32_t contextSizes[7]={0,0,256,16384,16384,4096,8192};
+
 		_contextBufferSize=std::max(_contextBufferSize,contextSizes[mode]);
 
 		uint8_t flags{_packedData.read8(offset+12)};

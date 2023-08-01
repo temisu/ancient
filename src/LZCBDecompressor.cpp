@@ -108,7 +108,7 @@ void LZCBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		MSBBitReader<ForwardInputStream>	_reader;
 	};
 
-	ForwardInputStream inputStream{_packedData,0,_packedData.size(),3U};
+	ForwardInputStream inputStream{_packedData,0,_packedData.size(),7U};
 	ForwardOutputStream outputStream{rawData,0,rawData.size()};
 	BitReader bitReader{inputStream};
 

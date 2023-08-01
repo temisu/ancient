@@ -13,8 +13,6 @@
 // For exception
 #include "Decompressor.hpp"
 
-#include "common/MemoryBuffer.hpp"
-
 namespace ancient::internal
 {
 

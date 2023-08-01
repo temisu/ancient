@@ -1,8 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "InputStream.hpp"
-// for exceptions
-#include "Decompressor.hpp"
 #include "common/OverflowCheck.hpp"
 #include "common/SubBuffer.hpp"
 

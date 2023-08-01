@@ -212,11 +212,12 @@ void LZXDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,
 			} else {
 				symbol-=256U;
 				uint32_t distance;
-				if ((symbol>>1)>=4U && method==3U)
+				if ((symbol&0x1fU)>=8U && method==3U)
 				{
 					distance=vlcDecoder.decode([&](uint32_t count)
 					{
-						return (readBits(count-3U)<<3U)|distanceDecoder.decode(readBit);
+						uint32_t tmp={readBits(count-3U)<<3U};
+						return tmp|distanceDecoder.decode(readBit);
 					},symbol&0x1fU);
 				} else {
 					distance=vlcDecoder.decode(readBits,symbol&0x1fU);

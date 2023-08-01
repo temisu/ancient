@@ -175,13 +175,16 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				uint8_t value{uint8_t(readBits(bitCount))};
 				if (value>=threshold)
 				{
-					if (uint32_t newBitCount{(readBits(extraBitCount)+((value-threshold)<<extraBitCount))+1U};bitCount!=newBitCount)
+					if (uint32_t newBitCount{(readBits(extraBitCount)|((value-threshold)<<extraBitCount))+1U};bitCount!=newBitCount)
 					{
 						bitCount=newBitCount;
-						value=readBits(bitCount);
-					} else value=0xf8U+readBits(3U);
+						j--;
+						continue;
+					} else {
+						value=0xf8U|readBits(3U);
+						if (value==0xffU && readBits(1U)) break;
+					}
 				}
-				if (value==0xffU && readBits(1U)) break;
 				if (value>=packTableSize)
 					throw DecompressionError();
 				value=_packedData[tableOffset+value];
@@ -206,34 +209,38 @@ void MMCMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			{
 				uint8_t extraBitCount{extraBits16[bitCount-1U]};
 				uint16_t threshold{uint16_t((1U<<bitCount)-(1<<(4U-extraBitCount)))};
-				int32_t value{int32_t(readBits(bitCount))};
+				uint16_t value{uint16_t(readBits(bitCount))};
 				if (value>=threshold)
 				{
-					if (uint32_t newBitCount{(readBits(extraBitCount)+((value-threshold)<<extraBitCount))+1U};bitCount!=newBitCount)
+					if (uint32_t newBitCount{(readBits(extraBitCount)|((value-threshold)<<extraBitCount))+1U};bitCount!=newBitCount)
 					{
 						bitCount=newBitCount;
-						value=readBits(bitCount);
-					} else value=0xfff0U+readBits(4U);
+						j-=2U;
+						continue;
+					} else {
+						value=0xfff0U|readBits(4U);
+						if (value==0xffffU && readBits(1U)) break;
+					}
 				}
-				if (value==0xffffU && readBits(1U)) break;
-				if (value&1U) value=-value-1;
-				value>>=1;
+				int32_t sValue=value;
+				if (sValue&1U) sValue=-sValue-1;
+				sValue>>=1;
 				if (flags&0x2U)
 				{
 					// delta
-					value+=oldValue[chIndex];
-					oldValue[chIndex]=value;
+					sValue+=oldValue[chIndex];
+					oldValue[chIndex]=sValue;
 					if (flags&0x100U) chIndex^=1U;		// stereo
-				} else if (!(flags&0x200U)) value^=0x8000U;	// abs16
+				} else if (!(flags&0x200U)) sValue^=0x8000;	// abs16
 				if (flags&0x400U)
 				{
 					// big ending
-					writeByte(value>>8U);
-					writeByte(value,true);
+					writeByte(sValue>>8);
+					writeByte(sValue,true);
 				} else {
 					// little endian
-					writeByte(value);
-					writeByte(value>>8U,true);
+					writeByte(sValue);
+					writeByte(sValue>>8,true);
 				}
 			}
 		}

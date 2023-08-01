@@ -11,6 +11,9 @@
 
 #include "common/Buffer.hpp"
 
+// for exceptions
+#include "Decompressor.hpp"
+
 namespace ancient::internal
 {
 
@@ -135,6 +138,8 @@ public:
 	{
 		uint32_t ret{0};
 		uint32_t pos{0};
+		if (count>32)
+			throw Decompressor::DecompressionError();
 		while (count)
 		{
 			if (!_bufLength)
@@ -208,6 +213,8 @@ public:
 	uint32_t readBitsGeneric(uint32_t count,F readWord)
 	{
 		uint32_t ret{0};
+		if (count>32)
+			throw Decompressor::DecompressionError();
 		while (count)
 		{
 			if (!_bufLength)

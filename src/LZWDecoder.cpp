@@ -1,3 +1,4 @@
+/* Copyright (C) Teemu Suutari */
 
 #include "LZWDecoder.hpp"
 #include "common/Common.hpp"

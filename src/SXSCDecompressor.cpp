@@ -224,12 +224,12 @@ void SXSCDecompressor::decompressASC(Buffer &rawData,ForwardInputStream &inputSt
 	if (!outputStream.eof()) throw Decompressor::DecompressionError();
 }
 
-template<typename T,size_t length>
+template<typename T,size_t N>
 class CheckedArray
 {
 public:
 	CheckedArray() :
-		_buffer(length)
+		_buffer(N)
 	{
 		// nothing needed
 	}
@@ -238,14 +238,14 @@ public:
 
 	T &operator[](size_t i)
 	{
-		if (i>=length)
+		if (i>=N)
 			throw Decompressor::DecompressionError();
 		return _buffer[i];
 	}
 
 	const T &operator[](size_t i) const
 	{
-		if (i>=length)
+		if (i>=N)
 			throw Decompressor::DecompressionError();
 		return _buffer[i];
 	}

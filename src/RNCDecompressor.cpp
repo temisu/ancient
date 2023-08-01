@@ -294,10 +294,10 @@ void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 		{
 			processLiterals(litDecoder);
 			uint32_t distance{huffmanDecode(distanceDecoder)};
-			uint32_t count{huffmanDecode(lengthDecoder)};
+			uint32_t subCount{huffmanDecode(lengthDecoder)};
 			distance++;
-			count+=2;
-			outputStream.copy(distance,count);
+			subCount+=2;
+			outputStream.copy(distance,subCount);
 		}
 		processLiterals(litDecoder);
 	}

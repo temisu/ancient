@@ -172,7 +172,7 @@ void StoneCrackerDecompressor::initialize(const Buffer &packedData,uint32_t hdr)
 }
 
 StoneCrackerDecompressor::StoneCrackerDecompressor(const Buffer &packedData,bool exactSizeKnown,bool verify) :
-	_packedData(packedData)
+	_packedData{packedData}
 {
 	uint32_t hdr{packedData.readBE32(0)};
 	if (!detectHeaderAndGeneration(hdr,_generation)) throw InvalidFormatError();

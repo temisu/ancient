@@ -26,12 +26,14 @@ for a in $TEST_V/good_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack
 for a in $TEST_V/gzbz2_files/*.gz ; do $BIN verify $a $(echo $a | sed s/\\.gz/\\.raw/) || exit 1 ; done
 for a in $TEST_V/gzbz2_files/*.bz2 ; do $BIN verify $a $(echo $a | sed s/\\.bz2/\\.raw/) || exit 1 ; done
 
-for a in $TEST_V/mh_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
-
 for a in $TEST_V/lob_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/lob_files2/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 # 1 extra byte
 for a in $TEST_V/lob_files3/*.lob ; do $BIN verify $a $(echo $a | sed s/\\_m.\*.lob/\\.raw/) ; done
+
+for a in $TEST_V/mh_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+
+for a in $TEST_V/mmcmp_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) ; done
 
 for a in $TEST_V/pack_files/*.z ; do $BIN verify $a $(echo $a | sed s/\\.z/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pack_files2/*.z ; do $BIN verify $a $(echo $a | sed s/\\.z/\\.raw/) || exit 1 ; done
@@ -55,7 +57,7 @@ for a in $TEST_V/sco_files/*.Z ; do $BIN verify $a $(echo $a | sed s/\\.Z/\\.raw
 # some decompressors generate 1 bytes extra. manual check needed for results
 for a in $TEST_V/stonecracker_files/*.pack* ; do $BIN verify $a $(echo $a | sed s/\\.pack.*/\\.raw/) ; done
 
-#for a in $TEST_V/xpk_testfiles/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/xpk_testfiles/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/xpk_testfiles2/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/xpk_testfiles3/*.xpk ; do $BIN verify $a $(echo $a | sed s/\\.xpk/\\.raw/) || exit 1 ; done
 

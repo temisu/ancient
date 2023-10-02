@@ -16,25 +16,25 @@ static bool readIMPHeader(uint32_t hdr,uint32_t &addition) noexcept
 {
 	switch (hdr)
 	{
-		case FourCC("ATN!"):
+		case FourCC("ATN!"):	// Team 17 games
 		[[fallthrough]];
-		case FourCC("EDAM"):
+		case FourCC("EDAM"):	// Indy Heat
 		[[fallthrough]];
-		case FourCC("IMP!"):
+		case FourCC("IMP!"):	// Original!!
 		[[fallthrough]];
-		case FourCC("M.H."):
+		case FourCC("M.H."):	// Georg Glaxo
 		addition=7;
 		return true;
 
-		case FourCC("BDPI"):
+		case FourCC("BDPI"):	// Dizzy's excellent adventures
 		addition=0x6e8;
 		return true;
 
-		case FourCC("CHFI"):
+		case FourCC("CHFI"):	// Dizzy's excellent adventures, Bubble and Squeak
 		addition=0xfe4;
 		return true;
 
-		case FourCC("RDC9"):	// Files do not contain checksum
+		case FourCC("RDC9"):	// Telekommando 2 (Files do not contain checksum)
 		[[fallthrough]];
 		// I haven't got these files to be sure what is the addition
 		case FourCC("Dupa"):

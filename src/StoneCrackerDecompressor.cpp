@@ -26,12 +26,14 @@ bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &
 	// At least we can rule those out later when detecting the actual header content
 	// Final complication is that values for 2.71/2.9X overlap, this we need to handle
 	// later as well
+
 	if (hdr>=0x08090a08U && hdr<=0x08090a0eU && hdr!=0x08090a09U)
 	{
 		// can be generation 1 as well. needs to be determined later
 		generation=2;
 		return true;
 	}
+
 	if ((hdr&0xffU)>=0x08U&&(hdr&0xffU)<=0x0eU)
 	{
 		uint8_t byte0{uint8_t(hdr>>24U)};
@@ -44,6 +46,22 @@ bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &
 			return true;
 		}
 	}
+
+	// Specials
+	switch (hdr&0xffff'ff00U)
+	{
+		case FourCC("1AM\000"):		// Reunion
+		generation=3;
+		return true;
+
+		case FourCC("2AM\000"):		// Reunion
+		generation=6;
+		return true;
+
+		default:
+		break;
+	}
+
 	// From 3.00 and onwards we can be certain of the format
 	switch (hdr)
 	{
@@ -64,10 +82,16 @@ bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &
 		return true;
 
 		case FourCC("S403"):
+		[[fallthrough]];
+		case FourCC("Z&G!"):		//  Switchback / Rebels
+		[[fallthrough]];
+		case FourCC("ZULU"):		//  Whammer Slammer / Rebels
 		generation=7;
 		return true;
 
 		case FourCC("S404"):
+		[[fallthrough]];
+		case FourCC("AYS!"):		// High Anxiety / Abyss
 		generation=8;
 		return true;
 

@@ -21,7 +21,7 @@ std::shared_ptr<Decompressor> CompressDecompressor::create(const Buffer &packedD
 }
 
 CompressDecompressor::CompressDecompressor(const Buffer &packedData,bool exactSizeKnown,bool verify) :
-	_packedData(packedData)
+	_packedData{packedData}
 {
 	// Can't do anything with undefined size stream
 	if (!exactSizeKnown)

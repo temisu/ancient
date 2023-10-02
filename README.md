@@ -26,20 +26,25 @@ Decompression algorithms provided:
   * Crm!: Crunch-Mania standard-mode, sampled
   * CrM2: Crunch-Mania LZH-mode
   * Crm2: Crunch-Mania LZH-mode, sampled
+  * ID 0x18051973 (CrunchMania CrM2 Clone)
+  * ID CD³¹ (CrunchMania CrM2 Clone)
+  * ID DCS! (CrunchMania CrM! Clone)
+  * ID Iron (CrunchMania CrM2 Clone)
+  * ID MSS! (CrunchMania CrM2 Clone)
+  * ID mss! (CrunchMania Crm2 Clone)
 * Disk Masher System a.k.a. DMS
   * Supports all different compression methods (NONE,SIMPLE,QUICK,MEDIUM,DEEP,HEAVY1,HEAVY2)
   * Supports password bypassing
-* File Imploder (and most of its clones)
-  * ATN!
-  * BDPI
-  * CHFI
-  * EDAM
-  * IMP!
-  * M.H.
-  * RDC9
-  * FLT! (verification missing)
-  * Dupa (verification missing)
-  * PARA (verification missing)
+* File Imploder
+  * ID ATN! (Imploder Clone)
+  * ID BDPI (Imploder Clone)
+  * ID CHFI (Imploder Clone)
+  * ID EDAM (Imploder Clone)
+  * ID M.H. (Imploder Clone)
+  * ID RDC9 (Imploder Clone)
+  * ID FLT! (Imploder Clone) (verification missing)
+  * ID Dupa (Imploder Clone) (verification missing)
+  * ID PARA (Imploder Clone) (verification missing)
 * Freeze/Melt
   * Supports both old and new formats
 * gzip
@@ -52,10 +57,16 @@ Decompression algorithms provided:
   * PP 1.1 (verification missing)
   * PP 2.0
   * PX20: Supports bypassing password protected files.
+  * ID CHFC (PowerPacker Clone)
+  * ID DEN! (PowerPacker Clone)
+  * ID DXS9 (PowerPacker Clone)
+  * ID H.D. (PowerPacker Clone)
+  * ID RVV! (PowerPacker Clone)
 * Quasijarus Strong Compression
 * Rob Northen compressors.
   * RNC1: Both old and formats utilizing the same header. heuristics for detecting the correct one
   * RNC2: RNC version 2 stream
+  * ID ...1 (RNC1 Clone)
 * Turbo Packer by Wolfgang Mayerle.
 * MMCMP: Music Module Compressor
 * SCO Compress LZH
@@ -68,6 +79,11 @@ Decompression algorithms provided:
   * S401: StoneCracker v4.01
   * S403: StoneCracker v4.02a
   * S404: StoneCracker v4.10
+  * ID 1AM (StoneCracker S300 Clone)
+  * ID 2AM (StoneCracker S404 Clone)
+  * ID AYS! (StoneCracker S404 Clone)
+  * ID Z&G! (StoneCracker S403 Clone)
+  * ID ZULU (StoneCracker S403 Clone)
 * XPK-encapsulated files
   * ACCA: Andre's Code Compression Algorithm
   * ARTM: Arithmetic encoding compressor

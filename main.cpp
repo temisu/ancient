@@ -229,54 +229,43 @@ int main(int argc,char **argv)
 						processDir(name);
 					} else if (st.st_mode&S_IFREG) {
 						auto packed{readFile(name)};
-						size_t scanPos=0;
-						size_t scanSize=packed->size();
 						for (size_t i=0;i<packed->size();)
 						{
-							scanPos+=1;
-							scanSize-=1;
 							// We will detect first, before trying the format for real
-							if (!ancient::Decompressor::detect(packed->data()+scanPos,scanSize))
+							if (!ancient::Decompressor::detect(packed->data()+i,packed->size()-i))
 							{
 								i++;
 								continue;
 							}
 							try
 							{
-								ancient::Decompressor decompressor{packed->data()+scanPos,scanSize,false,true};
-								// for formats that do not encode packed size.
-								// we will get it from decompressor
+								ancient::Decompressor decompressor{packed->data()+i,packed->size()-i,false,true};
+
+								printf("trying %s\n",decompressor.getName().c_str());
 								if (!decompressor.getPackedSize())
 								{
-									try
-									{
-										decompressor.decompress(true);
-									} catch (const std::bad_alloc&) {
-										fprintf(stderr,"Out of memory\n");
-										i++;
-										continue;
-									}
+									// for formats that do not encode packed size.
+									// we will get it from decompressor
+									decompressor.decompress(true);
 								}
-								if (decompressor.getPackedSize())
+
+								// final checks with the limited buffer and fresh decompressor
+								const uint8_t *finalData=packed->data()+i;
+								size_t finalSize=decompressor.getPackedSize().value();
+								ancient::Decompressor decompressor2{finalData,finalSize,true,true};
+								try
 								{
-									// final checks with the limited buffer and fresh decompressor
-									const uint8_t *finalData=packed->data()+scanPos;
-									size_t finalSize=decompressor.getPackedSize().value();
-									ancient::Decompressor decompressor2{finalData,finalSize,true,true};
-									try
-									{
-										decompressor2.decompress(true);
-									} catch (const std::bad_alloc&) {
-										fprintf(stderr,"Out of memory\n");
-										i++;
-										continue;
-									}
-									std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";
-									printf("Found compressed stream at %zu, size %zu in file %s with type '%s', storing it into %s\n",i,decompressor2.getPackedSize().value(),name.c_str(),decompressor2.getName().c_str(),outputName.c_str());
-									writeFile(outputName,finalData,finalSize);
-									i+=finalSize;
+									decompressor2.decompress(true);
+								} catch (const std::bad_alloc&) {
+									fprintf(stderr,"Out of memory\n");
+									i++;
 									continue;
 								}
+								std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";
+								printf("Found compressed stream at %zu, size %zu in file %s with type '%s', storing it into %s\n",i,decompressor2.getPackedSize().value(),name.c_str(),decompressor2.getName().c_str(),outputName.c_str());
+								writeFile(outputName,finalData,finalSize);
+								i+=finalSize;
+								continue;
 							} catch (const ancient::Error&) {
 								// full steam ahead (with next offset)
 							} catch (const std::bad_alloc&) {

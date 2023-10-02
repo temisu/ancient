@@ -24,7 +24,8 @@ namespace ancient::internal
 
 bool RNCDecompressor::detectHeader(uint32_t hdr) noexcept
 {
-	return hdr==FourCC("RNC\001") || hdr==FourCC("RNC\002");
+	return hdr==FourCC("RNC\001") || hdr==FourCC("RNC\002")
+		|| hdr==FourCC("...\001");		// Total Carnage
 }
 
 std::shared_ptr<Decompressor> RNCDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
@@ -79,6 +80,8 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 		}
 	} else if (hdr==FourCC("RNC\002")) {
 		_ver=Version::RNC2;
+	} else if (hdr==FourCC("...\001")) {
+		_ver=Version::RNC1New;
 	} else throw InvalidFormatError();
 
 	uint32_t hdrSize{(_ver==Version::RNC1Old)?12U:18U};

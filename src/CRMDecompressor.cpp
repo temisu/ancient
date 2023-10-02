@@ -24,6 +24,18 @@ bool CRMDecompressor::detectHeader(uint32_t hdr) noexcept
 		case FourCC("Crm!"):
 		[[fallthrough]];
 		case FourCC("Crm2"):
+		[[fallthrough]];
+		case 0x1805'1973U:		// Fears
+		[[fallthrough]];
+		case FourCC("CD\xb3\xb9"):	// BiFi 2
+		[[fallthrough]];
+		case FourCC("DCS!"):		// Sonic Attack/DualCrew-Shining
+		[[fallthrough]];
+		case FourCC("Iron"):		// Sun / TRSI
+		[[fallthrough]];
+		case FourCC("MSS!"):		// Infection / Mystic
+		[[fallthrough]];
+		case FourCC("mss!"):
 		return true;
 
 		default:
@@ -53,6 +65,10 @@ CRMDecompressor::CRMDecompressor(const Buffer &packedData,uint32_t recursionLeve
 	uint32_t hdr{packedData.readBE32(0)};
 	if (!detectHeader(hdr) || packedData.size()<20)
 		throw Decompressor::InvalidFormatError();
+	if (hdr==0x1805'1973U || hdr==FourCC("CD\xb3\xb9") ||
+		hdr==FourCC("Iron") || hdr==FourCC("MSS!")) hdr=FourCC("CrM2");
+	if (hdr==FourCC("mss!")) hdr=FourCC("Crm2");
+	if (hdr==FourCC("DCS!")) hdr=FourCC("CrM!");
 
 	_rawSize=packedData.readBE32(6);
 	_packedSize=packedData.readBE32(10);

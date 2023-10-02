@@ -26,8 +26,8 @@ std::shared_ptr<Decompressor> CompactDecompressor::create(const Buffer &packedDa
 }
 
 CompactDecompressor::CompactDecompressor(const Buffer &packedData,bool exactSizeKnown,bool verify) :
-	_packedData(packedData),
-	_exactSizeKnown(exactSizeKnown)
+	_packedData{packedData},
+	_exactSizeKnown{exactSizeKnown}
 {
 	if (_packedData.size()<2U)
 		throw InvalidFormatError();

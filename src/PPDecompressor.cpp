@@ -19,7 +19,12 @@ PPDecompressor::PPState::PPState(uint32_t mode) noexcept :
 
 bool PPDecompressor::detectHeader(uint32_t hdr) noexcept
 {
-	return (hdr==FourCC("PP11") || hdr==FourCC("PP20") || hdr==FourCC("PX20"));
+	return hdr==FourCC("PP11") || hdr==FourCC("PP20") || hdr==FourCC("PX20")
+		|| hdr==FourCC("CHFC")		// Sky High Stuntman
+		|| hdr==FourCC("DEN!")		// Jewels - Crossroads
+		|| hdr==FourCC("DXS9")		// Hopp oder Top, Punkt Punkt Punkt
+		|| hdr==FourCC("H.D.")		// F1 Challenge
+		|| hdr==FourCC("RVV!");		// Hoi AGA Remix
 }
 
 bool PPDecompressor::detectHeaderXPK(uint32_t hdr) noexcept

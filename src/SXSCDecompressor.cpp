@@ -757,7 +757,7 @@ void SXSCDecompressor::decompressHSC(Buffer &rawData,ForwardInputStream &inputSt
 
 void SXSCDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	ForwardInputStream inputStream(_packedData,0,_packedData.size(),3U);
+	ForwardInputStream inputStream{_packedData,0,_packedData.size(),3U};
 
 	uint8_t mode{inputStream.readByte()};
 

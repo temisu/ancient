@@ -57,6 +57,9 @@ for a in $TEST_V/sco_files/*.Z ; do $BIN verify $a $(echo $a | sed s/\\.Z/\\.raw
 # some decompressors generate 1 bytes extra. manual check needed for results
 for a in $TEST_V/stonecracker_files/*.pack* ; do $BIN verify $a $(echo $a | sed s/\\.pack.*/\\.raw/) ; done
 
+for a in $TEST_V/vice_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/vic2_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+
 for a in $TEST_V/xpk_testfiles/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/xpk_testfiles2/*.pack ; do $BIN verify $a $(echo $a | sed s/\\_xpk.*.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/xpk_testfiles3/*.xpk ; do $BIN verify $a $(echo $a | sed s/\\.xpk/\\.raw/) || exit 1 ; done

@@ -25,7 +25,7 @@ OBJS_N	= API.o Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o Wrapp
 	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SCOCompressDecompressor.o \
 	SDHCDecompressor.o SHRXDecompressor.o SLZ3Decompressor.o SMPLDecompressor.o \
 	StoneCrackerDecompressor.o SQSHDecompressor.o SXSCDecompressor.o TDCSDecompressor.o \
-	TPWMDecompressor.o XPKUnimplemented.o ZENODecompressor.o
+	TPWMDecompressor.o VicXDecompressor.o XPKUnimplemented.o ZENODecompressor.o
 TEST_N	= test.o
 TESTBIN = obj/test
 

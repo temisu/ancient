@@ -84,6 +84,7 @@ Decompression algorithms provided:
   * ID AYS! (StoneCracker S404 Clone)
   * ID Z&G! (StoneCracker S403 Clone)
   * ID ZULU (StoneCracker S403 Clone)
+* Vice / Vic2 Huffman compressor with RLE
 * XPK-encapsulated files
   * ACCA: Andre's Code Compression Algorithm
   * ARTM: Arithmetic encoding compressor

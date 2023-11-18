@@ -3,7 +3,7 @@
 VPATH  := src src/common fuzzing testing
 
 CXX	?= c++
-COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Isrc -Iapi -Iapi/ancient
+COMMONFLAGS = -g -Wall -Wsign-compare -Wnarrowing -Isrc -Iapi -Iapi/ancient
 CFLAGS	= $(COMMONFLAGS)
 CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti -fvisibility=hidden -DANCIENT_API_VISIBILITY_DEFAULT $(EXTRA_CFLAGS)
 

@@ -80,7 +80,7 @@ Decompression algorithms provided:
   * S403: StoneCracker v4.02a
   * S404: StoneCracker v4.10
   * ID 1AM (StoneCracker S300 Clone)
-  * ID 2AM (StoneCracker S404 Clone)
+  * ID 2AM (StoneCracker S401 Clone)
   * ID AYS! (StoneCracker S404 Clone)
   * ID Z&G! (StoneCracker S403 Clone)
   * ID ZULU (StoneCracker S403 Clone)

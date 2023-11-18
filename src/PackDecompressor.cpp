@@ -75,21 +75,15 @@ void PackDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	{
 		HuffmanDecoder<uint8_t> decoder;
 		{
-			auto readWord=[&]()->uint16_t
-			{
-				uint16_t ret{inputStream.readByte()};
-				return ret|=uint16_t(inputStream.readByte())<<8U;
-			};
-
 			std::array<uint16_t,1024> tree;
-			uint32_t count=readWord();
+			uint32_t count=inputStream.readLE16();
 			if (count>=1024U)
 				throw DecompressionError();
 			for (uint32_t i=0;i<count;i++)
 			{
 				uint8_t tmp{inputStream.readByte()};
 				if (tmp<255U) tree[i]=tmp;
-					else tree[i]=readWord();
+					else tree[i]=inputStream.readLE16();
 			}
 
 			auto branch=[&](uint32_t node,uint32_t length,uint32_t bits,auto branch)->void

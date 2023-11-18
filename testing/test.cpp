@@ -123,6 +123,12 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_delta.crm",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_lz.crm",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_lz_delta.crm",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_18051973.crm",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_cd31.crm",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_dcs.crm",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_iron.crm",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_mss.crm",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_mss_delta.crm",BASE_DIR "test_C1.raw");
 
 	// DMS
 	verifyFile(BASE_DIR "test_C1_none.dms",BASE_DIR "test_C1.adf");
@@ -144,6 +150,12 @@ int main(int argc,char **argv)
 
 	// File Imploder
 	verifyFile(BASE_DIR "test_C1.imp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_atn.imp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_bdpi.imp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_chfi.imp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_edam.imp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_mh.imp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_rdc9.imp",BASE_DIR "test_C1.raw");
 
 	// Freeze
 	verifyFile(BASE_DIR "test_C1_old.F",BASE_DIR "test_C1.raw");
@@ -186,6 +198,11 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_px20.pp",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_px20_b.pp",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_px20_c.pp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_chfc.pp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_den.pp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_dxs9.pp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_hd.pp",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_rvv.pp",BASE_DIR "test_C1.raw");
 
 	// Quasijarus strong compression
 	verifyFile(BASE_DIR "test_C1_q.Z",BASE_DIR "test_C1.raw");
@@ -194,6 +211,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1.rnc1old",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.rnc1",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.rnc2",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_dot1.rnc1",BASE_DIR "test_C1.raw");
 
 	// TODO: SCO Compress LZH
 	// I'm not going to buy a openserver license to compress files
@@ -227,9 +245,17 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1.pack410",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.pack410_0",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.packpre400",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_1am.sc300",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_2am.sc401",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_ays.sc410",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_zg.sc403",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_zulu.sc403",BASE_DIR "test_C1.raw");
 
 	// TPWM
 	verifyFile(BASE_DIR "test_C1.tpwm",BASE_DIR "test_C1.raw");
+
+	// Vice/Vic2
+	verifyFile(BASE_DIR "test_C1.vic2",BASE_DIR "test_C1.raw");
 
 	// XPK
 	verifyFile(BASE_DIR "test_C1_acca.xpkf",BASE_DIR "test_C1.raw");

@@ -255,6 +255,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1.tpwm",BASE_DIR "test_C1.raw");
 
 	// Vice/Vic2
+	verifyFile(BASE_DIR "test_C1.vice",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.vic2",BASE_DIR "test_C1.raw");
 
 	// XPK

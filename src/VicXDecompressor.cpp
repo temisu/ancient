@@ -88,7 +88,7 @@ void VicXDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				if ((tmp&1U) || tmp>=0x1feU)
 					throw DecompressionError();
 				length++;
-				if (length>16U)
+				if (length>24U)
 					throw DecompressionError();
 				bits<<=1U;
 				tmp>>=1U;
@@ -117,11 +117,11 @@ void VicXDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				uint32_t count{decoder.decode(readBit)};
 				if (count)
 				{
-					count+=2U;
+					count+=3U;
 					code=decoder.decode(readBit);
 					for (uint32_t i=0;i<count;i++)
 						outputStream.writeByte(uint8_t(code));
-				} outputStream.writeByte(rleMarker);
+				} else outputStream.writeByte(rleMarker);
 			} else outputStream.writeByte(uint8_t(code));
 		}
 	} else {

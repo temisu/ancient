@@ -54,12 +54,18 @@ public:
 		return _offsets[base]+bitReader(_bitLengths[base]);
 	}
 
-	constexpr bool isMax(uint32_t base,uint32_t value)
+	template<typename F>
+	uint32_t decodeCascade(F bitReader) const
 	{
-		if (base>=N)
-			throw Decompressor::DecompressionError();
-		uint32_t tmp{value-_offsets[base]};
-		return tmp==(1U<<_bitLengths[base])-1U;
+		for (uint32_t i=0;i<N;i++)
+		{
+			if (!_bitLengths[i])		// not valid in this context
+				throw Decompressor::DecompressionError();
+			uint32_t tmp{bitReader(_bitLengths[i])};
+			if (i==N-1U || tmp!=(1U<<_bitLengths[i])-1U)
+				return _offsets[i]-i+tmp;
+		}
+		throw Decompressor::DecompressionError();
 	}
 
 private:

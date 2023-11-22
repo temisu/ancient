@@ -52,15 +52,15 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 		// specific invalid bitstream content.
 
 		// well, this is silly though but lets assume someone has made old format RNC1 with total size less than 19
-		if (packedData.size()<19)
+		if (packedData.size()<=18U)
 		{
 			_ver=Version::RNC1Old;
 		} else {
-			uint8_t newStreamStart{packedData.read8(18)};
-			uint8_t oldStreamStart{packedData.read8(_packedSize+11)};
+			uint8_t newStreamStart{packedData.read8(18U)};
+			uint8_t oldStreamStart{packedData.read8(_packedSize+11U)};
 
 			// Check that stream starts with a literal(s)
-			if (!(oldStreamStart&0x80))
+			if (!(oldStreamStart&0x80U))
 				_ver=Version::RNC1New;
 
 			// New stream have two bits in start as a filler on new stream. Those are always 0
@@ -68,30 +68,51 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 			// +
 			// Even though it is possible to make new RNC1 stream which starts with zero literal table size,
 			// it is extremely unlikely
-			else if ((newStreamStart&3) || !(newStreamStart&0x7c))
+			else if ((newStreamStart&3U) || !(newStreamStart&0x7cU))
 				_ver=Version::RNC1Old;
 
 			// now the last resort: check CRC.
-			else if (_packedData.size()>=_packedSize+18 && CRC16(_packedData,18,_packedSize,0)==packedData.readBE16(14))
+			else if (_packedData.size()>=OverflowCheck::sum(_packedSize,18U) && CRC16(_packedData,18U,_packedSize,0)==packedData.readBE16(14U))
 			{
 				_ver=Version::RNC1New;
 				verified=true;
 			} else _ver=Version::RNC1Old;
 		}
 	} else if (hdr==FourCC("RNC\002")) {
-		_ver=Version::RNC2;
+		// ...and detect between the new and old format of RNC2
+		if (packedData.size()<=18U)
+		{
+			_ver=Version::RNC2Old;
+		} else {
+			// RNC2Old is very similar to RNC1Old, RNC2 has padding at start which makes things more complex
+			uint8_t newStreamStart{packedData.read8(18U)};
+			uint8_t oldStreamStart{packedData.read8(_packedSize+10U)};
+
+			// Check that stream starts with a literal(s)
+			if (!(oldStreamStart&0x80U))
+				_ver=Version::RNC2New;
+			// First command needs to be LIT/MOV! (after 2 ballast bits)
+			else if ((newStreamStart&0x30U)==0x30U)
+				_ver=Version::RNC2Old;
+			// now the last resort: check CRC.
+			else if (_packedData.size()>=OverflowCheck::sum(_packedSize,18U) && CRC16(_packedData,18U,_packedSize,0)==packedData.readBE16(14U))
+			{
+				_ver=Version::RNC2New;
+				verified=true;
+			} else _ver=Version::RNC2Old;
+		}
 	} else if (hdr==FourCC("...\001")) {
 		_ver=Version::RNC1New;
 	} else throw InvalidFormatError();
 
-	uint32_t hdrSize{(_ver==Version::RNC1Old)?12U:18U};
+	uint32_t hdrSize{(_ver==Version::RNC1Old || _ver==Version::RNC2Old)?12U:18U};
 	if (OverflowCheck::sum(_packedSize,hdrSize)>packedData.size())
 		throw InvalidFormatError();
 
-	if (_ver!=Version::RNC1Old)
+	if (_ver!=Version::RNC1Old && _ver!=Version::RNC2Old)
 	{
-		_rawCRC=packedData.readBE16(12);
-		_chunks=packedData.read8(17);
+		_rawCRC=packedData.readBE16(12U);
+		_chunks=packedData.read8(17U);
 		if (verify && !verified)
 		{
 			if (CRC16(_packedData,18,_packedSize,0)!=packedData.readBE16(14))
@@ -102,17 +123,18 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 
 const std::string &RNCDecompressor::getName() const noexcept
 {
-	static std::string names[3]={
+	static std::string names[4]={
 		{"RNC1: Rob Northen RNC1 Compressor (old)"},
 		{"RNC1: Rob Northen RNC1 Compressor"},
+		{"RNC2: Rob Northen RNC2 Compressor (old)"},
 		{"RNC2: Rob Northen RNC2 Compressor"}};
 	return names[static_cast<uint32_t>(_ver)];
 }
 
 size_t RNCDecompressor::getPackedSize() const noexcept
 {
-	if (_ver==Version::RNC1Old) return _packedSize+12;
-		else return _packedSize+18;
+	if (_ver==Version::RNC1Old || _ver==Version::RNC2Old) return _packedSize+12U;
+		else return _packedSize+18U;
 }
 
 size_t RNCDecompressor::getRawSize() const noexcept
@@ -128,22 +150,25 @@ void RNCDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	switch (_ver)
 	{
 		case Version::RNC1Old:
-		return RNC1DecompressOld(rawData,verify);
+		return RNCDecompressOld(rawData,verify,false);
 
 		case Version::RNC1New:
 		return RNC1DecompressNew(rawData,verify);
 
-		case Version::RNC2:
-		return RNC2Decompress(rawData,verify);
+		case Version::RNC2Old:
+		return RNCDecompressOld(rawData,verify,true);
+
+		case Version::RNC2New:
+		return RNC2DecompressNew(rawData,verify);
 
 		default:
 		throw DecompressionError();
 	}
 }
 
-void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
+void RNCDecompressor::RNCDecompressOld(Buffer &rawData,bool verify,bool rnc2)
 {
-	BackwardInputStream inputStream{_packedData,12,_packedSize+12};
+	BackwardInputStream inputStream{_packedData,12U,_packedSize+12U};
 	MSBBitReader<BackwardInputStream> bitReader{inputStream};
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
@@ -157,6 +182,16 @@ void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 	{
 		return inputStream.readByte();
 	};
+
+	uint32_t lastDistanceBits{12};
+	uint32_t lastLengthBits{10};
+	if (rnc2)
+	{
+		uint32_t tmp=readByte()+1U;
+		lastDistanceBits=tmp&0xfU;
+		lastLengthBits=(tmp>>4U)+1U;
+	}
+
 	// the anchor-bit does not seem always to be at the correct place
 	{
 		uint8_t halfByte{readByte()};
@@ -169,13 +204,6 @@ void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 	}
 
 	BackwardOutputStream outputStream{rawData,0,_rawSize};
-
-	HuffmanDecoder<uint8_t> litDecoder
-	{
-		HuffmanCode{1,0b00,uint8_t{0}},
-		HuffmanCode{2,0b10,uint8_t{1}},
-		HuffmanCode{2,0b11,uint8_t{2}}
-	};
 
 	HuffmanDecoder<uint8_t> lengthDecoder
 	{
@@ -193,23 +221,15 @@ void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 		HuffmanCode{2,0b11,uint8_t{2}}
 	};
 
-	VariableLengthCodeDecoder litVlcDecoder{2,2,3,10};
-	VariableLengthCodeDecoder lengthVlcDecoder{0,0,1,2,10};
-	VariableLengthCodeDecoder distanceVlcDecoder{5,8,12};
+	VariableLengthCodeDecoder litVlcDecoder1{1,1,2,2,3,10};
+	VariableLengthCodeDecoder litVlcDecoder2{1,1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
+	VariableLengthCodeDecoder lengthVlcDecoder{0,0,1,2,lastLengthBits};
+	VariableLengthCodeDecoder distanceVlcDecoder{5,8,lastDistanceBits};
 
 	for (;;)
 	{
-		uint32_t litLength{litDecoder.decode(readBit)};
+		uint32_t litLength{rnc2?litVlcDecoder2.decodeCascade(readBits):litVlcDecoder1.decodeCascade(readBits)};
 
-		if (litLength==2)
-		{
-			for (uint32_t i=0;i<4;i++)
-			{
-				litLength=litVlcDecoder.decode(readBits,i)-i+2U;
-				if (!litVlcDecoder.isMax(i,litLength+i-2U)) break;
-			}
-		}
-		
 		for (uint32_t i=0;i<litLength;i++) outputStream.writeByte(readByte());
 	
 		// the only way to successfully end the loop!
@@ -218,15 +238,15 @@ void RNCDecompressor::RNC1DecompressOld(Buffer &rawData,bool verify)
 		uint32_t count{lengthVlcDecoder.decode(readBits,lengthDecoder.decode(readBit))+2U};
 
 		uint32_t distance;
-		if (count!=2)
+		if (count!=2U)
 		{
 			distance=distanceVlcDecoder.decode(readBits,distanceDecoder.decode(readBit));
 		} else {
-			if (!readBit()) distance=readBits(6);
-				else distance=readBits(9)+64;
+			if (!readBit()) distance=readBits(6U);
+				else distance=readBits(9U)+64U;
 		}
 
-		outputStream.copy((distance)?distance+count-1:1,count);
+		outputStream.copy((distance)?distance+count-1U:1U,count);
 	}
 }
 
@@ -313,7 +333,7 @@ void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 		throw VerificationError();
 }
 
-void RNCDecompressor::RNC2Decompress(Buffer &rawData,bool verify)
+void RNCDecompressor::RNC2DecompressNew(Buffer &rawData,bool verify)
 {
 	ForwardInputStream inputStream{_packedData,18U,_packedSize+18U};
 	MSBBitReader<ForwardInputStream> bitReader{inputStream};

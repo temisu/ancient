@@ -29,12 +29,13 @@ private:
 	{
 		RNC1Old=0,
 		RNC1New,
-		RNC2
+		RNC2Old,
+		RNC2New
 	};
 
-	void RNC1DecompressOld(Buffer &rawData,bool verify);
+	void RNCDecompressOld(Buffer &rawData,bool verify,bool rnc2);
 	void RNC1DecompressNew(Buffer &rawData,bool verify);
-	void RNC2Decompress(Buffer &rawData,bool verify);
+	void RNC2DecompressNew(Buffer &rawData,bool verify);
 
 	const Buffer	&_packedData;
 

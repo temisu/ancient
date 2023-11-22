@@ -64,8 +64,8 @@ Decompression algorithms provided:
   * ID RVV! (PowerPacker Clone)
 * Quasijarus Strong Compression
 * Rob Northen compressors.
-  * RNC1: Both old and formats utilizing the same header. heuristics for detecting the correct one
-  * RNC2: RNC version 2 stream
+  * RNC1: Supports both new and old format of RNC1
+  * RNC2: Supports both new and old format of RNC2
   * ID ...1 (RNC1 Clone)
 * Turbo Packer by Wolfgang Mayerle.
 * MMCMP: Music Module Compressor

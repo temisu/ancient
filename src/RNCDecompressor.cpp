@@ -62,7 +62,6 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 			// Check that stream starts with a literal(s)
 			if (!(oldStreamStart&0x80U))
 				_ver=Version::RNC1New;
-
 			// New stream have two bits in start as a filler on new stream. Those are always 0
 			// (although this is not strictly mandated)
 			// +
@@ -70,7 +69,6 @@ RNCDecompressor::RNCDecompressor(const Buffer &packedData,bool verify) :
 			// it is extremely unlikely
 			else if ((newStreamStart&3U) || !(newStreamStart&0x7cU))
 				_ver=Version::RNC1Old;
-
 			// now the last resort: check CRC.
 			else if (_packedData.size()>=OverflowCheck::sum(_packedSize,18U) && CRC16(_packedData,18U,_packedSize,0)==packedData.readBE16(14U))
 			{
@@ -229,7 +227,6 @@ void RNCDecompressor::RNCDecompressOld(Buffer &rawData,bool verify,bool rnc2)
 	for (;;)
 	{
 		uint32_t litLength{rnc2?litVlcDecoder2.decodeCascade(readBits):litVlcDecoder1.decodeCascade(readBits)};
-
 		for (uint32_t i=0;i<litLength;i++) outputStream.writeByte(readByte());
 	
 		// the only way to successfully end the loop!
@@ -402,7 +399,6 @@ void RNCDecompressor::RNC2DecompressNew(Buffer &rawData,bool verify)
 		HuffmanCode{6,0b111100,uint8_t{14}},
 		HuffmanCode{6,0b111101,uint8_t{15}}
 	};
-
 
 	// helpers
 	auto readDistance=[&]()->uint32_t

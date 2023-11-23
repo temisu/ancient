@@ -51,6 +51,7 @@ for a in $TEST_V/rdc9_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack
 for a in $TEST_V/regression_test/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 
 for a in $TEST_V/rnc1pc_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/rnc2_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 
 for a in $TEST_V/sco_files/*.Z ; do $BIN verify $a $(echo $a | sed s/\\.Z/\\.raw/) || exit 1 ; done
 

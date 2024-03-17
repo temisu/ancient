@@ -364,7 +364,7 @@ void PPDecompressor::findKeyRound(BackwardInputStream &inputStream,LSBBitReader<
 			count=modeIndex+2;
 			distance=readBits(_modeTable[modeIndex])+1;
 		}
-		if (outputPosition+distance>_rawSize || count>outputPosition)
+		if (outputPosition+count+distance>_rawSize || count>outputPosition)
 			failed=true;
 		if (failed) break;
 		outputPosition-=count;

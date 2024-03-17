@@ -273,13 +273,9 @@ void RNCDecompressor::RNC1DecompressNew(Buffer &rawData,bool verify)
 	{
 		uint32_t length{readBits(5)};
 		if (!length) return;
-		uint32_t maxDepth{0};
 		std::array<uint8_t,31> lengthTable;
 		for (uint32_t i=0;i<length;i++)
-		{
 			lengthTable[i]=readBits(4);
-			if (lengthTable[i]>maxDepth) maxDepth=lengthTable[i];
-		}
 
 		dec.createOrderlyHuffmanTable(lengthTable,length);
 	};

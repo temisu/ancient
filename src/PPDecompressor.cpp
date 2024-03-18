@@ -318,7 +318,9 @@ void PPDecompressor::findKeyRound(BackwardInputStream &inputStream,LSBBitReader<
 		bitReader.readBitsBE32(count);
 	};
 
-	for (;;)
+	uint32_t foundIter=0;
+	// TODO: Random constant. For decompression/keyfinding bombs
+	while (foundIter<1024)
 	{
 		// this is the checkpoint. Hardly ideal, but best we can do without co-routines
 		inputOffset=uint32_t(inputStream.getOffset());
@@ -364,10 +366,12 @@ void PPDecompressor::findKeyRound(BackwardInputStream &inputStream,LSBBitReader<
 			count=modeIndex+2;
 			distance=readBits(_modeTable[modeIndex])+1;
 		}
-		if (outputPosition+count+distance>_rawSize || count>outputPosition)
+		if (outputPosition+distance>_rawSize || count>outputPosition)
 			failed=true;
 		if (failed) break;
 		outputPosition-=count;
+
+		if (keyMask==0xffff'ffffU) foundIter++;
 	}
 	if (failed) return;
 	// If not all bits are resolved, that is bad

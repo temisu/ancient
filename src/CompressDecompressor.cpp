@@ -86,7 +86,7 @@ void CompressDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	size_t prevCodePos=inputStream.getOffset();
 
 	uint32_t firstCode{readBits(codeBits)};
-	LZWDecoder decoder{1U<<_maxBits,_hasBlocks?257U:256U,69001U,firstCode};
+	LZWDecoder decoder{1U<<_maxBits,_hasBlocks?257U:256U,8192U,firstCode};
 	decoder.write(firstCode,false,writeByte);
 
 	// This is actually surprising for a compressor
@@ -101,7 +101,8 @@ void CompressDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	auto reset=[&]()
 	{
 		bitReader.reset(0,0);
-		inputStream.setOffset(prevCodePos+codeBits);
+		prevCodePos+=codeBits;
+		inputStream.setOffset(prevCodePos);
 		codeCounter=0;
 	};
 

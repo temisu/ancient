@@ -33,6 +33,8 @@ MMCMPDecompressor::MMCMPDecompressor(const Buffer &packedData,bool exactSizeKnow
 	_blocks=packedData.readLE16(12U);
 	_blocksOffset=packedData.readLE32(18U);
 	_rawSize=packedData.readLE32(14U);
+	if (_rawSize>getMaxRawSize())
+		throw InvalidFormatError();
 	if (OverflowCheck::sum(_blocksOffset,uint32_t(_blocks)*4U)>packedData.size())
 		throw InvalidFormatError();
 

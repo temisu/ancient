@@ -99,28 +99,28 @@ public:
 	uint32_t readBits8(uint32_t count)
 	{
 		return readBitsGeneric(count,[&](){
-			return std::make_pair(_inputStream.readByte(),8U);
+			return std::make_pair(_inputStream.readByte(),uint8_t(8));
 		});
 	}
 
 	uint32_t readBitsBE16(uint32_t count)
 	{
 		return readBitsGeneric(count,[&](){
-			return std::make_pair(_inputStream.readBE16(),16U);
+			return std::make_pair(_inputStream.readBE16(),uint8_t(16));
 		});
 	}
 
 	uint32_t readBitsBE32(uint32_t count)
 	{
 		return readBitsGeneric(count,[&](){
-			return std::make_pair(_inputStream.readBE32(),32U);
+			return std::make_pair(_inputStream.readBE32(),uint8_t(32));
 		});
 	}
 
 	uint32_t readBitsLE16(uint32_t count)
 	{
 		return readBitsGeneric(count,[&](){
-			return std::make_pair(_inputStream.readLE16(),16U);
+			return std::make_pair(_inputStream.readLE16(),uint8_t(16));
 		});
 	}
 
@@ -175,28 +175,28 @@ public:
 	uint32_t readBits8(uint32_t count)
 	{
 		return readBitsGeneric(count,[&](){
-			return std::make_pair(_inputStream.readByte(),8U);
+			return std::make_pair(_inputStream.readByte(),uint8_t(8));
 		});
 	}
 
 	uint32_t readBitsBE16(uint32_t count)
 	{
 		return readBitsGeneric(count,[&](){
-			return std::make_pair(_inputStream.readBE16(),16U);
+			return std::make_pair(_inputStream.readBE16(),uint8_t(16));
 		});
 	}
 
 	uint32_t readBitsBE32(uint32_t count)
 	{
 		return readBitsGeneric(count,[&](){
-			return std::make_pair(_inputStream.readBE32(),32U);
+			return std::make_pair(_inputStream.readBE32(),uint8_t(32));
 		});
 	}
 
 	uint32_t readBitsLE16(uint32_t count)
 	{
 		return readBitsGeneric(count,[&](){
-			return std::make_pair(_inputStream.readLE16(),16U);
+			return std::make_pair(_inputStream.readLE16(),uint8_t(16));
 		});
 	}
 

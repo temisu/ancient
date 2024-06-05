@@ -31,7 +31,7 @@ std::shared_ptr<Buffer> readFile(const std::string &fileName)
 	}
 	if (!success)
 	{
-		return std::make_shared<StaticBuffer<0>>();
+		return {};
 	}
 	return ret;
 }
@@ -44,6 +44,10 @@ int main(int argc,char **argv)
 #endif
 	
 	auto packed{readFile(argv[1])};
+	if (!packed)
+	{
+		return -1;
+	}
 	std::shared_ptr<Decompressor> decompressor;
 	try
 	{

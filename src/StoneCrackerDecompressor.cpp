@@ -100,7 +100,7 @@ bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &
 	}
 }
 
-bool StoneCrackerDecompressor::detectHeader(uint32_t hdr) noexcept
+bool StoneCrackerDecompressor::detectHeader(uint32_t hdr,uint32_t footer) noexcept
 {
 	uint32_t dummy;
 	return detectHeaderAndGeneration(hdr,dummy);
@@ -302,7 +302,6 @@ void StoneCrackerDecompressor::decompressGen1(Buffer &rawData)
 	{
 		return bitReader.readBitsBE32(1);
 	};
-
 
 	// anchor-bit handling
 	{

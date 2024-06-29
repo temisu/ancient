@@ -227,6 +227,7 @@
     <ClCompile Include="src\FRLEDecompressor.cpp" />
     <ClCompile Include="src\HFMNDecompressor.cpp" />
     <ClCompile Include="src\HUFFDecompressor.cpp" />
+    <ClCompile Include="src\IceDecompressor.cpp" />
     <ClCompile Include="src\ILZRDecompressor.cpp" />
     <ClCompile Include="src\IMPDecompressor.cpp" />
     <ClCompile Include="src\InputStream.cpp" />
@@ -304,6 +305,7 @@
     <ClInclude Include="src\HFMNDecompressor.hpp" />
     <ClInclude Include="src\HUFFDecompressor.hpp" />
     <ClInclude Include="src\HuffmanDecoder.hpp" />
+    <ClInclude Include="src\IceDecompressor.hpp" />
     <ClInclude Include="src\ILZRDecompressor.hpp" />
     <ClInclude Include="src\IMPDecompressor.hpp" />
     <ClInclude Include="src\InputStream.hpp" />

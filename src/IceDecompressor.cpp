@@ -179,7 +179,7 @@ void IceDecompressor::decompressInternal(Buffer &rawData,bool useBytes)
 			for (uint32_t j=0;j<4U;j++)
 			{
 				rawData[i+j*2U]=values[j]>>8U;
-				rawData[i+j*2U+1U]=values[j];
+				rawData[i+j*2U+1U]=uint8_t(values[j]);
 			}
 		}
 	}

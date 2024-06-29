@@ -53,6 +53,11 @@ Decompression algorithms provided:
   * Does not support mode 8 (as defined by some game files)
 * Pack (Unix)
   * Supports both old and new formats
+* Pack-Ice
+  * Supports all known versions (3 different formats) and picture mode.
+  * ID SHE! (Pack-Ice Clone)
+  * ID TMM! (Pack-Ice Clone)
+  * ID TSM! (Pack-Ice Clone)
 * PowerPacker
   * PP 1.1 (verification missing)
   * PP 2.0

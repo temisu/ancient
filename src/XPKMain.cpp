@@ -58,7 +58,7 @@
 namespace ancient::internal
 {
 
-bool XPKMain::detectHeader(uint32_t hdr) noexcept
+bool XPKMain::detectHeader(uint32_t hdr,uint32_t footer) noexcept
 {
 	return hdr==FourCC("XPKF");
 }
@@ -120,7 +120,7 @@ XPKMain::XPKMain(const Buffer &packedData,bool verify,uint32_t recursionLevel) :
 	if (packedData.size()<44U)
 		throw InvalidFormatError();
 	uint32_t hdr{packedData.readBE32(0)};
-	if (!detectHeader(hdr))
+	if (!detectHeader(hdr,0))
 		throw InvalidFormatError();
 
 	_packedSize=packedData.readBE32(4U);

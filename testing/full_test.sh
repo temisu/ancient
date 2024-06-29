@@ -38,6 +38,12 @@ for a in $TEST_V/mmcmp_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pac
 for a in $TEST_V/pack_files/*.z ; do $BIN verify $a $(echo $a | sed s/\\.z/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pack_files2/*.z ; do $BIN verify $a $(echo $a | sed s/\\.z/\\.raw/) || exit 1 ; done
 
+for a in $TEST_V/ice_files/*.ice ; do $BIN verify $a $(echo $a | sed s/\\.ice/\\.raw/) || exit 1 ; done
+for a in $TEST_V/tmm_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/tsm_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/tsm_files2/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+for a in $TEST_V/she_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
+
 for a in $TEST_V/pp_files/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files2/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files3/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done

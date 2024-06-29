@@ -193,6 +193,21 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_pack.z",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_pack_old.z",BASE_DIR "test_C1.raw");
 
+	// Pack-Ice
+	verifyFile(BASE_DIR "test_C1.ice_113",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.ice_211",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.ice_22",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.ice_231",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.ice_24",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_neo.ice_211p",BASE_DIR "test_neo.raw");
+	verifyFile(BASE_DIR "test_neo.ice_22p",BASE_DIR "test_neo.raw");
+	verifyFile(BASE_DIR "test_neo.ice_231p",BASE_DIR "test_neo.raw");
+	verifyFile(BASE_DIR "test_neo.ice_234p",BASE_DIR "test_neo.raw");
+	verifyFile(BASE_DIR "test_neo2.ice_234p",BASE_DIR "test_neo2.raw");	// half height picture
+	verifyFile(BASE_DIR "test_C1.ice_she",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.ice_tmm",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.ice_tsm",BASE_DIR "test_C1.raw");
+
 	// Powerpacker
 	verifyFile(BASE_DIR "test_C1.pp",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_px20.pp",BASE_DIR "test_C1.raw");

@@ -208,6 +208,10 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1.ice_tmm",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.ice_tsm",BASE_DIR "test_C1.raw");
 
+	// PMC
+	verifyFile(BASE_DIR "test_C2.pmc1",BASE_DIR "test_C2.xm",true);
+	verifyFile(BASE_DIR "test_C2.pmc2",BASE_DIR "test_C2.xm",true);
+
 	// Powerpacker
 	verifyFile(BASE_DIR "test_C1.pp",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1_px20.pp",BASE_DIR "test_C1.raw");

@@ -44,6 +44,8 @@ for a in $TEST_V/tsm_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/
 for a in $TEST_V/tsm_files2/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/she_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 
+for a in $TEST_V/pmc_files/*.pmc ; do $BIN verify $a $(echo $a | sed s/\\.pmc/\\.raw/) || exit 1 ; done
+
 for a in $TEST_V/pp_files/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files2/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done
 for a in $TEST_V/pp_files3/*.pp ; do $BIN verify $a $(echo $a | sed s/\\.pp/\\.raw/) || exit 1 ; done

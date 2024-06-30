@@ -17,6 +17,7 @@
 #include "LOBDecompressor.hpp"
 #include "MMCMPDecompressor.hpp"
 #include "PackDecompressor.hpp"
+#include "PMCDecompressor.hpp"
 #include "PPDecompressor.hpp"
 #include "RNCDecompressor.hpp"
 #include "SCOCompressDecompressor.hpp"
@@ -43,6 +44,7 @@ static std::vector<std::pair<bool(*)(uint32_t,uint32_t),std::shared_ptr<Decompre
 	{LOBDecompressor::detectHeader,LOBDecompressor::create},
 	{MMCMPDecompressor::detectHeader,MMCMPDecompressor::create},
 	{PackDecompressor::detectHeader,PackDecompressor::create},
+	{PMCDecompressor::detectHeader,PMCDecompressor::create},
 	{PPDecompressor::detectHeader,PPDecompressor::create},
 	{RNCDecompressor::detectHeader,RNCDecompressor::create},
 	{SCOCompressDecompressor::detectHeader,SCOCompressDecompressor::create},

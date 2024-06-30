@@ -1,6 +1,6 @@
 /* Copyright (C) Teemu Suutari */
 
-#include "LHLBDecompressor.hpp"
+#include "LHDecompressor.hpp"
 
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
@@ -11,17 +11,17 @@
 namespace ancient::internal
 {
 
-bool LHLBDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
+bool LHDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
 	return hdr==FourCC("LHLB");
 }
 
-std::shared_ptr<XPKDecompressor> LHLBDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
+std::shared_ptr<XPKDecompressor> LHDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_shared<LHLBDecompressor>(hdr,recursionLevel,packedData,state,verify);
+	return std::make_shared<LHDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-LHLBDecompressor::LHLBDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
+LHDecompressor::LHDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
 	XPKDecompressor{recursionLevel},
 	_packedData{packedData}
 {
@@ -29,30 +29,31 @@ LHLBDecompressor::LHLBDecompressor(uint32_t hdr,uint32_t recursionLevel,const Bu
 		throw Decompressor::InvalidFormatError();
 }
 
-const std::string &LHLBDecompressor::getSubName() const noexcept
+const std::string &LHDecompressor::getSubName() const noexcept
 {
 	static std::string name{"XPK-LHLB: LZRW-compressor"};
 	return name;
 }
 
-void LHLBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
+// lh.library decompress
+void LHDecompressor::decompressLhLib(Buffer &rawData,const Buffer &packedData)
 {
-	ForwardInputStream inputStream{_packedData,0,_packedData.size()};
+	ForwardInputStream inputStream{packedData,0,packedData.size()};
 	MSBBitReader<ForwardInputStream> bitReader{inputStream};
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
-		return bitReader.readBits8(count);
+		return bitReader.readBitsBE16(count);
 	};
 	auto readBit=[&]()->uint32_t
 	{
-		return bitReader.readBits8(1U);
+		return bitReader.readBitsBE16(1U);
 	};
 
 	ForwardOutputStream outputStream(rawData,0,rawData.size());
 
 	// Same logic as in Choloks pascal implementation
 	// Differences to LH1:
-	// - LHLB does not halve probabilities at 32k
+	// - LH does not halve probabilities at 32k
 	// - 314 vs. 317 sized huffman entry
 	// - no end code
 	// - different distance/count logic
@@ -76,6 +77,10 @@ void LHLBDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			outputStream.copy(distance,count);
 		}
 	}
+}
+void LHDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
+{
+	decompressLhLib(rawData,_packedData);
 }
 
 }

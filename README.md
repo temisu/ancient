@@ -67,6 +67,8 @@ Decompression algorithms provided:
   * ID DXS9 (PowerPacker Clone)
   * ID H.D. (PowerPacker Clone)
   * ID RVV! (PowerPacker Clone)
+* PowerPlayer Music Compressor (PMC)
+  * Supports both 1.x and 2.x versions
 * Quasijarus Strong Compression
 * Rob Northen compressors.
   * RNC1: Supports both new and old format of RNC1

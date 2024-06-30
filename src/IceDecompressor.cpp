@@ -60,11 +60,11 @@ IceDecompressor::IceDecompressor(const Buffer &packedData,bool exactSizeKnown,bo
 
 const std::string &IceDecompressor::getName() const noexcept
 {
-	static std::string names[4]={
+	static std::string names[3]={
 		{"Ice: Pack-Ice v1.1 - v1.14"},
 		{"Ice: Pack-Ice v2.0 - v2.20"},
 		{"ICE: Pack-Ice v2.31+"}};
-	return names[static_cast<uint32_t>(_ver)];
+	return names[_ver];
 }
 
 size_t IceDecompressor::getPackedSize() const noexcept

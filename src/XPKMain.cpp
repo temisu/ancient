@@ -26,7 +26,7 @@
 #include "HUFFDecompressor.hpp"
 #include "ILZRDecompressor.hpp"
 #include "IMPDecompressor.hpp"
-#include "LHLBDecompressor.hpp"
+#include "LHDecompressor.hpp"
 #include "LIN1Decompressor.hpp"
 #include "LIN2Decompressor.hpp"
 #include "LZBSDecompressor.hpp"
@@ -85,7 +85,7 @@ static std::vector<std::pair<bool(*)(uint32_t),std::shared_ptr<XPKDecompressor>(
 	{HUFFDecompressor::detectHeaderXPK,HUFFDecompressor::create},
 	{ILZRDecompressor::detectHeaderXPK,ILZRDecompressor::create},
 	{IMPDecompressor::detectHeaderXPK,IMPDecompressor::create},
-	{LHLBDecompressor::detectHeaderXPK,LHLBDecompressor::create},
+	{LHDecompressor::detectHeaderXPK,LHDecompressor::create},
 	{LIN1Decompressor::detectHeaderXPK,LIN1Decompressor::create},
 	{LIN2Decompressor::detectHeaderXPK,LIN2Decompressor::create},
 	{LZBSDecompressor::detectHeaderXPK,LZBSDecompressor::create},

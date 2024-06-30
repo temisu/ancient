@@ -231,7 +231,7 @@
     <ClCompile Include="src\ILZRDecompressor.cpp" />
     <ClCompile Include="src\IMPDecompressor.cpp" />
     <ClCompile Include="src\InputStream.cpp" />
-    <ClCompile Include="src\LHLBDecompressor.cpp" />
+    <ClCompile Include="src\LHDecompressor.cpp" />
     <ClCompile Include="src\LIN1Decompressor.cpp" />
     <ClCompile Include="src\LIN2Decompressor.cpp" />
     <ClCompile Include="src\LOBDecompressor.cpp" />
@@ -309,7 +309,7 @@
     <ClInclude Include="src\ILZRDecompressor.hpp" />
     <ClInclude Include="src\IMPDecompressor.hpp" />
     <ClInclude Include="src\InputStream.hpp" />
-    <ClInclude Include="src\LHLBDecompressor.hpp" />
+    <ClInclude Include="src\LHDecompressor.hpp" />
     <ClInclude Include="src\LIN1Decompressor.hpp" />
     <ClInclude Include="src\LIN2Decompressor.hpp" />
     <ClInclude Include="src\LOBDecompressor.hpp" />

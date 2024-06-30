@@ -248,6 +248,7 @@
     <ClCompile Include="src\NUKEDecompressor.cpp" />
     <ClCompile Include="src\OutputStream.cpp" />
     <ClCompile Include="src\PackDecompressor.cpp" />
+    <ClCompile Include="src\PMCDecompressor.cpp" />
     <ClCompile Include="src\PPDecompressor.cpp" />
     <ClCompile Include="src\PPMQDecompressor.cpp" />
     <ClCompile Include="src\RAKEDecompressor.cpp" />
@@ -326,6 +327,7 @@
     <ClInclude Include="src\NUKEDecompressor.hpp" />
     <ClInclude Include="src\OutputStream.hpp" />
     <ClInclude Include="src\PackDecompressor.hpp" />
+    <ClInclude Include="src\PMCDecompressor.hpp" />
     <ClInclude Include="src\PPDecompressor.hpp" />
     <ClInclude Include="src\PPMQDecompressor.hpp" />
     <ClInclude Include="src\RAKEDecompressor.hpp" />

@@ -50,11 +50,11 @@ bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &
 	// Specials
 	switch (hdr&0xffff'ff00U)
 	{
-		case FourCC("1AM\000"):		// Reunion
+		case FourCC("1AM\0"):		// Reunion
 		generation=3;
 		return true;
 
-		case FourCC("2AM\000"):		// Reunion
+		case FourCC("2AM\0"):		// Reunion
 		generation=6;
 		return true;
 

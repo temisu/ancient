@@ -74,7 +74,9 @@ void LHDecompressor::decompressLhLib(Buffer &rawData,const Buffer &packedData)
 			uint32_t distance{vlcDecoder.decode(readBits,readBits(4U))};
 			uint32_t count{code-255U};
 
-			outputStream.copy(distance,count);
+			// Very interesting LH-bug on zero distance.
+			if (distance) outputStream.copy(distance,count);
+				else for (uint32_t i=0;i<count;i++) outputStream.writeByte(0);
 		}
 	}
 }

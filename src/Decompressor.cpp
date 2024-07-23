@@ -108,15 +108,15 @@ size_t Decompressor::getImageOffset() const noexcept
 	return 0;
 }
 
-// 1G should be enough for everyone (this is retro!)
+// 128M should be enough for everyone (this is retro!)
 size_t Decompressor::getMaxPackedSize() noexcept
 {
-	return 0x4000'0000U;
+	return 0x800'0000U;
 }
 
 size_t Decompressor::getMaxRawSize() noexcept
 {
-	return 0x4000'0000U;
+	return 0x800'0000U;
 }
 
 }

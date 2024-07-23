@@ -1,5 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
+#include <cstring>
+
 #include "PMCDecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"

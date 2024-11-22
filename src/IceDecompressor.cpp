@@ -151,7 +151,7 @@ void IceDecompressor::decompressInternal(Buffer &rawData,bool useBytes)
 	}
 
 	// picture mode
-	if (_ver && readBits(1U))
+	if (_ver && bitReader.available() && readBits(1U))
 	{
 		uint32_t pictureSize=32000U;
 		if (_ver==2)

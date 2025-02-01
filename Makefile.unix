@@ -13,7 +13,7 @@ MAIN_N	?= main.o
 OBJS_N	= API.o Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o WrappedVectorBuffer.o CRC16.o CRC32.o \
 	Decompressor.o LZWDecoder.o XPKDecompressor.o XPKMain.o \
 	OutputStream.o InputStream.o RangeDecoder.o \
-	ACCADecompressor.o ARTMDecompressor.o BLZWDecompressor.o BZIP2Decompressor.o \
+	ACCADecompressor.o ARTMDecompressor.o BLZWDecompressor.o ByteKillerDecompressor.o BZIP2Decompressor.o \
 	CBR0Decompressor.o CompactDecompressor.o CompressDecompressor.o CRMDecompressor.o \
 	CYB2Decoder.o DEFLATEDecompressor.o DLTADecode.o DMSDecompressor.o \
 	FASTDecompressor.o FBR2Decompressor.o FreezeDecompressor.o FRLEDecompressor.o \

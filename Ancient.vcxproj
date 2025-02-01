@@ -203,6 +203,7 @@
     <ClCompile Include="src\API.cpp" />
     <ClCompile Include="src\ARTMDecompressor.cpp" />
     <ClCompile Include="src\BLZWDecompressor.cpp" />
+    <ClCompile Include="src\ByteKillerDecompressor.cpp" />
     <ClCompile Include="src\BZIP2Decompressor.cpp" />
     <ClCompile Include="src\CBR0Decompressor.cpp" />
     <ClCompile Include="src\common\Buffer.cpp" />
@@ -277,6 +278,7 @@
     <ClInclude Include="src\ACCADecompressor.hpp" />
     <ClInclude Include="src\ARTMDecompressor.hpp" />
     <ClInclude Include="src\BLZWDecompressor.hpp" />
+    <ClInclude Include="src\ByteKillerDecompressor.hpp" />
     <ClInclude Include="src\BZIP2Decompressor.hpp" />
     <ClInclude Include="src\BZIP2Table.hpp" />
     <ClInclude Include="src\CBR0Decompressor.hpp" />

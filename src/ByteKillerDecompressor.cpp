@@ -122,7 +122,7 @@ ByteKillerDecompressor::ByteKillerDecompressor(const Buffer &packedData,bool exa
 		break;
 
 		case Variant::BK_GRAC:
-		_packedSize=packedData.size();
+		_packedSize=uint32_t(packedData.size());
 		if (!exactSizeKnown || packedData.size()<16U)
 			throw InvalidFormatError();
 		_rawSize=packedData.readBE32(_packedSize-4U);
@@ -130,7 +130,7 @@ ByteKillerDecompressor::ByteKillerDecompressor(const Buffer &packedData,bool exa
 		break;
 
 		case Variant::BK_MD10:
-		_packedSize=packedData.size();
+		_packedSize=uint32_t(packedData.size());
 		if (!exactSizeKnown || packedData.size()<12U)
 			throw InvalidFormatError();
 		_rawSize=packedData.readBE32(_packedSize-4U);
@@ -138,7 +138,7 @@ ByteKillerDecompressor::ByteKillerDecompressor(const Buffer &packedData,bool exa
 		break;
 
 		case Variant::BK_MD11:
-		_packedSize=packedData.size();
+		_packedSize=uint32_t(packedData.size());
 		if (!exactSizeKnown || _packedSize<16U)
 			throw InvalidFormatError();
 		_rawSize=packedData.readBE32(4U);

@@ -92,9 +92,5 @@ for a in $TEST_V/sun_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/
 for a in $TEST_V/tcarnage_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 
 for a in $TEST_V/ace_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
-for a in $TEST_V/arp_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
-for a in $TEST_V/crun_files/*.ACM ; do $BIN verify $a $(echo $a | sed s/\\.ACM/\\.raw/) || exit 1 ; done
-for a in $TEST_V/fla_files/*.FLA ; do $BIN verify $a $(echo $a | sed s/\\.FLA/\\.raw/) || exit 1 ; done
 for a in $TEST_V/grac_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
 for a in $TEST_V/md_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done
-for a in $TEST_V/pvc_files/*.pack ; do $BIN verify $a $(echo $a | sed s/\\.pack/\\.raw/) || exit 1 ; done

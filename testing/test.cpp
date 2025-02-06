@@ -102,6 +102,22 @@ void verifyFile(const char *packedFile,const char *rawFile,bool ignoreExpansion=
 
 int main(int argc,char **argv)
 {
+	// ANC Cruncher
+//	verifyFile(BASE_DIR "test_C1.anc",BASE_DIR "test_C1.raw");
+
+	// ByteKiller
+	verifyFile(BASE_DIR "test_C1.byte_1.2",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_1.2b",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_2.0",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_2.03",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_2.05",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_3.0",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_3.0b",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.bytepro_1.0",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.ace",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.grac",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.md10",BASE_DIR "test_C1.raw");
+
 	// Bzip2
 	verifyFile(BASE_DIR "test_C1.bz2",BASE_DIR "test_C1.raw");
 	{

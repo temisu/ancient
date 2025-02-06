@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "ByteKillerDecompressor.hpp"
 #include "BZIP2Decompressor.hpp"
 #include "CompactDecompressor.hpp"
 #include "CompressDecompressor.hpp"
@@ -53,7 +54,8 @@ static std::vector<std::pair<bool(*)(uint32_t,uint32_t),std::shared_ptr<Decompre
 	{XPKMain::detectHeader,XPKMain::create},
 	// Formats with missing id / uncertain detection
 	// old stonecracker is far from certain
-	{StoneCrackerDecompressor::detectHeader,StoneCrackerDecompressor::create}
+	{StoneCrackerDecompressor::detectHeader,StoneCrackerDecompressor::create},
+	{ByteKillerDecompressor::detectHeader,ByteKillerDecompressor::create}
 	};
 
 std::shared_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)

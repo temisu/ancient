@@ -83,7 +83,12 @@ bool Decompressor::detect(const Buffer &packedData,bool exactSizeKnown) noexcept
 {
 	if (packedData.size()<2) return false;
 	// need to create the decompressor in order to work with bad detectors.
-	return bool(create(packedData,exactSizeKnown,true));
+	try
+	{
+		return bool(create(packedData,exactSizeKnown,true));
+	} catch (const Error&) {
+		return false;
+	}
 }
 
 void Decompressor::decompress(Buffer &rawData,bool verify)

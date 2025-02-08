@@ -117,6 +117,7 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1.ace",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.grac",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.md10",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1half.md11",BASE_DIR "test_C1half.raw");
 
 	// Bzip2
 	verifyFile(BASE_DIR "test_C1.bz2",BASE_DIR "test_C1.raw");

@@ -16,6 +16,14 @@ Some formats have incorporated weak password protection on them which can be byp
 Currently the project does not support any archival files nor self extracting executables.
 
 Decompression algorithms provided:
+* ANC Cruncher (ByteKiller Clone)
+* Bytekiller
+  * BK: ByteKiller (all versions)
+  * BK: ByteKiller Pro
+  * ID ACE! (ByteKiller Clone)
+  * ID GR20 (ByteKiller Clone)
+  * ID MD10 (ByteKiller Clone)
+  * ID MD11 (ByteKiller Clone)
 * bzip2
   * both normal and randomized bitstreams
 * Compact (Unix)
@@ -48,6 +56,14 @@ Decompression algorithms provided:
 * Freeze/Melt
   * Supports both old and new formats
 * gzip
+* JAMPacker
+  * Supports v1.x (ByteKiller Clone)
+  * Supports JAMPacker ICE algorithm (handled by Pack-Ice)
+  * LSD: JAMPacker V2 v2.x+
+  * LZW: JAMPacker LZH v3.0 / v4.0
+  * LZH: JAMPacker LZW v4.0
+* JEKPacker
+  * JEK: Jek Packer v1.x / JAM Packer v1.x (ByteKiller Clone)
 * LOB's File Compressor (Also known as a Multipak)
   * Supports all original 6 modes and their combinations (BMC, HUF, LZW, LZB, MSP, MSS)
   * Does not support mode 8 (as defined by some game files)
@@ -173,6 +189,8 @@ There is some support for archival decompressors: However, these are not built i
   * PM2: LZ-compressor
 
 Special thanks go to Cholok for providing me references to many of the XPK-compressors.
+
+Thanks to nocash for ByteKiller format and variants reverse engineering
 
 BZIP2 tables for randomization have been included, they have BZIP2-license.
 

@@ -25,14 +25,14 @@ public:
 
 private:
 	enum class Variant {
-		// Standard
 		BK_STD=0,
 		BK_PRO,
 		BK_ACE,		// ACE - header variant 1
 		BK_GRAC,	// GRAC - header variant 2
 		BK_ANC,		// different program - ANC Cruncher (header variant 2)
 		BK_MD10,	// header variant 2 - with MD-specifics
-		BK_MD11		// header variant 2 - with MD-specifics
+		BK_MD11,	// header variant 2 - with MD-specifics
+		BK_JEK		// JEK/JAM v1 - no header, only footer
 	};
 
 	static bool detectHeader_Int(uint32_t hdr,Variant &variant) noexcept;

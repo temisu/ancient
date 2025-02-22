@@ -15,6 +15,7 @@
 #include "FreezeDecompressor.hpp"
 #include "IceDecompressor.hpp"
 #include "IMPDecompressor.hpp"
+#include "JAMPackerDecompressor.hpp"
 #include "LOBDecompressor.hpp"
 #include "MMCMPDecompressor.hpp"
 #include "PackDecompressor.hpp"
@@ -42,6 +43,7 @@ static std::vector<std::pair<bool(*)(uint32_t,uint32_t),std::shared_ptr<Decompre
 	{FreezeDecompressor::detectHeader,FreezeDecompressor::create},
 	{IceDecompressor::detectHeader,IceDecompressor::create},
 	{IMPDecompressor::detectHeader,IMPDecompressor::create},
+	{JAMPackerDecompressor::detectHeader,JAMPackerDecompressor::create},
 	{LOBDecompressor::detectHeader,LOBDecompressor::create},
 	{MMCMPDecompressor::detectHeader,MMCMPDecompressor::create},
 	{PackDecompressor::detectHeader,PackDecompressor::create},

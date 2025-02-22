@@ -49,6 +49,10 @@ bool ByteKillerDecompressor::detectFooter_Int(uint32_t footer,Variant &variant) 
 		variant=Variant::BK_PRO;
 		return true;
 
+		case FourCC("JEK!"):		// JEK / JAM v1
+		variant=Variant::BK_JEK;
+		return true;
+
 		default:
 		return false;
 	}
@@ -60,7 +64,7 @@ bool ByteKillerDecompressor::detectHeader(uint32_t hdr,uint32_t footer) noexcept
 	if (detectHeader_Int(hdr,dummy) || detectFooter_Int(footer,dummy))
 		return true;
 	// lots of false positives here. (ByteKiller without header)
-	return (hdr<=getMaxPackedSize())&&!(hdr&3U);
+	return hdr&&hdr<=getMaxPackedSize()&&!(hdr&3U);
 }
 
 std::shared_ptr<Decompressor> ByteKillerDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
@@ -75,16 +79,16 @@ ByteKillerDecompressor::ByteKillerDecompressor(const Buffer &packedData,bool exa
 	{
 		uint32_t ret=packedData.readBE32(offset);
 		// packedData size test is inaccurate (false positives), but it is useful as a filter
-		if ((ret&3U) || ret>getMaxPackedSize() || ret>packedData.size())
+		if (!ret || (ret&3U) || ret>getMaxPackedSize() || ret>packedData.size())
 			throw InvalidFormatError();
 		return ret;
 	};
 
 	auto processStream=[&](uint32_t offset,uint32_t endOffset,uint32_t checksumOffset)
 	{
-		if (_packedSize<offset || _packedSize>packedData.size() || _packedSize>getMaxPackedSize())
+		if (!_packedSize || _packedSize<offset || _packedSize>packedData.size() || _packedSize>getMaxPackedSize())
 			throw InvalidFormatError();
-		if (_rawSize>getMaxRawSize())
+		if (!_rawSize || _rawSize>getMaxRawSize())
 			throw InvalidFormatError();
 
 		_streamOffset=offset;
@@ -97,11 +101,12 @@ ByteKillerDecompressor::ByteKillerDecompressor(const Buffer &packedData,bool exa
 	};
 
 	uint32_t hdr{packedData.readBE32(0)};
-
 	bool hasHdr=detectHeader_Int(hdr,_variant);
+	bool hasFooter=(!hasHdr && exactSizeKnown)?detectFooter_Int(packedData.readBE32(packedData.size()-4U),_variant):false;
 	switch (_variant)
 	{
 		case Variant::BK_STD:
+		case Variant::BK_PRO:
 		_packedSize=OverflowCheck::sum(processSize(0),12U);
 		_rawSize=packedData.readBE32(4U);
 		processStream(12U,_packedSize,8U);
@@ -151,10 +156,16 @@ ByteKillerDecompressor::ByteKillerDecompressor(const Buffer &packedData,bool exa
 		processStream(8U,_packedSize-8U,_packedSize-8U);
 		break;
 
+		case Variant::BK_JEK:
+		_packedSize=uint32_t(packedData.size());
+		_rawSize=packedData.readBE32(_packedSize-8U);
+		processStream(0,_packedSize-12U,_packedSize-12U);
+		break;
+
 		default:
 		throw InvalidFormatError();
 	}
-	if (!hasHdr && OverflowCheck::sum(_packedSize,4U)<=packedData.size())
+	if (!hasHdr && !hasFooter && OverflowCheck::sum(_packedSize,4U)<=packedData.size())
 	{
 		uint32_t footer=packedData.readBE32(_packedSize);
 		if (detectFooter_Int(footer,_variant))
@@ -164,10 +175,11 @@ ByteKillerDecompressor::ByteKillerDecompressor(const Buffer &packedData,bool exa
 
 const std::string &ByteKillerDecompressor::getName() const noexcept
 {
-	static std::string names[3]={
+	static std::string names[]={
 		"BK: ByteKiller",
 		"BK: ByteKiller Pro",
-		"FVL0: ANC Cruncher"};
+		"FVL0: ANC Cruncher",
+		"JEK: Jek Packer v1.x / JAM Packer v1.x"};
 	static const uint32_t variantMapping[]={
 		0, // BK_STD
 		1, // BK_PRO
@@ -176,6 +188,7 @@ const std::string &ByteKillerDecompressor::getName() const noexcept
 		2, // BK_ANC
 		0, // BK_MD10
 		0, // BK_MD11
+		3  // BK_JEK
 	};
 	return names[variantMapping[static_cast<uint32_t>(_variant)]];
 }

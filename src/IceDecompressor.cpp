@@ -144,7 +144,7 @@ void IceDecompressor::decompressInternal(Buffer &rawData,bool useBytes)
 			if (useBytes)
 			{
 				if (distance) distance+=count-1;
-					else distance+=1;
+					else distance=1;
 			} else distance+=count;
 		}
 		outputStream.copy(distance,count);

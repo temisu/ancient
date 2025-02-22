@@ -43,7 +43,7 @@ std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 	if (!success)
 	{
 		fprintf(stderr,"Could not read file %s\n",fileName.c_str());
-		return std::make_unique<std::vector<uint8_t>>();
+		return std::unique_ptr<std::vector<uint8_t>>{};
 	}
 	return ret;
 }
@@ -107,6 +107,7 @@ int main(int argc,char **argv)
 		for (int i=2;i<argc;i++)
 		{
 			auto packed{readFile(argv[i])};
+			if (!packed) return -1;
 			std::optional<ancient::Decompressor> decompressor;
 			try
 			{
@@ -128,6 +129,7 @@ int main(int argc,char **argv)
 			return -1;
 		}
 		auto packed{readFile(argv[2])};
+		if (!packed) return -1;
 		std::optional<ancient::Decompressor> decompressor;
 		try
 		{
@@ -178,6 +180,7 @@ int main(int argc,char **argv)
 		} else {
 			size_t actualSize=decompressor->getImageSize()?decompressor->getImageSize().value():raw.size();
 			auto verify{readFile(argv[3])};
+			if (!verify) return -1;
 			if (verify->size()!=actualSize)
 			{
 				fprintf(stderr,"Verify failed for %s and %s - sizes differ\n",argv[2],argv[3]);
@@ -229,6 +232,7 @@ int main(int argc,char **argv)
 						processDir(name);
 					} else if (st.st_mode&S_IFREG) {
 						auto packed{readFile(name)};
+						if (!packed) return -1;
 						for (size_t i=0;i<packed->size();)
 						{
 							// We will detect first, before trying the format for real

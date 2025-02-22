@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "ByteKillerDecompressor.hpp"
 #include "BZIP2Decompressor.hpp"
 #include "CompactDecompressor.hpp"
 #include "CompressDecompressor.hpp"
@@ -14,6 +15,7 @@
 #include "FreezeDecompressor.hpp"
 #include "IceDecompressor.hpp"
 #include "IMPDecompressor.hpp"
+#include "JAMPackerDecompressor.hpp"
 #include "LOBDecompressor.hpp"
 #include "MMCMPDecompressor.hpp"
 #include "PackDecompressor.hpp"
@@ -41,6 +43,7 @@ static std::vector<std::pair<bool(*)(uint32_t,uint32_t),std::shared_ptr<Decompre
 	{FreezeDecompressor::detectHeader,FreezeDecompressor::create},
 	{IceDecompressor::detectHeader,IceDecompressor::create},
 	{IMPDecompressor::detectHeader,IMPDecompressor::create},
+	{JAMPackerDecompressor::detectHeader,JAMPackerDecompressor::create},
 	{LOBDecompressor::detectHeader,LOBDecompressor::create},
 	{MMCMPDecompressor::detectHeader,MMCMPDecompressor::create},
 	{PackDecompressor::detectHeader,PackDecompressor::create},
@@ -51,8 +54,10 @@ static std::vector<std::pair<bool(*)(uint32_t,uint32_t),std::shared_ptr<Decompre
 	{TPWMDecompressor::detectHeader,TPWMDecompressor::create},
 	{VicXDecompressor::detectHeader,VicXDecompressor::create},
 	{XPKMain::detectHeader,XPKMain::create},
-	// Putting StoneCracker last since detection can be accidentally be detected instead of correct format
-	{StoneCrackerDecompressor::detectHeader,StoneCrackerDecompressor::create}
+	// Formats with missing id / uncertain detection
+	// old stonecracker is far from certain
+	{StoneCrackerDecompressor::detectHeader,StoneCrackerDecompressor::create},
+	{ByteKillerDecompressor::detectHeader,ByteKillerDecompressor::create}
 	};
 
 std::shared_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
@@ -63,7 +68,12 @@ std::shared_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool
 		uint32_t footer{(exactSizeKnown&&packedData.size()>=4)?packedData.readBE32(packedData.size()-4):0};
 		for (auto &it : decompressors)
 		{
-			if (it.first(hdr,footer)) return it.second(packedData,exactSizeKnown,verify);
+			try
+			{
+				if (it.first(hdr,footer)) return it.second(packedData,exactSizeKnown,verify);
+			} catch (const Error&) {
+				// try next on the list
+			}
 		}
 		throw InvalidFormatError();
 	} catch (const Buffer::Error&) {
@@ -74,14 +84,11 @@ std::shared_ptr<Decompressor> Decompressor::create(const Buffer &packedData,bool
 bool Decompressor::detect(const Buffer &packedData,bool exactSizeKnown) noexcept
 {
 	if (packedData.size()<2) return false;
+	// need to create the decompressor in order to work with bad detectors.
 	try
 	{
-		uint32_t hdr{(packedData.size()>=4)?packedData.readBE32(0):(uint32_t(packedData.readBE16(0))<<16)};
-		uint32_t footer{(exactSizeKnown&&packedData.size()>=4)?packedData.readBE32(packedData.size()-4):0};
-		for (auto &it : decompressors)
-			if (it.first(hdr,footer)) return true;
-		return false;
-	} catch (const Buffer::Error&) {
+		return bool(create(packedData,exactSizeKnown,true));
+	} catch (const Error&) {
 		return false;
 	}
 }

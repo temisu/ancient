@@ -102,6 +102,23 @@ void verifyFile(const char *packedFile,const char *rawFile,bool ignoreExpansion=
 
 int main(int argc,char **argv)
 {
+	// ANC Cruncher
+//	verifyFile(BASE_DIR "test_C1.anc",BASE_DIR "test_C1.raw");
+
+	// ByteKiller
+	verifyFile(BASE_DIR "test_C1.byte_1.2",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_1.2b",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_2.0",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_2.03",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_2.05",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_3.0",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.byte_3.0b",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.bytepro_1.0",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.ace",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.grac",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.md10",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1half.md11",BASE_DIR "test_C1half.raw");
+
 	// Bzip2
 	verifyFile(BASE_DIR "test_C1.bz2",BASE_DIR "test_C1.raw");
 	{
@@ -163,6 +180,17 @@ int main(int argc,char **argv)
 
 	// Gzip
 	verifyFile(BASE_DIR "test_C1.gz",BASE_DIR "test_C1.raw");
+
+	// JAM Packer
+	verifyFile(BASE_DIR "test_C1.jam1.0",BASE_DIR "test_C1.raw");		// Handled by ByteKiller
+	verifyFile(BASE_DIR "test_C1.jam4.0_ice",BASE_DIR "test_C1.raw");	// Handled by Ice
+	verifyFile(BASE_DIR "test_C1.jam4.0_v2",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.jam4.0_lzh",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.jam4.0_lzw",BASE_DIR "test_C1.raw");
+
+	// JEK Packer
+	verifyFile(BASE_DIR "test_C1.jek_1.3",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.jek_2.3",BASE_DIR "test_C1.raw");
 
 	// LOB
 	verifyFile(BASE_DIR "test_C1_m1.lob",BASE_DIR "test_C1.raw",true);

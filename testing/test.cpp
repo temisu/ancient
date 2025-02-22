@@ -188,6 +188,10 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1.jam4.0_lzh",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.jam4.0_lzw",BASE_DIR "test_C1.raw");
 
+	// JEK Packer
+	verifyFile(BASE_DIR "test_C1.jek_1.3",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.jek_2.3",BASE_DIR "test_C1.raw");
+
 	// LOB
 	verifyFile(BASE_DIR "test_C1_m1.lob",BASE_DIR "test_C1.raw",true);
 	verifyFile(BASE_DIR "test_C1_m2.lob",BASE_DIR "test_C1.raw",true);

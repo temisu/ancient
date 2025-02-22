@@ -56,14 +56,14 @@ Decompression algorithms provided:
 * Freeze/Melt
   * Supports both old and new formats
 * gzip
-* JAMPacker
-  * Supports v1.x (ByteKiller Clone)
+* JAM Packer
+  * JEK: JAM Packer v1.x (ByteKiller Clone)
   * Supports JAMPacker ICE algorithm (handled by Pack-Ice)
   * LSD: JAMPacker V2 v2.x+
   * LZW: JAMPacker LZH v3.0 / v4.0
   * LZH: JAMPacker LZW v4.0
-* JEKPacker
-  * JEK: Jek Packer v1.x / JAM Packer v1.x (ByteKiller Clone)
+* JEK Packer
+  * JEK: Jek Packer v1.x - v2.x (ByteKiller Clone)
 * LOB's File Compressor (Also known as a Multipak)
   * Supports all original 6 modes and their combinations (BMC, HUF, LZW, LZB, MSP, MSS)
   * Does not support mode 8 (as defined by some game files)

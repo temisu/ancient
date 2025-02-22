@@ -64,8 +64,8 @@ const std::string &JAMPackerDecompressor::getName() const noexcept
 {
 	static std::string names[3]={
 		{"LSD: JAMPacker V2 v2.x+"},
-		{"LZW: JAMPacker LZH v3.0 / v4.0"},
-		{"LZH: JAMPacker LZW v4.0"}};
+		{"LZH: JAMPacker LZH v3.0 / v4.0"},
+		{"LZW: JAMPacker LZW v4.0"}};
 	return names[static_cast<uint32_t>(_variant)];
 }
 

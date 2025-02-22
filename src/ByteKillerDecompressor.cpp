@@ -179,7 +179,7 @@ const std::string &ByteKillerDecompressor::getName() const noexcept
 		"BK: ByteKiller",
 		"BK: ByteKiller Pro",
 		"FVL0: ANC Cruncher",
-		"JEK: Jek Packer v1.x / JAM Packer v1.x"};
+		"JEK: Jek Packer v1.x - v2.x / JAM Packer v1.x"};
 	static const uint32_t variantMapping[]={
 		0, // BK_STD
 		1, // BK_PRO

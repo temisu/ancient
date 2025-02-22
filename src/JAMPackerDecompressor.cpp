@@ -172,7 +172,7 @@ void JAMPackerDecompressor::decompressInternalLZH(Buffer &rawData)
 		decoder.update(symbol);
 		if (symbol<256U)
 		{
-			outputStream.writeByte(symbol);
+			outputStream.writeByte(uint8_t(symbol));
 		} else {
 			uint32_t distance{vlcDecoder.decode(readBits,readBits(4U))+1U};
 			uint32_t count{symbol-253U};

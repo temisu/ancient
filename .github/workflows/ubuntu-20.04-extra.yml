@@ -1,4 +1,4 @@
-name: Ubuntu 20.04 extra
+name: Ubuntu 24.04 extra
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v2

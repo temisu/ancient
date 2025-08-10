@@ -188,7 +188,7 @@ uint8_t BackwardOutputStream::copy(size_t distance,size_t count,uint8_t defaultC
 	uint8_t ret{0};
 	if (OverflowCheck::sum(_currentOffset,distance)>_endOffset)
 	{
-		prevCount=std::min(count,_endOffset-_currentOffset-distance);
+		prevCount=std::min(count,_currentOffset+distance-_endOffset);
 		for (size_t i=0;i<prevCount;i++,--_currentOffset)
 			ret=_buffer[_currentOffset-1]=defaultChar;
 	}

@@ -124,7 +124,7 @@ int main(int argc,char **argv)
 	{
 		// not going to check in 1M of zeros (randomisation test)
 		std::vector<uint8_t> empty(1024*1024);
-		for (uint32_t i=0;i<empty.size();i++) empty[i]=0; // probably redudant
+		for (uint32_t i=0;i<empty.size();i++) empty[i]=0; // probably redundant
 		verifyFile(BASE_DIR "test_r1.bz2",empty);
 	}
 

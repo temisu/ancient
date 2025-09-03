@@ -10,7 +10,7 @@ AC_INIT([ancient], [2.3.0-pre.0], [https://github.com/temisu/ancient/issues], [a
 # *  increment PATCH and set PRE=-pre.0 immediately after every release, always
 # *  increment PRE at free will
 # *  for a release, set PRE="", i.e. the version number should look like "2.32.42" or maybe "2.23.42+autotools"
-# *  eveything appended after "+" is considered build/variant metadata is not part of version ordering
+# *  everything appended after "+" is considered build/variant metadata is not part of version ordering
 # For details, see <https://semver.org/spec/v2.0.0.html>.
 #
 

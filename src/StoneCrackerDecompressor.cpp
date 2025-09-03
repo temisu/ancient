@@ -19,7 +19,7 @@ bool StoneCrackerDecompressor::detectHeaderAndGeneration(uint32_t hdr,uint32_t &
 	// last byte is bit length.
 	//
 	// 2.92 and 2.99 do not have either any proper identification word either, however its
-	// bit lengts for decompressor are stored in the first 4 bytes, which forms identifiable
+	// bit lengths for decompressor are stored in the first 4 bytes, which forms identifiable
 	// value.
 	//
 	// Thus for detecting 2.71 and friends, we are creating lots of false positives here.

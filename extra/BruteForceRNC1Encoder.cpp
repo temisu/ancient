@@ -238,7 +238,7 @@ void packRNC(Buffer &dest,const Buffer &source,uint32_t chunkSize)
 		std::vector<uint32_t> distanceFrequencies(32,0);
 		std::vector<uint32_t> lengthFrequencies(32,0);
 
-		// this is what makes this implementaion even more bruteforce
+		// this is what makes this implementation even more bruteforce
 		// table index (lit=0,distance=1,length=2,byte=3,bits=4), code, extra bits, value
 		std::vector<std::tuple<uint32_t,uint32_t,uint32_t,uint32_t>> rawChunk;
 	

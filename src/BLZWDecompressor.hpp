@@ -5,27 +5,30 @@
 
 #include "XPKDecompressor.hpp"
 
+namespace ancient::internal
+{
+
 class BLZWDecompressor : public XPKDecompressor
 {
 public:
-	BLZWDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
+	BLZWDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify);
 
-	virtual ~BLZWDecompressor();
+	~BLZWDecompressor() noexcept=default;
 
-	virtual const std::string &getSubName() const noexcept override final;
+	const std::string &getSubName() const noexcept final;
 
-	virtual void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) override final;
+	void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) final;
 
 	static bool detectHeaderXPK(uint32_t hdr);
-	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
+	static std::shared_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify);
 
 private:
 	const Buffer	&_packedData;
 
-	uint32_t	_maxBits=0;
-	size_t		_stackLength=0;
-
-	static XPKDecompressor::Registry<BLZWDecompressor> _XPKregistration;
+	uint32_t	_maxBits{0};
+	uint32_t	_stackLength{0};
 };
+
+}
 
 #endif

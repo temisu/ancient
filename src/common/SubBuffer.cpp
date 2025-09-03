@@ -2,6 +2,10 @@
 
 #include "SubBuffer.hpp"
 
+
+namespace ancient::internal
+{
+
 template <>
 uint8_t *GenericSubBuffer<Buffer>::data()
 {
@@ -12,4 +16,6 @@ template <>
 uint8_t *GenericSubBuffer<const Buffer>::data()
 {
 	throw InvalidOperationError();
+}
+
 }

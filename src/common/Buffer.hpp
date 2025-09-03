@@ -3,41 +3,45 @@
 #ifndef BUFFER_HPP
 #define BUFFER_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <exception>
+
+namespace ancient::internal
+{
 
 class Buffer
 {
 protected:
-	Buffer() noexcept;
+	Buffer() noexcept=default;
 
 public:
 	class Error : public std::exception
 	{
-		// nothing needed
+	public:
+		Error() noexcept=default;
+		virtual ~Error() noexcept=default;
 	};
 
 	class OutOfBoundsError : public Error
 	{
-		// nothing needed
+	public:
+		OutOfBoundsError() noexcept=default;
+		virtual ~OutOfBoundsError() noexcept=default;
 	};
 
 	class InvalidOperationError : public Error
 	{
-		// nothing needed
-	};
-
-	class OutOfMemoryError : public Error
-	{
-		// nothing needed
+	public:
+		InvalidOperationError() noexcept=default;
+		virtual ~InvalidOperationError() noexcept=default;
 	};
 
 	Buffer(const Buffer&)=delete;
 	Buffer& operator=(const Buffer&)=delete;
 
-	virtual ~Buffer();
+	virtual ~Buffer() noexcept=default;
 
 	virtual const uint8_t *data() const noexcept=0;
 	virtual uint8_t *data()=0;
@@ -70,5 +74,7 @@ public:
 
 	uint8_t read8(size_t offset) const;
 };
+
+}
 
 #endif

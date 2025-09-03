@@ -3,10 +3,14 @@
 #ifndef SUBBUFFER_HPP
 #define SUBBUFFER_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "Buffer.hpp"
+#include "OverflowCheck.hpp"
+
+namespace ancient::internal
+{
 
 // helpers to splice Buffer
 
@@ -18,33 +22,29 @@ public:
 	GenericSubBuffer& operator=(const GenericSubBuffer&)=delete;
 
 	GenericSubBuffer(T &base,size_t start,size_t length) :
-		_base(base),
-		_start(start),
-		_length(length)
+		_base{base},
+		_start{start},
+		_length{length}
 	{
-		// if the sub-buffer is invalid, we set both _start and _length to 0
-		if (start+length>_base.size())
-		{
-			_start=0;
-			_length=0;
-		}
+		if (OverflowCheck::sum(start,length)>_base.size())
+			throw OutOfBoundsError();
 	}
 	
-	virtual ~GenericSubBuffer() { }
+	~GenericSubBuffer() noexcept=default;
 
-	virtual const uint8_t *data() const noexcept override
+	const uint8_t *data() const noexcept final
 	{
 		return _base.data()+_start;
 	}
 
-	virtual uint8_t *data() override;
+	uint8_t *data() final;
 
-	virtual size_t size() const noexcept override
+	size_t size() const noexcept final
 	{
 		return _length;
 	}
 
-	virtual bool isResizable() const noexcept override
+	bool isResizable() const noexcept final
 	{
 		return false;
 	}
@@ -52,7 +52,7 @@ public:
 	// can only make the buffer smaller, can't run away from the current bounds
 	void adjust(size_t start,size_t length)
 	{
-		if (start<_start || start+length>_start+_length) throw OutOfBoundsError();
+		if (start<_start || OverflowCheck::sum(start,length)>_start+_length) throw OutOfBoundsError();
 		_start=start;
 		_length=length;
 	}
@@ -65,5 +65,7 @@ private:
 
 typedef GenericSubBuffer<Buffer> SubBuffer;
 typedef GenericSubBuffer<const Buffer> ConstSubBuffer;
+
+}
 
 #endif

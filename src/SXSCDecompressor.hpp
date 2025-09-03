@@ -3,34 +3,36 @@
 #ifndef SXSCDECOMPRESSOR_HPP
 #define SXSCDECOMPRESSOR_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "XPKDecompressor.hpp"
 #include "InputStream.hpp"
 #include "RangeDecoder.hpp"
 
+namespace ancient::internal
+{
+
 class SXSCDecompressor : public XPKDecompressor
 {
 public:
-	SXSCDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
+	SXSCDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify);
+	~SXSCDecompressor() noexcept=default;
 
-	virtual ~SXSCDecompressor();
+	const std::string &getSubName() const noexcept final;
 
-	virtual const std::string &getSubName() const noexcept override final;
-
-	virtual void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) override final;
+	void decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify) final;
 
 	static bool detectHeaderXPK(uint32_t hdr) noexcept;
-	static std::unique_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify);
+	static std::shared_ptr<XPKDecompressor> create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify);
 
 private:
 	class SXSCReader : public RangeDecoder::BitReader
 	{
 	public:
 		SXSCReader(ForwardInputStream &stream);
-		virtual ~SXSCReader();
+		~SXSCReader() noexcept=default;
 
-		virtual uint32_t readBit() override final;
+		uint32_t readBit() final;
 
 	private:
 		MSBBitReader<ForwardInputStream>	_reader;
@@ -41,8 +43,8 @@ private:
 
 	const Buffer					&_packedData;
 	bool						_isHSC;
-
-	static XPKDecompressor::Registry<SXSCDecompressor> _XPKregistration;
 };
+
+}
 
 #endif

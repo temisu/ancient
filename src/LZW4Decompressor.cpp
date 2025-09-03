@@ -3,49 +3,50 @@
 #include "LZW4Decompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+
+namespace ancient::internal
+{
 
 bool LZW4Decompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('LZW4');
+	return hdr==FourCC("LZW4");
 }
 
-std::unique_ptr<XPKDecompressor> LZW4Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
+std::shared_ptr<XPKDecompressor> LZW4Decompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<LZW4Decompressor>(hdr,recursionLevel,packedData,state,verify);
+	return std::make_shared<LZW4Decompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-LZW4Decompressor::LZW4Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
-	XPKDecompressor(recursionLevel),
-	_packedData(packedData)
+LZW4Decompressor::LZW4Decompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
+	XPKDecompressor{recursionLevel},
+	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
-}
-
-LZW4Decompressor::~LZW4Decompressor()
-{
-	// nothing needed
+	if (!detectHeaderXPK(hdr))
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &LZW4Decompressor::getSubName() const noexcept
 {
-	static std::string name="XPK-LZW4: LZW4 CyberYAFA compressor";
+	static std::string name{"XPK-LZW4: LZW4 CyberYAFA compressor"};
 	return name;
 }
 
 void LZW4Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	ForwardInputStream inputStream(_packedData,0,_packedData.size());
-	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	ForwardInputStream inputStream{_packedData,0,_packedData.size()};
+	MSBBitReader<ForwardInputStream> bitReader{inputStream};
 	auto readBit=[&]()->uint32_t
 	{
-		return bitReader.readBitsBE32(1);
+		return bitReader.readBitsBE32(1U);
 	};
 	auto readByte=[&]()->uint8_t
 	{
 		return inputStream.readByte();
 	};
 
-	ForwardOutputStream outputStream(rawData,0,rawData.size());
+	ForwardOutputStream outputStream{rawData,0,rawData.size()};
 
 	while (!outputStream.eof())
 	{
@@ -53,10 +54,11 @@ void LZW4Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 		{
 			outputStream.writeByte(readByte());
 		} else {
-			uint32_t distance=uint32_t(readByte())<<8;
-			distance|=uint32_t(readByte());
-			if (!distance) throw Decompressor::DecompressionError();
-			distance=65536-distance;
+			uint32_t distance={uint32_t(readByte())<<8U};
+			distance|=readByte();
+			if (!distance)
+				throw Decompressor::DecompressionError();
+			distance=65536U-distance;
 			uint32_t count=uint32_t(readByte())+3;
 
 			outputStream.copy(distance,count);
@@ -64,4 +66,4 @@ void LZW4Decompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	}
 }
 
-XPKDecompressor::Registry<LZW4Decompressor> LZW4Decompressor::_XPKregistration;
+}

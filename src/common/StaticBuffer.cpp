@@ -3,14 +3,12 @@
 #include "StaticBuffer.hpp"
 
 
-ConstStaticBuffer::ConstStaticBuffer(const uint8_t *data,size_t length) :
-	_data(data),
-	_length(length)
+namespace ancient::internal
 {
-	// nothing needed
-}
 
-ConstStaticBuffer::~ConstStaticBuffer()
+ConstStaticBuffer::ConstStaticBuffer(const uint8_t *data,size_t length) noexcept :
+	_data{data},
+	_length{length}
 {
 	// nothing needed
 }
@@ -33,4 +31,6 @@ size_t ConstStaticBuffer::size() const noexcept
 bool ConstStaticBuffer::isResizable() const noexcept
 {
 	return false;
+}
+
 }

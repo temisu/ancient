@@ -3,35 +3,26 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <string>
 #include <vector>
 
-constexpr uint32_t FourCC(uint32_t cc) noexcept
+namespace ancient::internal
 {
-	// return with something else if behavior is not same as in clang/gcc for multibyte literals
-	return cc;
+
+constexpr uint16_t MultiChar2(const char (&cc)[3]) noexcept
+{
+	return static_cast<uint16_t>((static_cast<uint8_t>(cc[0]) << 8) | static_cast<uint8_t>(cc[1]));
 }
 
-constexpr bool isValidSize(uint64_t &value) noexcept
+constexpr uint32_t FourCC(const char (&cc)[5]) noexcept
 {
-#if INTPTR_MAX == INT32_MAX
-	return value<0x1'0000'0000ULL;
-#else
-	return true;
-#endif
+	return static_cast<uint32_t>((static_cast<uint8_t>(cc[0]) << 24) | (static_cast<uint8_t>(cc[1]) << 16) | (static_cast<uint8_t>(cc[2]) << 8) | static_cast<uint8_t>(cc[3]));
 }
 
-constexpr bool isValidSize(off_t &value) noexcept
-{
-#if INTPTR_MAX == INT32_MAX
-	return value<0x1'0000'0000ULL;
-#else
-	return true;
-#endif
-}
+uint32_t rotateBits(uint32_t value,uint32_t count) noexcept;
 
-uint32_t rotateBits(uint32_t value,uint32_t count);
+}
 
 #endif

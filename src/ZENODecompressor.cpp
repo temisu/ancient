@@ -3,70 +3,74 @@
 #include "ZENODecompressor.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+#include <vector>
+
+namespace ancient::internal
+{
 
 bool ZENODecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('ZENO');
+	return hdr==FourCC("ZENO");
 }
 
-std::unique_ptr<XPKDecompressor> ZENODecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
+std::shared_ptr<XPKDecompressor> ZENODecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<ZENODecompressor>(hdr,recursionLevel,packedData,state,verify);
+	return std::make_shared<ZENODecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-ZENODecompressor::ZENODecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
-	XPKDecompressor(recursionLevel),
-	_packedData(packedData)
+ZENODecompressor::ZENODecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
+	XPKDecompressor{recursionLevel},
+	_packedData{packedData}
 {
 	if (!detectHeaderXPK(hdr) || _packedData.size()<6)
 		throw Decompressor::InvalidFormatError();
 	// first 4 bytes is checksum for password. It needs to be zero
-	if (_packedData.readBE32(0)) throw Decompressor::InvalidFormatError();
-	_maxBits=_packedData.read8(4);
-	if (_maxBits<9 || _maxBits>20) throw Decompressor::InvalidFormatError();
-	_startOffset=uint32_t(_packedData.read8(5))+6;
-	if (_startOffset>=_packedData.size()) throw Decompressor::InvalidFormatError();
-}
-
-ZENODecompressor::~ZENODecompressor()
-{
-	// nothing needed
+	if (_packedData.readBE32(0))
+		throw Decompressor::InvalidFormatError();
+	_maxBits=_packedData.read8(4U);
+	if (_maxBits<9U || _maxBits>20U)
+		throw Decompressor::InvalidFormatError();
+	_startOffset=uint32_t(_packedData.read8(5U))+6U;
+	if (_startOffset>=_packedData.size())
+		throw Decompressor::InvalidFormatError();
 }
 
 const std::string &ZENODecompressor::getSubName() const noexcept
 {
-	static std::string name="XPK-ZENO: LZW-compressor";
+	static std::string name{"XPK-ZENO: LZW-compressor"};
 	return name;
 }
 
 void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData,bool verify)
 {
-	ForwardInputStream inputStream(_packedData,_startOffset,_packedData.size());
-	MSBBitReader<ForwardInputStream> bitReader(inputStream);
+	ForwardInputStream inputStream{_packedData,_startOffset,_packedData.size()};
+	MSBBitReader<ForwardInputStream> bitReader{inputStream};
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
 		return bitReader.readBits8(count);
 	};
 
-	ForwardOutputStream outputStream(rawData,0,rawData.size());
+	ForwardOutputStream outputStream{rawData,0,rawData.size()};
 
-	uint32_t maxCode=1<<_maxBits;
-	uint32_t stackLength=5000;				// magic constant
-	auto prefix=std::make_unique<uint32_t[]>(maxCode-258);
-	auto suffix=std::make_unique<uint8_t[]>(maxCode-258);
-	auto stack=std::make_unique<uint8_t[]>(stackLength);
+	uint32_t maxCode{1U<<_maxBits};
+	uint32_t stackLength{5000U};				// magic constant
+	std::vector<uint32_t> prefix(maxCode-258U);
+	std::vector<uint8_t> suffix(maxCode-258U);
+	std::vector<uint8_t> stack(stackLength);
 
-	uint32_t freeIndex,codeBits,prevCode,newCode;
+	uint32_t freeIndex,codeBits;
 
 	auto init=[&]()
 	{
-		codeBits=9;
-		freeIndex=258;
+		codeBits=9U;
+		freeIndex=258U;
 	};
 
 	init();
-	prevCode=readBits(9);
-	newCode=prevCode;
+	uint32_t prevCode{readBits(9U)};
+	uint32_t newCode{prevCode};
 	suffix[freeIndex-258]=0;
 	prefix[freeIndex-258]=0;
 	freeIndex++;
@@ -74,34 +78,34 @@ void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	
 	while (!outputStream.eof())
 	{
-		if (freeIndex+3>=(1U<<codeBits) && codeBits<_maxBits) codeBits++;
-		uint32_t code=readBits(codeBits);
-		switch (code)
+		if (freeIndex+3U>=(1U<<codeBits) && codeBits<_maxBits) codeBits++;
+		switch (uint32_t code{readBits(codeBits)};code)
 		{
-			case 256:
+			case 256U:
 			throw Decompressor::DecompressionError();
 			break;
 
-			case 257:
+			case 257U:
 			init();
 			break;
 
 			default:
 			{
-				uint32_t stackPos=0;
-				uint32_t tmp=code;
+				uint32_t stackPos{0};
+				uint32_t tmp{code};
 				if (tmp==freeIndex)
 				{
 					stack[stackPos++]=newCode;
 					tmp=prevCode;
 				}
-				if (tmp>=258)
+				if (tmp>=258U)
 				{
 					do {
-						if (stackPos+1>=stackLength || tmp>=freeIndex) throw Decompressor::DecompressionError();
-						stack[stackPos++]=suffix[tmp-258];
-						tmp=prefix[tmp-258];
-					} while (tmp>=258);
+						if (stackPos+1>=stackLength || tmp>=freeIndex)
+							throw Decompressor::DecompressionError();
+						stack[stackPos++]=suffix[tmp-258U];
+						tmp=prefix[tmp-258U];
+					} while (tmp>=258U);
 					stack[stackPos++]=newCode=tmp;
 					while (stackPos) outputStream.writeByte(stack[--stackPos]);
 				} else {
@@ -112,8 +116,8 @@ void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 			}
 			if (freeIndex<maxCode)
 			{
-				suffix[freeIndex-258]=newCode;
-				prefix[freeIndex-258]=prevCode;
+				suffix[freeIndex-258U]=newCode;
+				prefix[freeIndex-258U]=prevCode;
 				freeIndex++;
 			}
 			prevCode=code;
@@ -122,4 +126,4 @@ void ZENODecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	}
 }
 
-XPKDecompressor::Registry<ZENODecompressor> ZENODecompressor::_XPKregistration;
+}

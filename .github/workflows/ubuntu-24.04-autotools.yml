@@ -1,0 +1,29 @@
+name: Ubuntu 24.04 Autotools
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: install dependencies
+      run: sudo apt-get update && sudo apt-get install -y build-essential autoconf autoconf-archive automake libtool make pkg-config
+    - name: autogen
+      run: ./autogen.sh
+    - name: configure
+      run: ./configure
+    - name: make
+      run: make
+    - name: make check
+      run: make check
+    - name: make dist
+      run: make dist
+    - name: make distcheck
+      run: make distcheck
+    - name: make distclean
+      run: make distclean

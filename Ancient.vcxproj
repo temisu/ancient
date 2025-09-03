@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_Clang|Win32">
+      <Configuration>Release_Clang</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_Clang|x64">
+      <Configuration>Release_Clang</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{9EA0A49E-A5DB-4A8A-B63D-FED0ACD8E059}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Clang|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Clang|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Clang|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_Clang|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Clang|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Clang|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>api;api/ancient</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>api;api/ancient</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>api;api/ancient</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Clang|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>api;api/ancient</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>api;api/ancient</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_Clang|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>api;api/ancient</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\ACCADecompressor.cpp" />
+    <ClCompile Include="src\API.cpp" />
+    <ClCompile Include="src\ARTMDecompressor.cpp" />
+    <ClCompile Include="src\BLZWDecompressor.cpp" />
+    <ClCompile Include="src\ByteKillerDecompressor.cpp" />
+    <ClCompile Include="src\BZIP2Decompressor.cpp" />
+    <ClCompile Include="src\CBR0Decompressor.cpp" />
+    <ClCompile Include="src\common\Buffer.cpp" />
+    <ClCompile Include="src\common\Common.cpp" />
+    <ClCompile Include="src\common\CRC16.cpp" />
+    <ClCompile Include="src\common\CRC32.cpp" />
+    <ClCompile Include="src\common\MemoryBuffer.cpp" />
+    <ClCompile Include="src\common\StaticBuffer.cpp" />
+    <ClCompile Include="src\common\SubBuffer.cpp" />
+    <ClCompile Include="src\common\WrappedVectorBuffer.cpp" />
+    <ClCompile Include="src\CompactDecompressor.cpp" />
+    <ClCompile Include="src\CompressDecompressor.cpp" />
+    <ClCompile Include="src\CRMDecompressor.cpp" />
+    <ClCompile Include="src\CYB2Decoder.cpp" />
+    <ClCompile Include="src\Decompressor.cpp" />
+    <ClCompile Include="src\DEFLATEDecompressor.cpp" />
+    <ClCompile Include="src\DLTADecode.cpp" />
+    <ClCompile Include="src\DMSDecompressor.cpp" />
+    <ClCompile Include="src\FASTDecompressor.cpp" />
+    <ClCompile Include="src\FBR2Decompressor.cpp" />
+    <ClCompile Include="src\FreezeDecompressor.cpp" />
+    <ClCompile Include="src\FRLEDecompressor.cpp" />
+    <ClCompile Include="src\HFMNDecompressor.cpp" />
+    <ClCompile Include="src\HUFFDecompressor.cpp" />
+    <ClCompile Include="src\IceDecompressor.cpp" />
+    <ClCompile Include="src\ILZRDecompressor.cpp" />
+    <ClCompile Include="src\IMPDecompressor.cpp" />
+    <ClCompile Include="src\InputStream.cpp" />
+    <ClCompile Include="src\JAMPackerDecompressor.cpp" />
+    <ClCompile Include="src\LHDecompressor.cpp" />
+    <ClCompile Include="src\LIN1Decompressor.cpp" />
+    <ClCompile Include="src\LIN2Decompressor.cpp" />
+    <ClCompile Include="src\LOBDecompressor.cpp" />
+    <ClCompile Include="src\LZBSDecompressor.cpp" />
+    <ClCompile Include="src\LZCBDecompressor.cpp" />
+    <ClCompile Include="src\LZW2Decompressor.cpp" />
+    <ClCompile Include="src\LZW4Decompressor.cpp" />
+    <ClCompile Include="src\LZW5Decompressor.cpp" />
+    <ClCompile Include="src\LZWDecoder.cpp" />
+    <ClCompile Include="src\LZXDecompressor.cpp" />
+    <ClCompile Include="src\MASHDecompressor.cpp" />
+    <ClCompile Include="src\MMCMPDecompressor.cpp" />
+    <ClCompile Include="src\NONEDecompressor.cpp" />
+    <ClCompile Include="src\NUKEDecompressor.cpp" />
+    <ClCompile Include="src\OutputStream.cpp" />
+    <ClCompile Include="src\PackDecompressor.cpp" />
+    <ClCompile Include="src\PMCDecompressor.cpp" />
+    <ClCompile Include="src\PPDecompressor.cpp" />
+    <ClCompile Include="src\PPMQDecompressor.cpp" />
+    <ClCompile Include="src\RAKEDecompressor.cpp" />
+    <ClCompile Include="src\RangeDecoder.cpp" />
+    <ClCompile Include="src\RDCNDecompressor.cpp" />
+    <ClCompile Include="src\RLENDecompressor.cpp" />
+    <ClCompile Include="src\RNCDecompressor.cpp" />
+    <ClCompile Include="src\SCOCompressDecompressor.cpp" />
+    <ClCompile Include="src\SDHCDecompressor.cpp" />
+    <ClCompile Include="src\SHRXDecompressor.cpp" />
+    <ClCompile Include="src\SLZ3Decompressor.cpp" />
+    <ClCompile Include="src\SMPLDecompressor.cpp" />
+    <ClCompile Include="src\SQSHDecompressor.cpp" />
+    <ClCompile Include="src\StoneCrackerDecompressor.cpp" />
+    <ClCompile Include="src\SXSCDecompressor.cpp" />
+    <ClCompile Include="src\TDCSDecompressor.cpp" />
+    <ClCompile Include="src\TPWMDecompressor.cpp" />
+    <ClCompile Include="src\VicXDecompressor.cpp" />
+    <ClCompile Include="src\XPKDecompressor.cpp" />
+    <ClCompile Include="src\XPKMain.cpp" />
+    <ClCompile Include="src\XPKUnimplemented.cpp" />
+    <ClCompile Include="src\ZENODecompressor.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="api\ancient\ancient.hpp" />
+    <ClInclude Include="src\ACCADecompressor.hpp" />
+    <ClInclude Include="src\ARTMDecompressor.hpp" />
+    <ClInclude Include="src\BLZWDecompressor.hpp" />
+    <ClInclude Include="src\ByteKillerDecompressor.hpp" />
+    <ClInclude Include="src\BZIP2Decompressor.hpp" />
+    <ClInclude Include="src\BZIP2Table.hpp" />
+    <ClInclude Include="src\CBR0Decompressor.hpp" />
+    <ClInclude Include="src\common\Buffer.hpp" />
+    <ClInclude Include="src\common\Common.hpp" />
+    <ClInclude Include="src\common\CRC16.hpp" />
+    <ClInclude Include="src\common\CRC32.hpp" />
+    <ClInclude Include="src\common\MemoryBuffer.hpp" />
+    <ClInclude Include="src\common\OverflowCheck.hpp" />
+    <ClInclude Include="src\common\StaticBuffer.hpp" />
+    <ClInclude Include="src\common\SubBuffer.hpp" />
+    <ClInclude Include="src\common\WrappedVectorBuffer.hpp" />
+    <ClInclude Include="src\CompactDecompressor.hpp" />
+    <ClInclude Include="src\CompressDecompressor.hpp" />
+    <ClInclude Include="src\CRMDecompressor.hpp" />
+    <ClInclude Include="src\CYB2Decoder.hpp" />
+    <ClInclude Include="src\Decompressor.hpp" />
+    <ClInclude Include="src\DEFLATEDecompressor.hpp" />
+    <ClInclude Include="src\DLTADecode.hpp" />
+    <ClInclude Include="src\DMSDecompressor.hpp" />
+    <ClInclude Include="src\DynamicHuffmanDecoder.hpp" />
+    <ClInclude Include="src\FASTDecompressor.hpp" />
+    <ClInclude Include="src\FBR2Decompressor.hpp" />
+    <ClInclude Include="src\FreezeDecompressor.hpp" />
+    <ClInclude Include="src\FrequencyTree.hpp" />
+    <ClInclude Include="src\FRLEDecompressor.hpp" />
+    <ClInclude Include="src\HFMNDecompressor.hpp" />
+    <ClInclude Include="src\HUFFDecompressor.hpp" />
+    <ClInclude Include="src\HuffmanDecoder.hpp" />
+    <ClInclude Include="src\IceDecompressor.hpp" />
+    <ClInclude Include="src\ILZRDecompressor.hpp" />
+    <ClInclude Include="src\IMPDecompressor.hpp" />
+    <ClInclude Include="src\InputStream.hpp" />
+    <ClInclude Include="src\JAMPackerDecompressor.hpp" />
+    <ClInclude Include="src\LHDecompressor.hpp" />
+    <ClInclude Include="src\LIN1Decompressor.hpp" />
+    <ClInclude Include="src\LIN2Decompressor.hpp" />
+    <ClInclude Include="src\LOBDecompressor.hpp" />
+    <ClInclude Include="src\LZBSDecompressor.hpp" />
+    <ClInclude Include="src\LZCBDecompressor.hpp" />
+    <ClInclude Include="src\LZW2Decompressor.hpp" />
+    <ClInclude Include="src\LZW4Decompressor.hpp" />
+    <ClInclude Include="src\LZW5Decompressor.hpp" />
+    <ClInclude Include="src\LZWDecoder.hpp" />
+    <ClInclude Include="src\LZXDecompressor.hpp" />
+    <ClInclude Include="src\MASHDecompressor.hpp" />
+    <ClInclude Include="src\MMCMPDecompressor.hpp" />
+    <ClInclude Include="src\NONEDecompressor.hpp" />
+    <ClInclude Include="src\NUKEDecompressor.hpp" />
+    <ClInclude Include="src\OutputStream.hpp" />
+    <ClInclude Include="src\PackDecompressor.hpp" />
+    <ClInclude Include="src\PMCDecompressor.hpp" />
+    <ClInclude Include="src\PPDecompressor.hpp" />
+    <ClInclude Include="src\PPMQDecompressor.hpp" />
+    <ClInclude Include="src\RAKEDecompressor.hpp" />
+    <ClInclude Include="src\RangeDecoder.hpp" />
+    <ClInclude Include="src\RDCNDecompressor.hpp" />
+    <ClInclude Include="src\RLENDecompressor.hpp" />
+    <ClInclude Include="src\RNCDecompressor.hpp" />
+    <ClInclude Include="src\SCOCompressDecompressor.hpp" />
+    <ClInclude Include="src\SDHCDecompressor.hpp" />
+    <ClInclude Include="src\SHRXDecompressor.hpp" />
+    <ClInclude Include="src\SLZ3Decompressor.hpp" />
+    <ClInclude Include="src\SMPLDecompressor.hpp" />
+    <ClInclude Include="src\SQSHDecompressor.hpp" />
+    <ClInclude Include="src\StoneCrackerDecompressor.hpp" />
+    <ClInclude Include="src\SXSCDecompressor.hpp" />
+    <ClInclude Include="src\TDCSDecompressor.hpp" />
+    <ClInclude Include="src\TPWMDecompressor.hpp" />
+    <ClInclude Include="src\VariableLengthCodeDecoder.hpp " />
+    <ClInclude Include="src\VicXDecompressor.hpp" />
+    <ClInclude Include="src\XPKDecompressor.hpp" />
+    <ClInclude Include="src\XPKMain.hpp" />
+    <ClInclude Include="src\XPKUnimplemented.hpp" />
+    <ClInclude Include="src\ZENODecompressor.hpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

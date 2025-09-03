@@ -1,7 +1,7 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #include "DMSDecompressor.hpp"
 
@@ -9,55 +9,67 @@
 #include "DynamicHuffmanDecoder.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
-
+#include "VariableLengthCodeDecoder.hpp"
 #include "common/MemoryBuffer.hpp"
 #include "common/CRC16.hpp"
+#include "common/OverflowCheck.hpp"
+#include "common/Common.hpp"
 
-bool DMSDecompressor::detectHeader(uint32_t hdr) noexcept
+
+namespace ancient::internal
 {
-	return hdr==FourCC('DMS!');
+
+bool DMSDecompressor::detectHeader(uint32_t hdr,uint32_t footer) noexcept
+{
+	return hdr==FourCC("DMS!");
 }
 
-std::unique_ptr<Decompressor> DMSDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
+std::shared_ptr<Decompressor> DMSDecompressor::create(const Buffer &packedData,bool exactSizeKnown,bool verify)
 {
-	return std::make_unique<DMSDecompressor>(packedData,verify);
+	return std::make_shared<DMSDecompressor>(packedData,verify);
 }
 
 DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
-	_packedData(packedData)
+	_packedData{packedData}
 {
-	uint32_t hdr=packedData.readBE32(0);
-	if (!detectHeader(hdr) || packedData.size()<56) throw InvalidFormatError();
+	uint32_t hdr{packedData.readBE32(0)};
+	if (!detectHeader(hdr,0) || packedData.size()<56)
+		throw InvalidFormatError();
 
 	if (verify && CRC16(packedData,4,50,0)!=packedData.readBE16(54))
 		throw VerificationError();
 
-	uint16_t info=packedData.readBE16(10);
+	uint16_t info{packedData.readBE16(10)};
 	_isObsfuscated=info&2;				// using 16 bit key is not encryption, it is obsfuscation
 	_isHD=info&16;
-	if (info&32) throw InvalidFormatError();	// MS-DOS disk
+	if (info&32)
+		throw InvalidFormatError();		// MS-DOS disk
 
 	// packed data in header is useless, as is rawsize and track numbers
 	// they are not always filled
 
-	if (packedData.readBE16(50)>6) throw InvalidFormatError(); // either FMS or unknown
+	if (packedData.readBE16(50)>6)
+		throw InvalidFormatError();		// either FMS or unknown
+
+	const std::array<uint32_t,7> contextSizes{0,0,256,16384,16384,4096,8192};
 
 	// now calculate the real packed size, including headers
-	uint32_t offset=56;
-	uint32_t accountedSize=0;
-	uint32_t lastTrackSize=0;
-	uint32_t numTracks=0;
-	uint32_t minTrack=80;
-	uint32_t prevTrack=0;
+	uint32_t offset{56};
+	uint32_t accountedSize{0};
+	uint32_t lastTrackSize{0};
+	uint32_t numTracks{0};
+	uint32_t minTrack{80};
+	uint32_t prevTrack{0};
 	while (offset+20<packedData.size())
 	{
-		if (_packedData.readBE16(offset)!='TR')
+		if (_packedData.readBE16(offset)!=MultiChar2("TR"))
 		{
 			// secondary exit criteria, should not be like this, if the header would be trustworthy
-			if (!accountedSize) throw InvalidFormatError();
+			if (!accountedSize)
+				throw InvalidFormatError();
 			break;
 		}
-		uint32_t trackNo=_packedData.readBE16(offset+2);
+		uint32_t trackNo{_packedData.readBE16(offset+2)};
 		// lets not go backwards on tracks!
 		if (trackNo<prevTrack) break;
 
@@ -65,18 +77,17 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 		if (verify && CRC16(packedData,offset,18,0)!=packedData.readBE16(offset+18))
 			throw VerificationError();
 
-		uint8_t mode=_packedData.read8(offset+13);
-		if (mode>6) throw InvalidFormatError();
-		static const uint32_t contextSizes[7]={0,0,256,16384,16384,4096,8192};
+		uint8_t mode{_packedData.read8(offset+13)};
+		if (mode>6)
+			throw InvalidFormatError();
+
 		_contextBufferSize=std::max(_contextBufferSize,contextSizes[mode]);
 
-		uint8_t flags=_packedData.read8(offset+12);
+		uint8_t flags{_packedData.read8(offset+12)};
 		if ((mode>=2 && mode<=4) || (mode>=5 && (flags&4)))
-		{
 			_tmpBufferSize=std::max(_tmpBufferSize,uint32_t(_packedData.readBE16(offset+8)));
-		}
-		uint32_t packedChunkLength=packedData.readBE16(offset+6);
-		if (offset+20+packedChunkLength>packedData.size())
+		uint32_t packedChunkLength{packedData.readBE16(offset+6)};
+		if (OverflowCheck::sum(offset,20U,packedChunkLength)>packedData.size())
 			throw InvalidFormatError();
 		if (verify && CRC16(packedData,offset+20,packedChunkLength,0)!=packedData.readBE16(offset+16))
 			throw VerificationError();
@@ -94,8 +105,10 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 		// this is the real exit critea, unfortunately
 		if (trackNo>=79 && trackNo<0x8000U) break;
 	}
-	uint32_t trackSize=(_isHD)?22528:11264;
+	uint32_t trackSize{(_isHD)?22528U:11264U};
 	_rawOffset=minTrack*trackSize;
+	if (minTrack>=numTracks)
+		throw InvalidFormatError();
 	_minTrack=minTrack;
 	_rawSize=(numTracks-minTrack)*trackSize+lastTrackSize;
 	_imageSize=trackSize*80;
@@ -105,14 +118,9 @@ DMSDecompressor::DMSDecompressor(const Buffer &packedData,bool verify) :
 		throw InvalidFormatError();
 }
 
-DMSDecompressor::~DMSDecompressor()
-{
-	// nothing needed
-}
-
 const std::string &DMSDecompressor::getName() const noexcept
 {
-	static std::string name="DMS: Disk Masher System";
+	static std::string name{"DMS: Disk Masher System"};
 	return name;
 }
 
@@ -138,7 +146,7 @@ size_t DMSDecompressor::getImageOffset() const noexcept
 
 void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 {
-	uint32_t restartPosition=0;
+	uint32_t restartPosition{0};
 	if (!_isObsfuscated)
 	{
 		decompressImpl(rawData,verify,restartPosition);
@@ -166,29 +174,36 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify)
 // needs to be split
 void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &restartPosition)
 {
-	if (rawData.size()<_rawSize) throw DecompressionError();
-	MemoryBuffer contextBuffer(_contextBufferSize);
-	MemoryBuffer tmpBuffer(_tmpBufferSize);
-	uint32_t limitedDecompress=~0U;
+	if (rawData.size()<_rawSize)
+		throw DecompressionError();
+	MemoryBuffer contextBuffer{_contextBufferSize};
+	MemoryBuffer tmpBuffer{_tmpBufferSize};
+	uint32_t limitedDecompress{~0U};
 
-	class UnObsfuscator
+	class ObsfuscatedInputStream
 	{
 	public:
-		UnObsfuscator(ForwardInputStream &inputStream) :
-			_inputStream(inputStream)
+		ObsfuscatedInputStream(const Buffer &data,uint32_t start,uint32_t length,bool obsfuscate) :
+			_inputStream{data,start,OverflowCheck::sum(start,length)},
+			_obsfuscate{obsfuscate}
 		{
 			// nothing needed
+		}
+		~ObsfuscatedInputStream() noexcept=default;
+
+		void reset(size_t startOffset,size_t endOffset)
+		{
+			_inputStream.reset(startOffset,endOffset);
 		}
 
 		uint8_t readByte()
 		{
-			if (_inputStream.eof()) throw ShortInputError();
-			uint8_t ch=_inputStream.readByte();
+			uint8_t ch{_inputStream.readByte()};
 			if (!_obsfuscate)
 			{
 				return ch;
 			} else {
-				uint8_t ret=ch^_passAccumulator;
+				uint8_t ret{uint8_t(ch^_passAccumulator)};
 				_passAccumulator=(_passAccumulator>>1)+uint16_t(ch);
 				return ret;
 			}
@@ -199,34 +214,26 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 			_passAccumulator=passAccumulator;
 		}
 
-		void setObsfuscate(bool obsfuscate) { _obsfuscate=obsfuscate; }
 		bool eof() const { return _inputStream.getOffset()==_inputStream.getEndOffset(); }
 
-		// not cool, but works
-		bool eofMinus1() const { return _inputStream.getOffset()+1==_inputStream.getEndOffset(); }
-		bool eofMinus1Plus() const { return _inputStream.getOffset()+1>=_inputStream.getEndOffset(); }
-		bool eofMinus2Plus() const { return _inputStream.getOffset()+2>=_inputStream.getEndOffset(); }
-
 	private:
-		ForwardInputStream	&_inputStream;
-		bool			_obsfuscate=false;
-		uint16_t		_passAccumulator=0;
+		ForwardInputStream	_inputStream;
+		bool			_obsfuscate;
+		uint16_t		_passAccumulator{0};
 	};
 
-	ForwardInputStream inputStream(_packedData,0,0);
-	UnObsfuscator inputUnObsfuscator(inputStream);
-	MSBBitReader<UnObsfuscator> bitReader(inputUnObsfuscator);
-	auto initInputStream=[&](const Buffer &buffer,uint32_t start,uint32_t length,bool obsfuscate)
+	ObsfuscatedInputStream inputStream{_packedData,0,0,_isObsfuscated};
+	MSBBitReader<ObsfuscatedInputStream> bitReader{inputStream};
+	auto initInputStream=[&](uint32_t start,uint32_t length)
 	{
-		inputStream=ForwardInputStream(buffer,start,start+length);
-		inputUnObsfuscator.setObsfuscate(obsfuscate);
+		inputStream.reset(start,OverflowCheck::sum(start,length));
 		bitReader.reset();
 	};
 	auto finishStream=[&]()
 	{
 		if (_isObsfuscated && limitedDecompress==~0U)
-			while (!inputUnObsfuscator.eof())
-				inputUnObsfuscator.readByte();
+			while (!inputStream.eof())
+				inputStream.readByte();
 	};
 	auto readBits=[&](uint32_t count)->uint32_t
 	{
@@ -237,238 +244,162 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 		return bitReader.readBits8(1);
 	};
 
-	ForwardOutputStream outputStream(rawData,0,0);
-	auto initOutputStream=[&](Buffer &buffer,uint32_t start,uint32_t length)
+	ForwardOutputStream outputStream{rawData,0,0};
+	auto initOutputStream=[&](uint32_t start,uint32_t length)
 	{
-		outputStream=ForwardOutputStream(buffer,start,start+length);
+		outputStream.reset(start,OverflowCheck::sum(start,length));
 	};
 
 	// fill unused tracks with zeros
-	::memset(rawData.data(),0,_rawSize);
+	std::memset(rawData.data(),0,_rawSize);
 
-	auto checksum=[](const uint8_t *src,uint32_t srcLength)->uint16_t
-	{
-		uint16_t ret=0;
-		for (uint32_t i=0;i<srcLength;i++) ret+=uint16_t(src[i]);
-		return ret;
-	};
-
-	auto unpackNone=[&]()
-	{
-		for (uint32_t i=0;i<limitedDecompress&&!inputUnObsfuscator.eof();i++)
-			outputStream.writeByte(inputUnObsfuscator.readByte());
-	};
-
-	// same as simple
-	auto unRLE=[&](bool lastCharMissing)->uint32_t
-	{
-		// hacky, hacky, hacky
-		while (!inputUnObsfuscator.eof())
-		{
-			if (outputStream.getOffset()>=limitedDecompress) return 0;
-			if (lastCharMissing && inputUnObsfuscator.eofMinus1())
-			{
-				if (outputStream.getOffset()+1!=outputStream.getEndOffset())
-					throw DecompressionError();
-				return 1;
-			}
-			uint8_t ch=inputUnObsfuscator.readByte();
-			uint32_t count=1;
-			if (ch==0x90U)
-			{
-				if (inputUnObsfuscator.eof()) throw DecompressionError();
-				if (lastCharMissing && inputUnObsfuscator.eofMinus1())
-				{
-					// only possible way this can work
-					if (outputStream.getOffset()+1!=outputStream.getEndOffset()) throw DecompressionError();
-					count=0;
-				} else count=inputUnObsfuscator.readByte();
-				if (!count)
-				{
-					count=1;
-				} else {
-					
-					if (inputUnObsfuscator.eof()) throw DecompressionError();
-					if (lastCharMissing && inputUnObsfuscator.eofMinus1())
-					{
-						if (count==0xffU || outputStream.getOffset()+count!=outputStream.getEndOffset()) throw DecompressionError();
-						return count;
-					}
-					ch=inputUnObsfuscator.readByte();
-				}
-				if (count==0xffU)
-				{
-					if (inputUnObsfuscator.eofMinus1Plus()) throw DecompressionError();
-					if (lastCharMissing && inputUnObsfuscator.eofMinus2Plus())
-					{
-						count=uint32_t(outputStream.getEndOffset()-outputStream.getOffset());
-					} else {
-						count=uint32_t(inputUnObsfuscator.readByte())<<8;
-						count|=inputUnObsfuscator.readByte();
-					}
-				}
-			}
-			for (uint32_t i=0;i<count;i++) outputStream.writeByte(ch);
-		}
-		if (!outputStream.eof()) throw DecompressionError();
-		return 0;
-	};
-
-	bool doInitContext=true;
-	uint8_t *contextBufferPtr=contextBuffer.data();
-	// context used is 256 bytes
-	uint8_t quickContextLocation;
-	// context used is 16384 bytes
-	uint32_t mediumContextLocation;
-	uint32_t deepContextLocation;
-	// context used is 4096/8192 bytes
-	uint32_t heavyContextLocation;
+	bool doInitContext{true};
+	// quick: context used is 256 bytes
+	// medium & deep: context used is 16384 bytes
+	// heavy: context used is 4096/8192 bytes
+	uint32_t contextLocation;
 	std::unique_ptr<DynamicHuffmanDecoder<314>> deepDecoder;
 	auto initContext=[&]()
 	{
 		if (doInitContext)
 		{
-			if (_contextBufferSize) ::memset(contextBuffer.data(),0,_contextBufferSize);
-			quickContextLocation=251;
-			mediumContextLocation=16318;
-			deepContextLocation=16324;
+			if (_contextBufferSize) std::memset(contextBuffer.data(),0,_contextBufferSize);
+			contextLocation=0;
 			deepDecoder.reset();
-			heavyContextLocation=0;
 			doInitContext=false;
 		}
 	};
 
-	auto unpackQuick=[&]()
+	auto checksum=[](const Buffer &src,uint32_t offset,uint32_t srcLength)->uint16_t
 	{
-		initContext();
+		uint16_t ret{0};
+		for (uint32_t i=0;i<srcLength;i++) ret+=uint16_t(src[i+offset]);
+		return ret;
+	};
 
-		while (!outputStream.eof())
+	auto unpackNone=[&](auto &output)
+	{
+		for (uint32_t i=0;i<limitedDecompress&&!output.eof();i++)
+			output.writeByte(inputStream.readByte());
+	};
+
+	// same as simple
+	auto unRLE=[&](auto &output,auto &input)
+	{
+		while (!output.eof())
 		{
-			if (outputStream.getOffset()>=limitedDecompress) return;
-			if (readBits(1))
+			if (output.getOffset()>=limitedDecompress) return;
+			uint8_t ch{input.readByte()};
+			uint32_t count{1};
+			if (ch==0x90U)
 			{
-				outputStream.writeByte(contextBufferPtr[quickContextLocation++]=readBits(8));
-			} else {
-				uint32_t count=readBits(2)+2;
-				uint8_t offset=quickContextLocation-readBits(8)-1;
-				for (uint32_t i=0;i<count;i++)
-					outputStream.writeByte(contextBufferPtr[quickContextLocation++]=contextBufferPtr[(i+offset)&0xffU]);
+				count=input.readByte();
+				if (!count) count=1;
+					else ch=input.readByte();
+				if (count==0xffU)
+				{
+					count=uint32_t(input.readByte())<<8;
+					count|=input.readByte();
+				}
 			}
+			for (uint32_t i=0;i<count;i++) output.writeByte(ch);
 		}
-		quickContextLocation+=5;
 	};
 
-	static const uint8_t lengthTable[256]={
-		 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
-		 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0,
-		 1, 1, 1, 1, 1, 1, 1, 1,  1, 1, 1, 1, 1, 1, 1, 1,
-		 2, 2, 2, 2, 2, 2, 2, 2,  2, 2, 2, 2, 2, 2, 2, 2,
-		 3, 3, 3, 3, 3, 3, 3, 3,  3, 3, 3, 3, 3, 3, 3, 3,
-		 4, 4, 4, 4, 4, 4, 4, 4,  5, 5, 5, 5, 5, 5, 5, 5,
-		 6, 6, 6, 6, 6, 6, 6, 6,  7, 7, 7, 7, 7, 7, 7, 7,
-		 8, 8, 8, 8, 8, 8, 8, 8,  9, 9, 9, 9, 9, 9, 9, 9,
-		10,10,10,10,10,10,10,10, 11,11,11,11,11,11,11,11,
-		12,12,12,12,13,13,13,13, 14,14,14,14,15,15,15,15,
-		16,16,16,16,17,17,17,17, 18,18,18,18,19,19,19,19,
-		20,20,20,20,21,21,21,21, 22,22,22,22,23,23,23,23,
-		24,24,25,25,26,26,27,27, 28,28,29,29,30,30,31,31,
-		32,32,33,33,34,34,35,35, 36,36,37,37,38,38,39,39,
-		40,40,41,41,42,42,43,43, 44,44,45,45,46,46,47,47,
-		48,49,50,51,52,53,54,55, 56,57,58,59,60,61,62,63};
-
-	static const uint8_t bitLengthTable[256]={
-		3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,
-		3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,
-		4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4,4,
-		4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4,4,
-		4,4,4,4,4,4,4,4, 4,4,4,4,4,4,4,4,
-		5,5,5,5,5,5,5,5, 5,5,5,5,5,5,5,5,
-		5,5,5,5,5,5,5,5, 5,5,5,5,5,5,5,5,
-		5,5,5,5,5,5,5,5, 5,5,5,5,5,5,5,5,
-		5,5,5,5,5,5,5,5, 5,5,5,5,5,5,5,5,
-		6,6,6,6,6,6,6,6, 6,6,6,6,6,6,6,6,
-		6,6,6,6,6,6,6,6, 6,6,6,6,6,6,6,6,
-		6,6,6,6,6,6,6,6, 6,6,6,6,6,6,6,6,
-		7,7,7,7,7,7,7,7, 7,7,7,7,7,7,7,7,
-		7,7,7,7,7,7,7,7, 7,7,7,7,7,7,7,7,
-		7,7,7,7,7,7,7,7, 7,7,7,7,7,7,7,7,
-		8,8,8,8,8,8,8,8, 8,8,8,8,8,8,8,8};
-
-	auto decodeLengthValueHalf=[&](uint8_t code)->uint32_t
-	{
-		return (((code<<bitLengthTable[code])|readBits(bitLengthTable[code]))&0xffU);
-	};
-
-	auto decodeLengthValueFull=[&](uint8_t code)->uint32_t
-	{
-		return (uint32_t(lengthTable[code])<<8)|
-			uint32_t(((code<<bitLengthTable[code])|readBits(bitLengthTable[code]))&0xffU);
-	};
-
-	auto unpackMedium=[&]()
+	auto unpackQuick=[&](auto &output)
 	{
 		initContext();
 
-		while (!outputStream.eof())
+		while (!output.eof())
 		{
-			if (outputStream.getOffset()>=limitedDecompress) return;
+			if (output.getOffset()>=limitedDecompress) return;
 			if (readBits(1))
 			{
-				outputStream.writeByte(contextBufferPtr[mediumContextLocation++]=readBits(8));
-				mediumContextLocation&=0x3fffU;
+				output.writeByte(contextBuffer[contextLocation++]=readBits(8));
+				contextLocation&=0xffU;
 			} else {
-				uint32_t code=readBits(8);
-				uint32_t count=lengthTable[code]+3;
-
-				uint32_t tmp=decodeLengthValueFull(decodeLengthValueHalf(code));
-
-				uint32_t offset=mediumContextLocation-tmp-1;
+				uint32_t count{readBits(2)+2};
+				uint8_t offset{uint8_t(contextLocation-readBits(8)-1)};
 				for (uint32_t i=0;i<count;i++)
 				{
-					outputStream.writeByte(contextBufferPtr[mediumContextLocation++]=contextBufferPtr[(i+offset)&0x3fffU]);
-					mediumContextLocation&=0x3fffU;
+					output.writeByte(contextBuffer[contextLocation++]=contextBuffer[(i+offset)&0xffU]);
+					contextLocation&=0xffU;
 				}
 			}
 		}
-		mediumContextLocation+=66;
-		mediumContextLocation&=0x3fffU;
+		contextLocation+=5;
+		contextLocation&=0xffU;
 	};
 
-	auto unpackDeep=[&]()
+
+	VariableLengthCodeDecoder lengthDecoder{7,7,8,8,8,9,9,9,9,10,10,10,11,11,11,12};
+
+	auto unpackMedium=[&](auto &output)
+	{
+		initContext();
+
+		while (!output.eof())
+		{
+			if (output.getOffset()>=limitedDecompress) return;
+			if (readBits(1))
+			{
+				output.writeByte(contextBuffer[contextLocation++]=readBits(8));
+				contextLocation&=0x3fffU;
+			} else {
+				uint32_t count{lengthDecoder.decode(readBits,readBits(4U))};
+				uint32_t rawDist{lengthDecoder.decode([&](uint32_t c)
+				{
+					return (uint32_t(count&0xfU)<<(c-4U))|readBits(c-4U);
+				},((count>>4U)&0xfU))};
+				count=(count>>8U)+3U;
+
+				uint32_t offset{contextLocation-rawDist-1U};
+				for (uint32_t i=0;i<count;i++)
+				{
+					output.writeByte(contextBuffer[contextLocation++]=contextBuffer[(i+offset)&0x3fffU]);
+					contextLocation&=0x3fffU;
+				}
+			}
+		}
+		contextLocation+=66;
+		contextLocation&=0x3fffU;
+	};
+
+	auto unpackDeep=[&](auto &output)
 	{
 		initContext();
 		if (!deepDecoder) deepDecoder=std::make_unique<DynamicHuffmanDecoder<314>>();
 
-		while (!outputStream.eof())
+		while (!output.eof())
 		{
-			if (outputStream.getOffset()>=limitedDecompress) return;
+			if (output.getOffset()>=limitedDecompress) return;
 			uint32_t symbol=deepDecoder->decode(readBit);
 			if (deepDecoder->getMaxFrequency()==0x8000U) deepDecoder->halve();
 			deepDecoder->update(symbol);
 			if (symbol<256)
 			{
-				outputStream.writeByte(contextBufferPtr[deepContextLocation++]=symbol);
-				deepContextLocation&=0x3fffU;
+				output.writeByte(contextBuffer[contextLocation++]=symbol);
+				contextLocation&=0x3fffU;
 			} else {
-				uint32_t count=symbol-253;	// minimum repeat is 3
-				uint32_t offset=deepContextLocation-decodeLengthValueFull(readBits(8))-1;
+				uint32_t count{symbol-253};	// minimum repeat is 3
+				uint32_t offset{contextLocation-lengthDecoder.decode(readBits,readBits(4U))-1U};
 
 				for (uint32_t i=0;i<count;i++)
 				{
-					outputStream.writeByte(contextBufferPtr[deepContextLocation++]=contextBufferPtr[(i+offset)&0x3fffU]);
-					deepContextLocation&=0x3fffU;
+					output.writeByte(contextBuffer[contextLocation++]=contextBuffer[(i+offset)&0x3fffU]);
+					contextLocation&=0x3fffU;
 				}
 			}
 		}
-		deepContextLocation+=60;
-		deepContextLocation&=0x3fffU;
+		contextLocation+=60;
+		contextLocation&=0x3fffU;
 	};
 
 	// these are not part of the initContext like other methods
 	std::unique_ptr<OptionalHuffmanDecoder<uint32_t>> symbolDecoder,offsetDecoder;
-	bool heavyLastInitialized=false;		// this is part of initContext on some implementations. screwy!!!
+	bool heavyLastInitialized{false};		// this is part of initContext on some implementations. screwy!!!
 	uint32_t heavyLastOffset;
-	auto unpackHeavy=[&](bool initTables,bool use8kDict)
+	auto unpackHeavy=[&](auto &output,bool initTables,bool use8kDict)
 	{
 		initContext();
 		// well, this works. Why this works? dunno
@@ -481,16 +412,16 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 		auto readTable=[&](std::unique_ptr<OptionalHuffmanDecoder<uint32_t>> &decoder,uint32_t countBits,uint32_t valueBits)
 		{
 			decoder=std::make_unique<OptionalHuffmanDecoder<uint32_t>>();
-			uint32_t count=readBits(countBits);
+			uint32_t count{readBits(countBits)};
 			if (count)
 			{
-				uint8_t lengthBuffer[512];
+				std::array<uint8_t,512> lengthBuffer;
 				// in order to speed up the deObsfuscation, do not send the hopeless
 				// data into slow CreateOrderlyHuffmanTable
-				uint64_t sum=0;
+				uint64_t sum{0};
 				for (uint32_t i=0;i<count;i++)
 				{
-					uint32_t bits=readBits(valueBits);
+					uint32_t bits{readBits(valueBits)};
 					if (bits)
 					{
 						sum+=uint64_t(1U)<<(32-bits);
@@ -501,7 +432,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 				}
 				decoder->createOrderlyHuffmanTable(lengthBuffer,count);
 			} else {
-				uint32_t index=readBits(countBits);
+				uint32_t index{readBits(countBits)};
 				decoder->setEmpty(index);
 			}
 		};
@@ -512,113 +443,140 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 			readTable(offsetDecoder,5,4);
 		}
 
-		uint32_t mask=use8kDict?0x1fffU:0xfffU;
-		uint32_t bitLength=use8kDict?14:13;
+		uint32_t mask{use8kDict?0x1fffU:0xfffU};
+		uint32_t bitLength{use8kDict?14U:13U};
 
-		while (!outputStream.eof())
+		while (!output.eof())
 		{
-			if (outputStream.getOffset()>=limitedDecompress) return;
+			if (output.getOffset()>=limitedDecompress) return;
 			uint32_t symbol=symbolDecoder->decode(readBit);
 			if (symbol<256)
 			{
-				outputStream.writeByte(contextBufferPtr[heavyContextLocation++]=symbol);
-				heavyContextLocation&=mask;
+				output.writeByte(contextBuffer[contextLocation++]=symbol);
+				contextLocation&=mask;
 			} else {
-				uint32_t count=symbol-253;	// minimum repeat is 3
-				uint32_t offsetLength=offsetDecoder->decode(readBit);
-				uint32_t rawOffset=heavyLastOffset;
+				uint32_t count{symbol-253};	// minimum repeat is 3
+				uint32_t offsetLength{offsetDecoder->decode(readBit)};
+				uint32_t rawOffset{heavyLastOffset};
 				if (offsetLength!=bitLength)
 				{
 					if (offsetLength) rawOffset=(1<<(offsetLength-1))|readBits(offsetLength-1);
 						else rawOffset=0;
 					heavyLastOffset=rawOffset;
 				}
-				uint32_t offset=heavyContextLocation-rawOffset-1;
+				uint32_t offset{contextLocation-rawOffset-1};
 				for (uint32_t i=0;i<count;i++)
 				{
-					outputStream.writeByte(contextBufferPtr[heavyContextLocation++]=contextBufferPtr[(i+offset)&mask]);
-					heavyContextLocation&=mask;
+					output.writeByte(contextBuffer[contextLocation++]=contextBuffer[(i+offset)&mask]);
+					contextLocation&=mask;
 				}
 			}
 		}
 	};
 
-
+	bool _codeFixed{false};
 	uint32_t trackLength=(_isHD)?22528:11264;
-	for (uint32_t packedOffset=56,packedChunkLength=0;packedOffset!=_packedSize;packedOffset+=20+packedChunkLength)
+	for (uint32_t packedOffset=56,packedChunkLength=0;packedOffset!=_packedSize;packedOffset=OverflowCheck::sum(packedOffset,20U,packedChunkLength))
 	{
 		// There are some info tracks, at -1 or 80. ignore those (if still present)
-		uint16_t trackNo=_packedData.readBE16(packedOffset+2);
+		uint16_t trackNo{_packedData.readBE16(packedOffset+2)};
 		packedChunkLength=_packedData.readBE16(packedOffset+6);
 		if (trackNo==80) break;							// should not happen, this is already excluded
 		// even though only -1 should be used I've seen -2 as well. ignore all negatives
-		uint32_t tmpChunkLength=_packedData.readBE16(packedOffset+8);		// after the first unpack (if twostage)
-		uint32_t rawChunkLength=_packedData.readBE16(packedOffset+10);		// after final unpack
-		uint8_t flags=_packedData.read8(packedOffset+12);
-		uint8_t mode=_packedData.read8(packedOffset+13);
+		uint32_t tmpChunkLength{_packedData.readBE16(packedOffset+8)};		// after the first unpack (if twostage)
+		uint32_t rawChunkLength{_packedData.readBE16(packedOffset+10)};		// after final unpack
+		uint8_t flags{_packedData.read8(packedOffset+12)};
+		uint8_t mode{_packedData.read8(packedOffset+13)};
 
 		// could affect context, but in practice they are separate, even though there is no explicit reset
 		// deal with decompression though...
 		if (trackNo>=0x8000U)
 		{
-			initInputStream(_packedData,packedOffset+20,packedChunkLength,_isObsfuscated);
+			initInputStream(packedOffset+20,packedChunkLength);
 			finishStream();
 			continue;
 		}
-		if (rawChunkLength>trackLength) throw DecompressionError();
-		if (trackNo>80) throw DecompressionError();				// should not happen, already excluded
+		if (rawChunkLength>trackLength)
+			throw DecompressionError();
+		if (trackNo>80)
+			throw DecompressionError();					// should not happen, already excluded
 
-		uint32_t dataOffset=trackNo*trackLength;
-		if (_rawOffset>dataOffset) throw DecompressionError();
+		uint32_t dataOffset{trackNo*trackLength};
+		if (_rawOffset>dataOffset)
+			throw DecompressionError();
+
+		auto handleTrackSize=[&]()
+		{
+			if (limitedDecompress!=~0U) return;
+			if (!outputStream.eof() && outputStream.getOffset()&0x3ffU)
+				throw DecompressionError();
+		};
 
 		// this is screwy, but it is, what it is
 		auto processBlock=[&](bool doRLE,auto func,auto&&... params)
 		{
-			initInputStream(_packedData,packedOffset+20,packedChunkLength,_isObsfuscated);
+			auto applyFix=[&]()
+			{
+				if (mode>=5U && !_isObsfuscated)
+				{
+					uint32_t missingNo{uint32_t(outputStream.getEndOffset()-outputStream.getOffset())};
+					uint16_t protoSum{checksum(rawData,dataOffset-_rawOffset,rawChunkLength-missingNo)};
+					uint16_t fileSum{_packedData.readBE16(packedOffset+14)};
+
+					// too many ways to interpret the data
+					if (missingNo>1)
+						throw DecompressionError();
+					for (uint32_t i=0;i<missingNo;i++) outputStream.writeByte(0);
+
+					if (protoSum!=fileSum)
+					{
+						// last byte can be trashed by the compressor, but fortunately it can be fixed
+						protoSum-=*outputStream.history(1);
+						uint16_t fixByte{uint16_t(fileSum-protoSum)};
+						if (fixByte>=0x100U)
+							throw DecompressionError();
+						*outputStream.history(1)=uint8_t(fixByte);
+					}
+				} else handleTrackSize();
+			};
+
+			initInputStream(packedOffset+20,packedChunkLength);
 			if (doRLE)
 			{
+				ForwardOutputStream tmpOutputStream{tmpBuffer,0,tmpChunkLength};
 				try
 				{
-					initOutputStream(tmpBuffer,0,tmpChunkLength);
-					func(params...);
-					finishStream();
-					initInputStream(tmpBuffer,0,tmpChunkLength,false);
-					initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
-					unRLE(false);
-				} catch (const ShortInputError &) {
-					// if this error happens on repeat/offset instead of char, though luck :(
-					// missing last char on src we can fix :)
-					initInputStream(tmpBuffer,0,tmpChunkLength,false);
-					initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
-					uint32_t missingNo=unRLE(true);
-					if (missingNo)
-					{
-						uint32_t protoSum=checksum(&rawData[dataOffset-_rawOffset],rawChunkLength-missingNo);
-						uint32_t fileSum=_packedData.readBE16(packedOffset+14);
-						uint8_t ch=((fileSum>=protoSum)?fileSum-protoSum:(0x10000U+fileSum-protoSum))/missingNo;
-						for (uint32_t i=0;i<missingNo;i++) outputStream.writeByte(ch);
-					} else throw DecompressionError();
+					func(tmpOutputStream,params...);
+				} catch (const DecompressionError &) {
+					// nothing needed
 				}
+				finishStream();
+				uint32_t missingNo{static_cast<uint32_t>(tmpOutputStream.getEndOffset()-tmpOutputStream.getOffset())};
+				ForwardInputStream tmpInputStream{tmpBuffer,0,tmpChunkLength-missingNo};
+				initOutputStream(dataOffset-_rawOffset,rawChunkLength);
+				try
+				{
+					unRLE(outputStream,tmpInputStream);
+				} catch (const DecompressionError &) {
+					// nothing needed
+				}
+				applyFix();
 			} else {
+				initOutputStream(dataOffset-_rawOffset,rawChunkLength);
 				try
 				{
-					initOutputStream(rawData,dataOffset-_rawOffset,rawChunkLength);
-					func(params...);
-				} catch (const ShortInputError &) {
-					// same deal
-					if (outputStream.getOffset()+1!=rawChunkLength || _isObsfuscated) throw DecompressionError();
-					uint32_t protoSum=checksum(&rawData[dataOffset-_rawOffset],rawChunkLength-1);
-					uint32_t fileSum=_packedData.readBE16(packedOffset+14);
-					uint8_t ch=fileSum-protoSum;
-					outputStream.writeByte(ch);
+					func(outputStream,params...);
+				} catch (const DecompressionError &) {
+					// nothing needed
 				}
+				applyFix();
 			}
 			finishStream();
 		};
 
 		auto processBlockCode=[&](bool doRLE,auto func,auto&&... params)
 		{
-			if (!_isObsfuscated || trackNo!=_minTrack) return processBlock(doRLE,func,params...);
+			if (!_isObsfuscated || trackNo!=_minTrack || _codeFixed) return processBlock(doRLE,func,params...);
 
 			// fast try
 			if (!trackNo && restartPosition<0x10000U) for (;restartPosition<0x10000U;restartPosition++)
@@ -626,17 +584,18 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 				try
 				{
 					doInitContext=true;
-					inputUnObsfuscator.setCode(restartPosition);
+					inputStream.setCode(restartPosition);
 					limitedDecompress=8;
 					processBlock(doRLE,func,params...);
-					if ((rawData.readBE32(0)&0xffff'ff00U)!=FourCC('DOS\0')) continue;
+					if ((rawData.readBE32(0)&0xffff'ff00U)!=FourCC("DOS\0")) continue;
 
 					// now see if the candidate is any good
 					doInitContext=true;
-					inputUnObsfuscator.setCode(restartPosition);
+					inputStream.setCode(restartPosition);
 					limitedDecompress=~0U;
 					processBlock(doRLE,func,params...);
-					if (checksum(&rawData[dataOffset-_rawOffset],rawChunkLength)!=_packedData.readBE16(packedOffset+14)) continue;
+					if (checksum(rawData,dataOffset-_rawOffset,rawChunkLength)!=_packedData.readBE16(packedOffset+14)) continue;
+					_codeFixed=true;
 					return;
 				} catch (const Buffer::Error &) {
 					// just continue
@@ -652,9 +611,10 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 				try
 				{
 					doInitContext=true;
-					inputUnObsfuscator.setCode(restartPosition);
+					inputStream.setCode(restartPosition);
 					processBlock(doRLE,func,params...);
-					if (checksum(&rawData[dataOffset-_rawOffset],rawChunkLength)!=_packedData.readBE16(packedOffset+14)) continue;
+					if (checksum(rawData,dataOffset-_rawOffset,rawChunkLength)!=_packedData.readBE16(packedOffset+14)) continue;
+					_codeFixed=true;
 					return;
 				} catch (const Buffer::Error &) {
 					// just continue
@@ -673,7 +633,11 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 			break;
 
 			case 1:
-			processBlockCode(false,unRLE,false);
+			processBlockCode(false,[&](auto &output)
+			{
+				unRLE(output,inputStream);
+				handleTrackSize();
+			});
 			break;
 
 			case 2:
@@ -693,6 +657,7 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 			// 4: do RLE
 			// heavy1 uses 4k dictionary (mode 5), whereas heavy2 uses 8k dictionary
 			case 5:
+			[[fallthrough]];
 			case 6:
 			processBlockCode(flags&4,unpackHeavy,flags&2,mode==6);
 			break;
@@ -702,9 +667,9 @@ void DMSDecompressor::decompressImpl(Buffer &rawData,bool verify,uint32_t &resta
 		}
 		if (!(flags&1)) doInitContext=true;
 
-		if (verify && checksum(&rawData[dataOffset-_rawOffset],rawChunkLength)!=_packedData.readBE16(packedOffset+14))
+		if (verify && checksum(rawData,dataOffset-_rawOffset,rawChunkLength)!=_packedData.readBE16(packedOffset+14))
 			throw VerificationError();
 	}
 }
 
-Decompressor::Registry<DMSDecompressor> DMSDecompressor::_registration;
+}

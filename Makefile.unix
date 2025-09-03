@@ -1,0 +1,65 @@
+# Copyright (C) Teemu Suutari
+
+VPATH  := src src/common fuzzing testing
+
+CXX	?= c++
+COMMONFLAGS = -Os -Wall -Wsign-compare -Wnarrowing -Isrc -Iapi -Iapi/ancient
+CFLAGS	= $(COMMONFLAGS)
+CXXFLAGS = $(COMMONFLAGS) -std=c++17 -fno-rtti -fvisibility=hidden -DANCIENT_API_VISIBILITY_DEFAULT $(EXTRA_CFLAGS)
+
+LIBNAME = ancient.dylib
+PROG	= obj/ancient
+MAIN_N	?= main.o
+OBJS_N	= API.o Buffer.o Common.o MemoryBuffer.o StaticBuffer.o SubBuffer.o WrappedVectorBuffer.o CRC16.o CRC32.o \
+	Decompressor.o LZWDecoder.o XPKDecompressor.o XPKMain.o \
+	OutputStream.o InputStream.o RangeDecoder.o \
+	ACCADecompressor.o ARTMDecompressor.o BLZWDecompressor.o ByteKillerDecompressor.o BZIP2Decompressor.o \
+	CBR0Decompressor.o CompactDecompressor.o CompressDecompressor.o CRMDecompressor.o \
+	CYB2Decoder.o DEFLATEDecompressor.o DLTADecode.o DMSDecompressor.o \
+	FASTDecompressor.o FBR2Decompressor.o FreezeDecompressor.o FRLEDecompressor.o \
+	HFMNDecompressor.o HUFFDecompressor.o IceDecompressor.o ILZRDecompressor.o \
+	IMPDecompressor.o JAMPackerDecompressor.o LHDecompressor.o LIN1Decompressor.o LIN2Decompressor.o \
+	LOBDecompressor.o LZBSDecompressor.o LZCBDecompressor.o LZW2Decompressor.o \
+	LZW4Decompressor.o LZW5Decompressor.o LZXDecompressor.o MASHDecompressor.o \
+	MMCMPDecompressor.o NONEDecompressor.o NUKEDecompressor.o PackDecompressor.o \
+	PMCDecompressor.o PPDecompressor.o PPMQDecompressor.o RAKEDecompressor.o \
+	RDCNDecompressor.o RLENDecompressor.o RNCDecompressor.o SCOCompressDecompressor.o \
+	SDHCDecompressor.o SHRXDecompressor.o SLZ3Decompressor.o SMPLDecompressor.o \
+	StoneCrackerDecompressor.o SQSHDecompressor.o SXSCDecompressor.o TDCSDecompressor.o \
+	TPWMDecompressor.o VicXDecompressor.o XPKUnimplemented.o ZENODecompressor.o
+TEST_N	= test.o
+TESTBIN = obj/test
+
+LIB	= $(addprefix obj/,$(LIBNAME))
+OBJS	= $(addprefix obj/,$(OBJS_N))
+MAIN	= $(addprefix obj/,$(MAIN_N))
+TEST	= $(addprefix obj/,$(TEST_N))
+
+
+all: $(PROG) $(TESTBIN)
+
+obj:
+	mkdir -p obj
+
+obj/%.o: %.cpp | obj
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
+
+ifeq ($(BUILD_LIBRARY),1)
+$(LIB): $(OBJS)
+	$(CXX) -Wl,-dylib -Wl,-install_name,@executable_path/$(LIBNAME) -shared -o $@ $^
+	strip -X $@
+
+$(PROG): $(MAIN) $(LIB) | obj
+	$(CXX) $(CFLAGS) -o $@ $(MAIN) $(LIB)
+else
+$(PROG): $(MAIN) $(OBJS) | obj
+	$(CXX) $(CFLAGS) -o $@ $(MAIN) $(OBJS)
+endif
+
+$(TESTBIN): $(OBJS) $(TEST) | obj
+	$(CXX) $(CFLAGS) -o $@ $^
+
+clean:
+	rm -f $(OBJS) $(MAIN) $(PROG) $(LIB) $(TEST) $(TEST_BIN) *~ src/*~
+
+.PHONY:

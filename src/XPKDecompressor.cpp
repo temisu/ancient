@@ -1,25 +1,15 @@
 /* Copyright (C) Teemu Suutari */
 
 #include "XPKDecompressor.hpp"
-#include "XPKMaster.hpp"
+#include "XPKMain.hpp"
 
-XPKDecompressor::State::~State()
+namespace ancient::internal
 {
-	// nothing needed
-}
 
 XPKDecompressor::XPKDecompressor(uint32_t recursionLevel) :
-	_recursionLevel(recursionLevel)
+	_recursionLevel{recursionLevel}
 {
 	// nothing needed
 }
 
-XPKDecompressor::~XPKDecompressor()
-{
-	// nothing needed
-}
-
-void XPKDecompressor::registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<XPKDecompressor>(*create)(uint32_t,uint32_t,const Buffer&,std::unique_ptr<XPKDecompressor::State>&,bool))
-{
-	XPKMaster::registerDecompressor(detect,create);
 }

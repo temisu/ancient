@@ -3,45 +3,34 @@
 #ifndef DECOMPRESSOR_HPP
 #define DECOMPRESSOR_HPP
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
-#include <string>
 #include <memory>
+#include <string>
 
-#include "common/Common.hpp"
 #include "common/Buffer.hpp"
+#include "ancient.hpp"
+
+namespace ancient::internal
+{
 
 class Decompressor
 {
+protected:
+	Decompressor() noexcept=default;
+
 public:
-	// just a base class to easily catch all the errors
-	class Error : public std::exception
-	{
-		// nothing needed
-	};
 
-	class InvalidFormatError : public Error
-	{
-		// nothing needed
-	};
-
-	class DecompressionError : public Error
-	{
-		// nothing needed
-	};
-
-	class VerificationError : public Error
-	{
-		// nothing needed
-	};
-
-	Decompressor()=default;
+	using Error = ancient::Error;
+	using InvalidFormatError = ancient::InvalidFormatError;
+	using DecompressionError = ancient::DecompressionError;
+	using VerificationError = ancient::VerificationError;
 
 	Decompressor(const Decompressor&)=delete;
 	Decompressor& operator=(const Decompressor&)=delete;
 
-	virtual ~Decompressor();
+	virtual ~Decompressor() noexcept=default;
 
 	// Name returned is human readable long name
 	virtual const std::string &getName() const noexcept=0;
@@ -74,44 +63,24 @@ public:
 	// compressors can exclude header content for simplification)
 	// This entirely ok for the context of "old computers" and their files,
 	// for other usages these need to be tuned up
-	static constexpr size_t getMaxPackedSize() noexcept { return 0x100'0000U; }
-	static constexpr size_t getMaxRawSize() noexcept { return 0x100'0000U; }
+	static size_t getMaxPackedSize() noexcept;
+	static size_t getMaxRawSize() noexcept;
 
 	// Main entrypoint
 	// if verify=true then check the packedData for errors: CRC or other checksum if available
 	// check exactSizeKnown from size documentation
 	// can throw InvalidFormatError if stream is not recognized or it is invalid
 	// can throw VerificationError if verify enabled and checksum does not match
-	static std::unique_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
+	static std::shared_ptr<Decompressor> create(const Buffer &packedData,bool exactSizeKnown,bool verify);
 
 	// Detect signature whether it matches to any known compressor
-	// This does not guarantee the data is decompressable though, only signature is read
-	static bool detect(const Buffer &packedData) noexcept;
-
-	// Registering new decompressors, not really part of public API
-	template<class T>
-	class Registry
-	{
-	public:
-		Registry()
-		{
-			Decompressor::registerDecompressor(T::detectHeader,T::create);
-		}
-
-		~Registry()
-		{
-			// TODO: no cleanup yet
-		}
-	};
+	// This does not guarantee the data is decompressable though, only signature(s) is read
+	static bool detect(const Buffer &packedData,bool exactSizeKnown) noexcept;
 
 protected:
 	virtual void decompressImpl(Buffer &rawData,bool verify)=0;
-
-private:
-	static void registerDecompressor(bool(*detect)(uint32_t),std::unique_ptr<Decompressor>(*create)(const Buffer&,bool,bool));
-
-	static std::vector<std::pair<bool(*)(uint32_t),std::unique_ptr<Decompressor>(*)(const Buffer&,bool,bool)>> *_decompressors;
 };
 
+}
 
 #endif

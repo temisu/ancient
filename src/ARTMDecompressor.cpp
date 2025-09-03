@@ -2,35 +2,39 @@
 
 #include "ARTMDecompressor.hpp"
 #include "RangeDecoder.hpp"
+#include "FrequencyTree.hpp"
 #include "InputStream.hpp"
 #include "OutputStream.hpp"
+#include "common/Common.hpp"
+
+#include <array>
+
+namespace ancient::internal
+{
 
 bool ARTMDecompressor::detectHeaderXPK(uint32_t hdr) noexcept
 {
-	return hdr==FourCC('ARTM');
+	return hdr==FourCC("ARTM");
 }
 
-std::unique_ptr<XPKDecompressor> ARTMDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify)
+std::shared_ptr<XPKDecompressor> ARTMDecompressor::create(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify)
 {
-	return std::make_unique<ARTMDecompressor>(hdr,recursionLevel,packedData,state,verify);
+	return std::make_shared<ARTMDecompressor>(hdr,recursionLevel,packedData,state,verify);
 }
 
-ARTMDecompressor::ARTMDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::unique_ptr<XPKDecompressor::State> &state,bool verify) :
-	XPKDecompressor(recursionLevel),
-	_packedData(packedData)
+ARTMDecompressor::ARTMDecompressor(uint32_t hdr,uint32_t recursionLevel,const Buffer &packedData,std::shared_ptr<XPKDecompressor::State> &state,bool verify) :
+	XPKDecompressor{recursionLevel},
+	_packedData{packedData}
 {
-	if (!detectHeaderXPK(hdr)) throw Decompressor::InvalidFormatError();
-	if (packedData.size()<2) throw Decompressor::InvalidFormatError(); 
-}
-
-ARTMDecompressor::~ARTMDecompressor()
-{
-	// nothing needed
+	if (!detectHeaderXPK(hdr))
+		throw Decompressor::InvalidFormatError();
+	if (packedData.size()<2)
+		throw Decompressor::InvalidFormatError(); 
 }
 
 const std::string &ARTMDecompressor::getSubName() const noexcept
 {
-	static std::string name="XPK-ARTM: Arithmetic encoding compressor";
+	static std::string name{"XPK-ARTM: Arithmetic encoding compressor"};
 	return name;
 }
 
@@ -43,20 +47,21 @@ void ARTMDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	class BitReader : public RangeDecoder::BitReader
 	{
 	public:
-		BitReader(ForwardInputStream &stream) :
-			_reader(stream)
+		BitReader(ForwardInputStream &stream) noexcept:
+			_reader{stream}
 		{
 			// nothing needed
 		}
+		~BitReader() noexcept=default;
 
-		virtual ~BitReader()
-		{
-			// nothing needed
-		}
-
-		virtual uint32_t readBit() override final
+		uint32_t readBit() final
 		{
 			return _reader.readBits8(1);
+		}
+
+		uint32_t readBits(uint32_t count)
+		{
+			return _reader.readBits8(count);
 		}
 
 	private:
@@ -64,54 +69,45 @@ void ARTMDecompressor::decompressImpl(Buffer &rawData,const Buffer &previousData
 	};
 
 
-	ForwardInputStream inputStream(_packedData,0,_packedData.size(),true);
-	ForwardOutputStream outputStream(rawData,0,rawData.size());
-	BitReader bitReader(inputStream);
+	ForwardInputStream inputStream{_packedData,0,_packedData.size(),3U};
+	ForwardOutputStream outputStream{rawData,0,rawData.size()};
+	BitReader bitReader{inputStream};
 
-	uint16_t initialValue=0;
-	for (uint32_t i=0;i<16;i++) initialValue=(initialValue<<1)|bitReader.readBit();
-	RangeDecoder decoder(bitReader,initialValue);
+	RangeDecoder decoder{bitReader,uint16_t(rotateBits(bitReader.readBits(16U),16U))};
 
-	uint8_t characters[256];
-	uint16_t frequencies[256];
-	uint16_t frequencySums[256];
+	// first one will never be used, but doing it this way saves us on some nasty arith
+	// on every place later
+	FrequencyTree<uint16_t,uint16_t,257> tree;
+	std::array<uint8_t,257> characters;
 
-	for (uint32_t i=0;i<256;i++)
+	for (uint32_t i=0;i<257;i++)
 	{
-		characters[i]=i;
-		frequencies[i]=1;
-		frequencySums[i]=256-i;
+		tree.add(i,1);
+		characters[i]=256U-i;
 	}
-	uint16_t frequencyTotal=257;
 
 	while (!outputStream.eof())
 	{
-		uint16_t value=decoder.decode(frequencyTotal);
-		uint16_t symbol;
-		for (symbol=0;symbol<256;symbol++)
-			if (frequencySums[symbol]<=value) break;
-		if (symbol==256) throw Decompressor::DecompressionError();
-		decoder.scale(frequencySums[symbol],frequencySums[symbol]+frequencies[symbol],frequencyTotal);
+		uint16_t value=decoder.decode(tree.getTotal());
+		uint16_t low,freq;
+		uint16_t symbol=tree.decode(value,low,freq);
+		if (!symbol)
+			throw Decompressor::DecompressionError();
+		decoder.scale(low,low+freq,tree.getTotal());
 		outputStream.writeByte(characters[symbol]);
 
-		if (frequencyTotal==0x3fffU)
+		if (tree.getTotal()==0x3fffU)
 		{
-			frequencyTotal=1;
-			for (int32_t i=255;i>=0;i--)
-			{
-				frequencySums[i]=frequencyTotal;
-				frequencyTotal+=frequencies[i]=(frequencies[i]+1)>>1;
-			}
+			for (uint32_t i=1;i<=256;i++)
+				tree.set(i,(tree[i]+1)>>1);
 		}
 		
 		uint16_t i;
-		for (i=symbol;i&&frequencies[i-1]==frequencies[i];i--);
+		for (i=symbol;i<256&&tree[i+1]==tree[i];i++);
 		if (i!=symbol)
 			std::swap(characters[symbol],characters[i]);
-		frequencies[i]++;
-		while (i--) frequencySums[i]++;
-		frequencyTotal++;
+		tree.add(i,1);
 	}
 }
 
-XPKDecompressor::Registry<ARTMDecompressor> ARTMDecompressor::_XPKregistration;
+}

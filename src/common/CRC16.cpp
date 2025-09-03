@@ -1,8 +1,13 @@
 /* Copyright (C) Teemu Suutari */
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "Buffer.hpp"
+#include "OverflowCheck.hpp"
+
+
+namespace ancient::internal
+{
 
 static const uint16_t CRC16Table[256]={
 	0x0000,0xc0c1,0xc181,0x0140,0xc301,0x03c0,0x0280,0xc241,0xc601,0x06c0,0x0780,0xc741,0x0500,0xc5c1,0xc481,0x0440,
@@ -24,7 +29,7 @@ static const uint16_t CRC16Table[256]={
 
 uint16_t CRC16(const Buffer &buffer,size_t offset,size_t len,uint16_t accumulator)
 {
-	if (!len || offset+len>buffer.size()) throw Buffer::OutOfBoundsError();
+	if (!len || OverflowCheck::sum(offset,len)>buffer.size()) throw Buffer::OutOfBoundsError();
 	const uint8_t *ptr=buffer.data()+offset;
 	for (size_t i=0;i<len;i++)
 		accumulator=(accumulator>>8)^CRC16Table[(accumulator&0xff)^ptr[i]];
@@ -34,4 +39,6 @@ uint16_t CRC16(const Buffer &buffer,size_t offset,size_t len,uint16_t accumulato
 uint16_t CRC16Byte(uint8_t ch,uint16_t accumulator) noexcept
 {
 	return (accumulator>>8)^CRC16Table[(accumulator&0xff)^ch];
+}
+
 }

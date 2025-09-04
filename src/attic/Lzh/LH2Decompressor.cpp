@@ -47,7 +47,7 @@ const std::string &LH2Decompressor::getName() const noexcept
 // a. It is very hard to use LH2 using generic implementation
 //    instead of the specific one used by LHA
 // b. There are bugs in encoder which need to be baked in the decoder
-//    as well (Probably there is lots of unneccesary stuff in addCode,
+//    as well (Probably there is lots of unnecessary stuff in addCode,
 //    but better safe than sorry)
 // c. LH 1.9x and UNLHA32 refuse to use LH2 beyond 8k files. Thus
 //    we can only guess if the wraparound is correct, since nothing

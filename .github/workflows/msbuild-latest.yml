@@ -40,15 +40,23 @@ jobs:
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
       run: msbuild /m /p:Platform="x64" /p:Configuration=${{matrix.build_configuration}} ${{env.SOLUTION_FILE_PATH}}
+      run: copy Ancient/x64/Release/Ancient.exe Ancient64.exe
 
     - name: Build x86
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
       run: msbuild /m /p:Platform="x86" /p:Configuration=${{matrix.build_configuration}} ${{env.SOLUTION_FILE_PATH}}
+      run: copy Ancient/Release/Ancient.exe Ancient32.exe
 
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: binaries
-        path: ancient/x64/Release/Ancient.exe
+        name: windows_binaries
+        path: |
+          LICENSE
+          LICENSE.bzip2
+          README.md
+          Ancient32.exe
+          Ancient64.exe
+        if-no-files-found: error

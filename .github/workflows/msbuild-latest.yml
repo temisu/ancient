@@ -22,7 +22,7 @@ jobs:
   build:
     strategy:
        matrix:
-         build_configuration: [Release, Release_Clang]
+         build_configuration: [Release_Clang, Release|x64, Release|x86]
     runs-on: windows-latest
 
     steps:
@@ -45,4 +45,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: binaries
-        path: Ancient/x64/Release
+        path: Ancient/x64/Release/Ancient.exe

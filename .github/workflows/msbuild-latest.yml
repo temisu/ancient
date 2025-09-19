@@ -51,4 +51,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: binaries
-        path: Ancient/x64/Release/Ancient.exe
+        path: ancient/x64/Release/Ancient.exe

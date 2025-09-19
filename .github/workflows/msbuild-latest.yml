@@ -52,7 +52,6 @@ jobs:
         copy Ancient/Release/Ancient.exe Ancient32.exe
 
     - name: Upload
-      working-directory: ${{env.GITHUB_WORKSPACE}}
       uses: actions/upload-artifact@v4
       with:
         name: windows_binaries

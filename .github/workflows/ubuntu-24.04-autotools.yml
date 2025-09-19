@@ -6,6 +6,8 @@ on:
 
 jobs:
   build:
+    permissions:
+      actions: read
 
     runs-on: ubuntu-24.04
 

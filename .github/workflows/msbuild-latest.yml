@@ -22,7 +22,7 @@ jobs:
   build:
     strategy:
        matrix:
-         build_configuration: [Release, Release_Clang]
+         build_configuration: [Release_Clang, Release]
     runs-on: windows-latest
 
     steps:
@@ -35,8 +35,30 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget restore ${{env.SOLUTION_FILE_PATH}}
 
-    - name: Build
+    - name: Build x64
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{matrix.build_configuration}} ${{env.SOLUTION_FILE_PATH}}
+      run: |
+        msbuild /m /p:Platform=x64 /p:Configuration=${{matrix.build_configuration}} ${{env.SOLUTION_FILE_PATH}}
+        copy x64\Release*\Ancient.exe Ancient64.exe
+
+    - name: Build x86
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      # Add additional options to the MSBuild command line here (like platform or verbosity level).
+      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
+      run: |
+        msbuild /m /p:Platform=x86 /p:Configuration=${{matrix.build_configuration}} ${{env.SOLUTION_FILE_PATH}}
+        copy Release*\Ancient.exe Ancient32.exe
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows_binaries_${{matrix.build_configuration}}
+        path: |
+          LICENSE
+          LICENSE.bzip2
+          README.md
+          Ancient32.exe
+          Ancient64.exe
+        if-no-files-found: error

@@ -54,7 +54,7 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: windows_binaries
+        name: windows_binaries_${{matrix.build_configuration}}
         path: |
           LICENSE
           LICENSE.bzip2

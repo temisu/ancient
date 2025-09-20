@@ -14,6 +14,7 @@
 #include <optional>
 
 #include <sys/stat.h>
+#include <utime.h>
 
 #include <ancient/ancient.hpp>
 
@@ -25,7 +26,7 @@
 #include <dirent.h>
 #endif
 
-std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
+static std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 {
 	std::unique_ptr<std::vector<uint8_t>> ret=std::make_unique<std::vector<uint8_t>>();
 	std::ifstream file(fileName.c_str(),std::ios::in|std::ios::binary);
@@ -48,7 +49,7 @@ std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 	return ret;
 }
 
-bool writeFile(const std::string &fileName,const uint8_t *data, size_t size)
+static bool writeFile(const std::string &fileName,const uint8_t *data, size_t size)
 {
 	bool ret=false;
 	std::ofstream file(fileName.c_str(),std::ios::out|std::ios::binary|std::ios::trunc);
@@ -64,6 +65,19 @@ bool writeFile(const std::string &fileName,const uint8_t *data, size_t size)
 	}
 	return ret;
 }
+
+// Filetime in windows
+static void copyMTime(const std::string &destName,const std::string &srcName)
+{
+	struct stat st;
+	if (stat(srcName.c_str(),&st)<0)
+		return;
+	struct utimbuf tb;
+	tb.actime=st.st_atime;
+	tb.modtime=st.st_mtime;
+	utime(destName.c_str(),&tb);
+}
+
 
 bool writeFile(const std::string &fileName,const std::vector<uint8_t> &content)
 {

@@ -14,7 +14,7 @@
 #include <optional>
 
 #include <sys/stat.h>
-#ifdef WIN32
+#ifdef _WIN32
 #include <sys/utime.h>
 #else
 #include <utime.h>

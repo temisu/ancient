@@ -14,7 +14,11 @@
 #include <optional>
 
 #include <sys/stat.h>
+#ifdef WIN32
+#include <sys/utime.h>
+#else
 #include <utime.h>
+#endif
 
 #include <ancient/ancient.hpp>
 
@@ -67,7 +71,7 @@ static bool writeFile(const std::string &fileName,const uint8_t *data, size_t si
 }
 
 // Filetime in windows
-static void copyMTime(const std::string &destName,const std::string &srcName)
+void copyMTime(const std::string &destName,const std::string &srcName)
 {
 	struct stat st;
 	if (stat(srcName.c_str(),&st)<0)

@@ -14,6 +14,11 @@
 #include <optional>
 
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <sys/utime.h>
+#else
+#include <utime.h>
+#endif
 
 #include <ancient/ancient.hpp>
 
@@ -25,7 +30,7 @@
 #include <dirent.h>
 #endif
 
-std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
+static std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 {
 	std::unique_ptr<std::vector<uint8_t>> ret=std::make_unique<std::vector<uint8_t>>();
 	std::ifstream file(fileName.c_str(),std::ios::in|std::ios::binary);
@@ -48,7 +53,7 @@ std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 	return ret;
 }
 
-bool writeFile(const std::string &fileName,const uint8_t *data, size_t size)
+static bool writeFile(const std::string &fileName,const uint8_t *data, size_t size)
 {
 	bool ret=false;
 	std::ofstream file(fileName.c_str(),std::ios::out|std::ios::binary|std::ios::trunc);
@@ -65,7 +70,19 @@ bool writeFile(const std::string &fileName,const uint8_t *data, size_t size)
 	return ret;
 }
 
-bool writeFile(const std::string &fileName,const std::vector<uint8_t> &content)
+// Filetime in windows
+static void copyMTime(const std::string &destName,const std::string &srcName)
+{
+	struct stat st;
+	if (stat(srcName.c_str(),&st)<0)
+		return;
+	struct utimbuf tb;
+	tb.actime=st.st_atime;
+	tb.modtime=st.st_mtime;
+	utime(destName.c_str(),&tb);
+}
+
+static bool writeFile(const std::string &fileName,const std::vector<uint8_t> &content)
 {
 	return writeFile(fileName,content.data(),content.size());
 }
@@ -81,14 +98,32 @@ int main(int argc,char **argv)
 				" - identifies compression used in a file(s)\n"
 				"Usage: ancient v[erify] packed_input_file unpacked_comparison_file\n"
 				" - verifies decompression against known good unpacked file\n"
-				"Usage: ancient d[ecompress] packed_input_file output_file\n"
-				" - decompresses single file\n");
+				"Usage: ancient [-p] d[ecompress] packed_input_file output_file\n"
+				" - decompresses single file\n"
+				" - use p-flag to preserve timestamp of the original\n");
 #ifdef ENABLE_SCAN
 		fprintf(stderr,	"Usage: ancient s[can] input_dir output_dir\n"
 				" - scans input directory recursively and stores all found\n"
 				" - known compressed streams to separate files in output directory\n");
 #endif
 	};
+
+
+	bool preserveTimestamps=false;
+	// getopt requires extra deps on windows. Do something very simple (and little bit ugly)
+	if (argc>=2 && argv[1][0]=='-')
+	{
+		std::string opts=argv[1];
+		if (opts=="-p") preserveTimestamps=true;
+		else
+		{
+			usage();
+			return -1;
+		}
+		--argc;
+		for (int i=1;i<argc;i++)
+			argv[i]=argv[i+1];
+	}
 
 	if (argc<3)
 	{
@@ -176,6 +211,7 @@ int main(int argc,char **argv)
 			} else {
 				writeFile(argv[3],raw);
 			}
+			if (preserveTimestamps) copyMTime(argv[3],argv[2]);
 			return 0;
 		} else {
 			size_t actualSize=decompressor->getImageSize()?decompressor->getImageSize().value():raw.size();

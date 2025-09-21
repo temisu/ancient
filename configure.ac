@@ -1,5 +1,5 @@
 
-AC_INIT([ancient], [2.3.0], [https://github.com/temisu/ancient/issues], [ancient], [https://github.com/temisu/ancient/])
+AC_INIT([ancient], [2.4.0-pre0], [https://github.com/temisu/ancient/issues], [ancient], [https://github.com/temisu/ancient/])
 #                   ^^^^^^^^^^^
 # Package Version
 #

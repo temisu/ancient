@@ -71,7 +71,7 @@ static bool writeFile(const std::string &fileName,const uint8_t *data, size_t si
 }
 
 // Filetime in windows
-void copyMTime(const std::string &destName,const std::string &srcName)
+static void copyMTime(const std::string &destName,const std::string &srcName)
 {
 	struct stat st;
 	if (stat(srcName.c_str(),&st)<0)
@@ -82,8 +82,7 @@ void copyMTime(const std::string &destName,const std::string &srcName)
 	utime(destName.c_str(),&tb);
 }
 
-
-bool writeFile(const std::string &fileName,const std::vector<uint8_t> &content)
+static bool writeFile(const std::string &fileName,const std::vector<uint8_t> &content)
 {
 	return writeFile(fileName,content.data(),content.size());
 }
@@ -99,14 +98,32 @@ int main(int argc,char **argv)
 				" - identifies compression used in a file(s)\n"
 				"Usage: ancient v[erify] packed_input_file unpacked_comparison_file\n"
 				" - verifies decompression against known good unpacked file\n"
-				"Usage: ancient d[ecompress] packed_input_file output_file\n"
-				" - decompresses single file\n");
+				"Usage: ancient [-p] d[ecompress] packed_input_file output_file\n"
+				" - decompresses single file\n"
+				" - use p-flag to preserve timestamp of the original\n");
 #ifdef ENABLE_SCAN
 		fprintf(stderr,	"Usage: ancient s[can] input_dir output_dir\n"
 				" - scans input directory recursively and stores all found\n"
 				" - known compressed streams to separate files in output directory\n");
 #endif
 	};
+
+
+	bool preserveTimestamps=false;
+	// getopt requires extra deps on windows. Do something very simple (and little bit ugly)
+	if (argc>=2 && argv[1][0]=='-')
+	{
+		std::string opts=argv[1];
+		if (opts=="-p") preserveTimestamps=true;
+		else
+		{
+			usage();
+			return -1;
+		}
+		--argc;
+		for (int i=1;i<argc;i++)
+			argv[i]=argv[i+1];
+	}
 
 	if (argc<3)
 	{
@@ -194,6 +211,7 @@ int main(int argc,char **argv)
 			} else {
 				writeFile(argv[3],raw);
 			}
+			if (preserveTimestamps) copyMTime(argv[3],argv[2]);
 			return 0;
 		} else {
 			size_t actualSize=decompressor->getImageSize()?decompressor->getImageSize().value():raw.size();

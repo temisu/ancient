@@ -91,7 +91,7 @@ int main(int argc,char **argv)
 {
 	auto usage=[]()
 	{
-		fprintf(stderr, "Ancient v2.3.0-pre0\n"
+		fprintf(stderr, "Ancient v2.3.0\n"
 				"Copyright (C) Teemu Suutari\n"
 				"\n"
 				"Usage: ancient i[dentify] packed_input_files...\n"

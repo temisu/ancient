@@ -103,7 +103,7 @@ void verifyFile(const char *packedFile,const char *rawFile,bool ignoreExpansion=
 int main(int argc,char **argv)
 {
 	// ANC Cruncher
-//	verifyFile(BASE_DIR "test_C1.anc",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1.anc",BASE_DIR "test_C1.raw");
 
 	// ByteKiller
 	verifyFile(BASE_DIR "test_C1.byte_1.2",BASE_DIR "test_C1.raw");

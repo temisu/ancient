@@ -22,14 +22,6 @@
 
 #include <ancient/ancient.hpp>
 
-// enables scanning. Useful for testing/debugging. Not so useful otherwise
-// Not good for default since creates dependency for dirent (i.e. windows blues)
-//#define ENABLE_SCAN 1
-
-#ifdef ENABLE_SCAN
-#include <dirent.h>
-#endif
-
 static std::unique_ptr<std::vector<uint8_t>> readFile(const std::string &fileName)
 {
 	std::unique_ptr<std::vector<uint8_t>> ret=std::make_unique<std::vector<uint8_t>>();
@@ -100,12 +92,10 @@ int main(int argc,char **argv)
 				" - verifies decompression against known good unpacked file\n"
 				"Usage: ancient [-p] d[ecompress] packed_input_file output_file\n"
 				" - decompresses single file\n"
-				" - use p-flag to preserve timestamp of the original\n");
-#ifdef ENABLE_SCAN
-		fprintf(stderr,	"Usage: ancient s[can] input_dir output_dir\n"
-				" - scans input directory recursively and stores all found\n"
-				" - known compressed streams to separate files in output directory\n");
-#endif
+				" - use p-flag to preserve timestamp of the original\n"
+				"Usage: ancient s[can] input_file output_file_template\n"
+				" - scans input file and stores all found known compressed\n"
+				"   streams to separate files\n");
 	};
 
 
@@ -234,97 +224,62 @@ int main(int argc,char **argv)
 			printf("Files match!\n");
 			return 0;
 		}
-	}
-#ifdef ENABLE_SCAN
-	else if (cmd=="s" || cmd=="scan") {
+	} else if (cmd=="s" || cmd=="scan") {
 		if (argc!=4)
 		{
 			usage();
 			return -1;
 		}
 		uint32_t fileIndex=0;
-		std::function<void(std::string)> processDir=[&](std::string inputDir)
+		auto packed {readFile(argv[2])};
+		if (!packed)
+			return -1;
+		for (size_t i=0;i<packed->size();)
 		{
-			auto opendir=[](const char *f)->DIR* {
-				return ::opendir(f);
-			};
-
-			auto closedir=[](DIR *d)->int {
-				return ::closedir(d);
-			};
-
-			std::unique_ptr<DIR,decltype(closedir)> dir{opendir(inputDir.c_str()),closedir};
-			if (dir)
+			// We will detect first, before trying the format for real
+			if (!ancient::Decompressor::detect(packed->data()+i,packed->size()-i))
 			{
-				while (struct dirent *de=::readdir(dir.get()))
-				{
-					std::string subName(de->d_name);
-					if (subName=="." || subName=="..") continue;
-					std::string name=inputDir+"/"+subName;
-					struct stat st;
-					if (stat(name.c_str(),&st)<0) continue;
-					if (st.st_mode&S_IFDIR)
-					{
-						processDir(name);
-					} else if (st.st_mode&S_IFREG) {
-						auto packed{readFile(name)};
-						if (!packed) return -1;
-						for (size_t i=0;i<packed->size();)
-						{
-							// We will detect first, before trying the format for real
-							if (!ancient::Decompressor::detect(packed->data()+i,packed->size()-i))
-							{
-								i++;
-								continue;
-							}
-							try
-							{
-								ancient::Decompressor decompressor{packed->data()+i,packed->size()-i,false,true};
-
-								printf("trying %s\n",decompressor.getName().c_str());
-								if (!decompressor.getPackedSize())
-								{
-									// for formats that do not encode packed size.
-									// we will get it from decompressor
-									decompressor.decompress(true);
-								}
-
-								// final checks with the limited buffer and fresh decompressor
-								const uint8_t *finalData=packed->data()+i;
-								size_t finalSize=decompressor.getPackedSize().value();
-								ancient::Decompressor decompressor2{finalData,finalSize,true,true};
-								try
-								{
-									decompressor2.decompress(true);
-								} catch (const std::bad_alloc&) {
-									fprintf(stderr,"Out of memory\n");
-									i++;
-									continue;
-								}
-								std::string outputName=std::string(argv[3])+"/file"+std::to_string(fileIndex++)+".pack";
-								printf("Found compressed stream at %zu, size %zu in file %s with type '%s', storing it into %s\n",i,decompressor2.getPackedSize().value(),name.c_str(),decompressor2.getName().c_str(),outputName.c_str());
-								writeFile(outputName,finalData,finalSize);
-								i+=finalSize;
-								continue;
-							} catch (const ancient::Error&) {
-								// full steam ahead (with next offset)
-							} catch (const std::bad_alloc&) {
-								// full steam ahead (with next offset)
-							}
-							i++;
-						}
-					}
-				}
-			} else {
-				fprintf(stderr,"Could not process directory %s\n",inputDir.c_str());
+				i++;
+				continue;
 			}
-		};
+			try
+			{
+				ancient::Decompressor decompressor{packed->data()+i,packed->size()-i,false,true};
 
-		processDir(std::string(argv[2]));
+				printf("trying %s\n",decompressor.getName().c_str());
+				if (!decompressor.getPackedSize())
+				{
+					// for formats that do not encode packed size.
+					// we will get it from decompressor
+					decompressor.decompress(true);
+				}
+
+				// final checks with the limited buffer and fresh decompressor
+				const uint8_t *finalData=packed->data()+i;
+				size_t finalSize=decompressor.getPackedSize().value();
+				ancient::Decompressor decompressor2{finalData,finalSize,true,true};
+				try
+				{
+					decompressor2.decompress(true);
+				} catch (const std::bad_alloc&) {
+					fprintf(stderr,"Out of memory\n");
+					i++;
+					continue;
+				}
+				std::string outputName=std::string(argv[3])+std::to_string(fileIndex++)+".pack";
+				printf("Found compressed stream at %zu, size %zu in file %s with type '%s', storing it into %s\n",i,decompressor2.getPackedSize().value(),argv[2],decompressor2.getName().c_str(),outputName.c_str());
+				writeFile(outputName,finalData,finalSize);
+				i+=finalSize;
+				continue;
+			} catch (const ancient::Error&) {
+				// full steam ahead (with next offset)
+			} catch (const std::bad_alloc&) {
+				// full steam ahead (with next offset)
+			}
+			i++;
+		}
 		return 0;
-	}
-#endif
-	else {
+	} else {
 		fprintf(stderr,"Unknown command\n");
 		usage();
 		return -1;

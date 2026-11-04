@@ -129,9 +129,9 @@ void CRMDecompressor::decompressImpl(Buffer &rawData,bool verify)
 		// There are empty bits?!? at the start of the stream. take them out
 		size_t bufOffset{_packedSize+14-6};
 		uint32_t originalBitsContent{_packedData.readBE32(bufOffset)};
-		uint16_t originalShift{_packedData.readBE16(bufOffset+4)};
-		uint8_t bufBitsLength{uint8_t(originalShift+16)};
-		uint32_t bufBitsContent{originalBitsContent>>(16-originalShift)};
+		uint16_t originalShift{_packedData.readBE16(bufOffset+4U)};
+		uint8_t bufBitsLength{uint8_t(originalShift+16U)};
+		uint32_t bufBitsContent{originalBitsContent>>(16U-originalShift)};
 		bitReader.reset(bufBitsContent,bufBitsLength);
 	}
 	auto readBits=[&](uint32_t count)->uint32_t

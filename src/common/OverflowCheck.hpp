@@ -3,6 +3,9 @@
 #ifndef OVERFLOW_CHECK_HPP
 #define OVERFLOW_CHECK_HPP
 
+#include <type_traits>
+#include <limits>
+
 #include "Buffer.hpp"
 
 namespace ancient::internal
@@ -14,10 +17,13 @@ public:
 	template<typename T,typename U>
 	static T sum(T a,U b)
 	{
-		// TODO: Add type traits to handle signed integers
-		T ret=a+b;
-		if (ret<a) throw Buffer::OutOfBoundsError();
-		return ret;
+		static_assert(std::is_unsigned_v<T>);
+		static_assert(std::is_unsigned_v<U>);
+
+		T _b{T(b)};
+		if (a>std::numeric_limits<T>::max()-_b)
+			throw Buffer::OutOfBoundsError();
+		return a+_b;
 	}
 
 	template<typename T,typename U,typename ...Args>

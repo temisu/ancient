@@ -81,7 +81,7 @@ IMPDecompressor::IMPDecompressor(const Buffer &packedData,bool verify) :
 
 	_rawSize=packedData.readBE32(4);
 	_endOffset=packedData.readBE32(8);
-	if ((_endOffset&1) || _endOffset<0xc || _endOffset+0x32>packedData.size() ||
+	if ((_endOffset&1) || _endOffset<0xc || OverflowCheck::sum(_endOffset,0x32U)>packedData.size() ||
 		!_rawSize || !_endOffset || _rawSize>getMaxRawSize() || _endOffset>getMaxPackedSize())
 		throw InvalidFormatError();
 	uint32_t checksum{packedData.readBE32(_endOffset+0x2e)};
@@ -169,11 +169,11 @@ void IMPDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				} else {
 					if (i<4)
 					{
-						return i+_refOffset+8;
+						return OverflowCheck::sum(_refOffset,i+8);
 					} else if (i<8) {
-						return i+_refOffset;
+						return OverflowCheck::sum(_refOffset,i);
 					} else {
-						return i+_refOffset-8;
+						return OverflowCheck::sum(_refOffset,i-8);
 					}
 				}
 			};

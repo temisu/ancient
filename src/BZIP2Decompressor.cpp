@@ -10,6 +10,7 @@
 #include "common/MemoryBuffer.hpp"
 #include "common/CRC32.hpp"
 #include "common/Common.hpp"
+#include "common/OverflowCheck.hpp"
 
 #include <array>
 
@@ -268,7 +269,7 @@ void BZIP2Decompressor::decompressImpl(Buffer &rawData,bool verify)
 				{
 					if (currentRunLength)
 					{
-						if (currentBlockSize+currentRunLength>_blockSize)
+						if (OverflowCheck::sum(currentBlockSize,currentRunLength)>_blockSize)
 							throw DecompressionError();
 						for (uint32_t i=0;i<currentRunLength;i++) tmpBuffer[currentBlockSize++]=huffmanValues[dataMTFMap[0]];
 					}

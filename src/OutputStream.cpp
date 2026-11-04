@@ -24,7 +24,7 @@ ForwardOutputStreamBase::ForwardOutputStreamBase(Buffer &buffer,size_t startOffs
 
 void ForwardOutputStreamBase::writeByte(uint8_t value)
 {
-	ensureSize(_currentOffset+1);
+	ensureSize(OverflowCheck::sum(_currentOffset,1U));
 	_buffer[_currentOffset++]=value;
 }
 
@@ -49,7 +49,7 @@ uint8_t ForwardOutputStreamBase::copy(size_t distance,size_t count,const Buffer 
 	if (OverflowCheck::sum(_startOffset,distance)>_currentOffset)
 	{
 		size_t prevSize{prevBuffer.size()};
-		if (_startOffset+distance>_currentOffset+prevSize)
+		if (OverflowCheck::sum(_startOffset,distance)>OverflowCheck::sum(_currentOffset,prevSize))
 			throw Decompressor::DecompressionError(); 
 		size_t prevDist{_startOffset+distance-_currentOffset};
 		prevCount=std::min(count,prevDist);

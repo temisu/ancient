@@ -36,8 +36,10 @@ GRNDDecompressor::GRNDDecompressor(const Buffer &packedData,bool verify) :
 
 const std::string &GRNDDecompressor::getName() const noexcept
 {
-	static std::string name="GrnD: Grind Compressor";
-	return name;
+	static std::string names[2]={
+		{"GrnD: Grind Compressor"},
+		{"GrND: Grind Compressor (single block)"}};
+	return names[_singleBlock?1:0];
 }
 
 size_t GRNDDecompressor::getPackedSize() const noexcept
@@ -55,7 +57,6 @@ void GRNDDecompressor::decompressImpl(Buffer &rawData,bool verify)
 	ForwardInputStream inputStream{_packedData,4U,_packedData.size()};
 	LSBBitReader<ForwardInputStream> bitReader{inputStream};
 	bitReader.reset(inputStream.readBE32(),32U);
-
 
 	auto ensureBits=[&]()
 	{
@@ -95,10 +96,10 @@ void GRNDDecompressor::decompressImpl(Buffer &rawData,bool verify)
 			std::array<uint8_t,16> lengthTable;
 			for (uint32_t i=0;i<length;i++)
 			{
-				uint8_t length=readBitsAndFill(3U);
-				if (!length) length=readBitsAndFill(3U);
-					else length++;
-				lengthTable[i]=length;
+				uint8_t bitLength=readBitsAndFill(3U);
+				if (!bitLength) bitLength=readBitsAndFill(3U);
+					else bitLength++;
+				lengthTable[i]=bitLength;
 			}
 			dec.createOrderlyHuffmanTable(lengthTable,length);
 		};
@@ -109,18 +110,20 @@ void GRNDDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				std::array<uint8_t,256> lengthTable;
 				for (uint32_t i=0;i<256U;)
 				{
-					uint8_t length{uint8_t(readBitsAndFill(3U))};
-					if (length) length+=3U;
+					uint8_t bitLength{uint8_t(readBitsAndFill(3U))};
+					if (bitLength) bitLength+=3U;
 					uint32_t count;
-					if (length==4U)
+					if (bitLength==4U)
 					{
 						count=readBitsAndFill(4U);
 						if (count) count+=3U;
 							else count=1U;
-						length=readBitsAndFill(3U);
-						if (length) length+=3U;
+						bitLength=readBitsAndFill(3U);
+						if (bitLength) bitLength+=3U;
 					} else count=1U;
-					for (uint32_t j=0;j<count;j++) lengthTable[i+j]=length;
+					if (i+count>256)
+						throw DecompressionError();
+					for (uint32_t j=0;j<count;j++) lengthTable[i+j]=bitLength;
 					i+=count;
 				}
 				symbolDecoder.createOrderlyHuffmanTable(lengthTable,256U);
@@ -180,15 +183,15 @@ void GRNDDecompressor::decompressImpl(Buffer &rawData,bool verify)
 				if (!--blockSize) break;
 			}
 			// blocks are not suggestions here! (they are physical tracks)
-			if (!_singleBlock && blockStart+512U<inputStream.getOffset())
+			if (!_singleBlock && OverflowCheck::sum(blockStart,512U)<inputStream.getOffset())
 				throw DecompressionError();
 			uint32_t padding{512U-(uint32_t(inputStream.getOffset())&511U)};
 			if (padding==512U || _singleBlock) padding=0;
 			if (sub+1==blocks && blockNoPad) padding=0;
 			if (inputStream.getOffset()+padding>=inputStream.getEndOffset())
 			{
-				_packedSize=inputStream.getOffset();
-				_rawSize=outputStream.getOffset();
+				_packedSize=uint32_t(inputStream.getOffset());
+				_rawSize=uint32_t(outputStream.getOffset());
 				return;
 			}
 			inputStream.consume(padding);

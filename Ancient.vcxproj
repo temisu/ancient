@@ -226,6 +226,7 @@
     <ClCompile Include="src\FBR2Decompressor.cpp" />
     <ClCompile Include="src\FreezeDecompressor.cpp" />
     <ClCompile Include="src\FRLEDecompressor.cpp" />
+    <ClCompile Include="src\GRNDDecompressor.cpp" />
     <ClCompile Include="src\HFMNDecompressor.cpp" />
     <ClCompile Include="src\HUFFDecompressor.cpp" />
     <ClCompile Include="src\IceDecompressor.cpp" />
@@ -306,6 +307,7 @@
     <ClInclude Include="src\FreezeDecompressor.hpp" />
     <ClInclude Include="src\FrequencyTree.hpp" />
     <ClInclude Include="src\FRLEDecompressor.hpp" />
+    <ClInclude Include="src\GRNDDecompressor.hpp" />
     <ClInclude Include="src\HFMNDecompressor.hpp" />
     <ClInclude Include="src\HUFFDecompressor.hpp" />
     <ClInclude Include="src\HuffmanDecoder.hpp" />

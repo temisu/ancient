@@ -55,6 +55,7 @@ Decompression algorithms provided:
   * ID PARA (Imploder Clone) (verification missing)
 * Freeze/Melt
   * Supports both old and new formats
+* Amiga Grind (GRND) Decompressor
 * gzip
 * JAM Packer
   * JEK: JAM Packer v1.x (ByteKiller Clone)

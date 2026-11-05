@@ -156,6 +156,22 @@ public:
 		return ret;
 	}
 
+	template<typename F>
+	void ensureBitsGeneric(uint8_t count,F readWord)
+	{
+		if (count>32)
+			throw Decompressor::DecompressionError();
+		while (_bufLength<count)
+		{
+			uint32_t newBuff;
+			uint8_t newLength;
+			std::tie(newBuff,newLength)=readWord();
+			_bufContent|=newBuff<<_bufLength;
+			_bufLength+=newLength;
+			count-=std::min(newLength,count);
+		}
+	}
+
 	size_t available() const noexcept { return _inputStream.available()*8U+_bufLength; }
 
 private:

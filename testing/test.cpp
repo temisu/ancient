@@ -178,6 +178,10 @@ int main(int argc,char **argv)
 	verifyFile(BASE_DIR "test_C1_old.F",BASE_DIR "test_C1.raw");
 	verifyFile(BASE_DIR "test_C1.F",BASE_DIR "test_C1.raw");
 
+	// Grind
+	verifyFile(BASE_DIR "test_C1.grnd",BASE_DIR "test_C1.raw");
+	verifyFile(BASE_DIR "test_C1_s.grnd",BASE_DIR "test_C1.raw");
+
 	// Gzip
 	verifyFile(BASE_DIR "test_C1.gz",BASE_DIR "test_C1.raw");
 
